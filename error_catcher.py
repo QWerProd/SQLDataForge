@@ -16,5 +16,7 @@ class ErrorCatcher:
         err_message = cursor.execute(f"SELECT title, message FROM t_err_codes WHERE err_code = '{code}'").fetchone()
         if err_message is None:
             messagebox.showerror("Необработанная ошибка", "Error")
+            return "Error"
         else:
             messagebox.showerror(err_message[0], code + ': ' + err_message[1])
+            return err_message[1]

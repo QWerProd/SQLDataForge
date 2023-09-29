@@ -31,6 +31,8 @@ class SQLGenerator:
     def CreateHeader(self):
         self.queryrow1 += self.table_name
         col_names = []
+        if self.new_table_info['is_id_create']:
+            col_names.append('id')
         for tables in self.tables:
             col_names.append(tables.split(':')[1])
         res = ', '.join(col_names)

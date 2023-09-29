@@ -1,9 +1,8 @@
 import wx
 import wx.stc
-import os
 import sqlite3
-from tkinter.filedialog import asksaveasfilename
 
+from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
 from error_catcher import ErrorCatcher
@@ -18,11 +17,14 @@ class MainFrame(wx.Frame):
     added_item_text = []
     all_tables = {}
 
+    # Параметры страницы "Таблица"
     is_create_table = False
     is_id_column = False
 
+    # Параметры состояния
     is_generated = False
     is_saved = False
+    query_status = "Ожидание"
 
     # TODO: Подготовка к переходу на "таблицу" вместо текстовой области
     #       Редактировать метод, чтобы он добавлял несколько элементов и записывал
@@ -64,16 +66,23 @@ class MainFrame(wx.Frame):
             self.textctrl_used_tables.SetValue(', '.join(self.added_item_text))
 
     def Generate(self, event):
+        start_generate_time = datetime.now()
         table_info = {}
         table_name = self.textctrl_table_name.GetValue()
         rows_count = self.textctrl_rows_count.GetValue()
 
+        self.query_status = "Генерация запроса..."
+        self.statusbar.SetStatusText(self.query_status, 0)
+
         if len(self.added_items) == 0:
-            catcher.error_message('E003')
+            self.query_status = catcher.error_message('E003')
+            self.statusbar.SetStatusText(self.query_status, 0)
         elif table_name == '':
-            catcher.error_message('E004')
+            self.query_status = catcher.error_message('E004')
+            self.statusbar.SetStatusText(self.query_status, 0)
         elif rows_count == '':
-            catcher.error_message('E005')
+            self.query_status = catcher.error_message('E005')
+            self.statusbar.SetStatusText(self.query_status, 0)
         else:
             try:
                 rows_count = int(rows_count)
@@ -89,28 +98,50 @@ class MainFrame(wx.Frame):
                         temp['increment_start'] = increment
                 table_info[table_name] = temp
 
+                start_build_time = datetime.now()
                 builder = SQLGenerator(app_conn, table_info, rows_count, self.added_items)
                 query = ''
                 query += builder.BuildQuery(self.is_create_table)
+                build_time = datetime.now() - start_build_time
                 self.textctrl_sql.SetValue(query)
                 self.is_generated = True
                 self.is_saved = False
+                self.query_status = "Готово"
+                self.statusbar.SetStatusText(self.query_status, 0)
+                generate_time = datetime.now() - start_generate_time
+
+                build_time = round(build_time.total_seconds(), 4)
+                generate_time = round(generate_time.total_seconds(), 2)
+                self.statusbar.SetStatusText("Сгенерировано за: " + str(build_time) + " с., всего: " + str(generate_time) + " с.", 2)
 
             except ValueError:
-                return catcher.error_message('E010')
+                self.query_status = catcher.error_message('E010')
+                self.statusbar.SetStatusText(self.query_status, 0)
 
     def SaveScript(self, is_new=True):
         sql = self.textctrl_sql.GetValue()
         if sql == "":
-            catcher.error_message('E001')
+            self.query_status = catcher.error_message('E001')
+            self.statusbar.SetStatusText(self.query_status, 0)
         else:
-            newfile = asksaveasfilename()
-            file_name = os.path.basename(newfile)
-            with open(newfile, mode='w', encoding="utf-8") as reader:
-                reader.write(sql)
-            wx.MessageBox("Файл " + file_name + " сохранен в " + newfile, "Сохранено",
-                          wx.ICON_INFORMATION | wx.OK, self)
+            with wx.FileDialog(self, "Сохранить как...", wildcard="Файл SQL(*.sql)|*.sql", style=wx.FD_SAVE) as file_dialog:
+                if file_dialog.ShowModal() == wx.CANCEL:
+                    return
+
+                file_path = file_dialog.GetPath()
+                file_name = file_dialog.GetName()
+
+                if not file_path.endswith('.sql'):
+                    file_name += '.sql'
+                    file_path += '.sql'
+
+                with open(file_path, mode='w', encoding="utf-8") as reader:
+                    reader.write(sql)
+                wx.MessageBox("Файл " + file_name + " сохранен в " + file_path, "Сохранено",
+                              wx.ICON_INFORMATION | wx.OK, self)
             self.is_saved = True
+            self.query_status = "Сохранено"
+            self.statusbar.SetStatusText(self.query_status, 0)
 
     def OnClose(self, event):
         dlg = wx.MessageDialog(self, 'Вы действительно хотите выйти?', 'Подтверждение выхода',
@@ -386,12 +417,11 @@ class MainFrame(wx.Frame):
         main_boxsizer.Add(data_panel, 1, wx.BOTTOM | wx.EXPAND)
         # ---
 
-        # НЕ УДАЛЯТЬ
-        # self.statusbar = self.CreateStatusBar(1, wx.STB_ELLIPSIZE_END)
-        # self.statusbar.SetFieldsCount(6)
-        # self.statusbar.SetStatusText("Status bar", 0)
-        # self.statusbar.SetStatusText("", 1)
-        # self.statusbar.SetStatusText("asasas", 2)
+        self.statusbar = self.CreateStatusBar(1, wx.STB_ELLIPSIZE_END)
+        self.statusbar.SetFieldsCount(3)
+        self.statusbar.SetStatusText(self.query_status, 0)
+        self.statusbar.SetStatusText("", 1)
+        self.statusbar.SetStatusText("asasas", 2)
 
         main_panel.Layout()
         main_panel.Show()
