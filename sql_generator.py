@@ -3,7 +3,6 @@ import datetime
 from data_controller import DataController as DC
 import sqlite3
 import random as rd
-import pandas as pd
 
 
 class SQLGenerator:
@@ -17,7 +16,7 @@ class SQLGenerator:
     cols = []
     column_names = []
 
-    def __init__(self, app_conn: sqlite3.Connection, table_info: dict, rows_count: int, tables: list) -> None:
+    def __init__(self, app_conn: sqlite3.Connection, table_info: dict, rows_count: int, tables: list, column_names: list) -> None:
         self.app_conn = app_conn
         for key, value in table_info.items():
             self.table_name = key
@@ -25,7 +24,7 @@ class SQLGenerator:
         self.rows_count = rows_count
         self.queryrow2.clear()
         self.cols.clear()
-        self.column_names.clear()
+        self.column_names = column_names
         self.tables = tables
 
     def CreateHeader(self):
@@ -33,8 +32,8 @@ class SQLGenerator:
         col_names = []
         if self.new_table_info['is_id_create']:
             col_names.append('id')
-        for tables in self.tables:
-            col_names.append(tables.split(':')[1])
+        for columns in self.column_names:
+            col_names.append(columns)
         res = ', '.join(col_names)
         self.queryrow1 += '(' + res + ')'
 
@@ -43,8 +42,8 @@ class SQLGenerator:
         items = []
         if self.new_table_info['is_id_create']:
             items.append(f'id INTEGER NOT NULL\n')
-        for col in self.cols:
-            items.append(f'{col[1]} {col[3]}\n')
+        for i in range(len(self.cols)):
+            items.append(f'{self.column_names[i]} {self.cols[i][3]}\n')
         query_createtable += '   ,'.join(items)
         if self.new_table_info['is_id_create']:
             query_createtable += '    PRIMARY KEY("id")\n'
@@ -71,7 +70,7 @@ class SQLGenerator:
                 for i in range(increment, self.rows_count + increment):
                     row.append(i)
                 datadict['id'] = row
-                self.column_names.append('id')
+                # self.column_names.append('id')
 
         for database in databases:
             conn = sqlite3.connect(database[1])
@@ -95,9 +94,9 @@ class SQLGenerator:
                 max_val = cursor.execute(f"SELECT COUNT(*) FROM {table[0]};").fetchone()[0]
 
                 # Creating list of columns
-                self.column_names.append(table[1])
+                # self.column_names.append(table[1])
 
-                datadict[table[1]] = list()
+                datadict[table[0] + ':' + table[1]] = list()
 
                 for i in range(self.rows_count):
                     # Getting random data from datasets
@@ -106,7 +105,7 @@ class SQLGenerator:
                         data = cursor.execute(f"""SELECT {table[1]}
                                                   FROM {table[0]}
                                                   WHERE id = {row_number};""").fetchone()[0]
-                        datadict[table[1]].append(data)
+                        datadict[table[0] + ':' + table[1]].append(data)
                     # Generating random number in given interval
                     elif table[2] == 'RValue':
                         break
@@ -141,7 +140,7 @@ class SQLGenerator:
                         rnd_day = rd.randint(1, days)
 
                         # Генерация даты
-                        datadict[table[1]].append(str(mindate + datetime.timedelta(days=rnd_day)))
+                        datadict[table[0] + ':' + table[1]].append(str(mindate + datetime.timedelta(days=rnd_day)))
             cursor.close()
             conn.close()
 

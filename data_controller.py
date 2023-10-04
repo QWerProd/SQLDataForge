@@ -1,7 +1,6 @@
 import os
 from error_catcher import ErrorCatcher
 import sqlite3
-from datetime import datetime
 
 app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher()
@@ -9,7 +8,7 @@ catcher = ErrorCatcher()
 
 class DataController:
 
-    def SetDatabases() -> list:
+    def SetDatabases(self) -> list:
         """Читает папку data/ и вносит сведения о пБД в сБД."""
         db_count = [0, 0]
         app_curs = app_conn.cursor()
@@ -30,7 +29,7 @@ class DataController:
         return db_count
                     
 
-    def GetDatabases() -> list:
+    def GetDatabases(self) -> list:
         """Возвращает список пБД из сБД."""
         databases = []
 
@@ -49,16 +48,15 @@ class DataController:
         result = app_conn.execute("SELECT dbname, path FROM t_databases").fetchall()
         for unit in result:
             databases[unit[0]] = unit[1]
-        
 
         for database, path in databases.items():
             conn = sqlite3.connect(path)
             cursor = conn.cursor()
-            tables = cursor.execute(f"""SELECT table_name, column_name, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
+            tables = cursor.execute(f"""SELECT table_name, column_name, column_type, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
 
             list_tables = []
             for item in tables:
-                list_tables.append(f"{item[0]}:{item[1]}:{item[2]}")
+                list_tables.append(f"{item[0]}:{item[1]}:{item[2]}:{item[3]}")
 
             all_tables[database] = list_tables
             cursor.close()

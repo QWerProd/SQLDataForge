@@ -1,4 +1,3 @@
-import wx
 from tkinter import messagebox
 import sqlite3
 

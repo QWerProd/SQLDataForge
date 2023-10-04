@@ -17,6 +17,10 @@ class MainFrame(wx.Frame):
     added_item_text = []
     all_tables = {}
 
+    textctrl_column_names = []
+    textctrl_column_types = []
+    column_items = []
+
     # Параметры страницы "Таблица"
     is_create_table = False
     is_id_column = False
@@ -26,9 +30,46 @@ class MainFrame(wx.Frame):
     is_saved = False
     query_status = "Ожидание"
 
-    # TODO: Подготовка к переходу на "таблицу" вместо текстовой области
-    #       Редактировать метод, чтобы он добавлял несколько элементов и записывал
+    class ColumnItem(wx.Panel):
+        rownum = ""
+        colname = ""
+        coltype = ""
+        colcode = ""
+        id_colname = ""
+        id_coltype = ""
+
+        def __init__(self, parent: wx.Panel, id: str, column_name="", column_type="", column_code="", is_empty=False) -> None:
+            super().__init__(parent)
+            self.colname = column_name
+            self.coltype = column_type
+            self.colcode = column_code
+            self.id_colname = id + "0"
+            self.id_coltype = id + "1"
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.SetSizer(sizer)
+            if not is_empty:
+                textctrl_colname = wx.TextCtrl(self, int(self.id_colname), size=(100, -1))
+                textctrl_colname.SetValue(self.colname)
+                sizer.Add(textctrl_colname, 0, wx.RIGHT, 5)
+
+                textctrl_coltype = wx.TextCtrl(self, int(self.id_coltype), size=(100, -1), style=wx.TE_READONLY)
+                textctrl_coltype.SetValue(self.coltype)
+                sizer.Add(textctrl_coltype, 0, wx.RIGHT, 5)
+
+                statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
+                sizer.Add(statictext_colcode, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+            else:
+                sizer.AddMany([
+                            (wx.TextCtrl(self, style=wx.TE_READONLY, size=(100, -1)), 0, wx.RIGHT, 5),
+                            (wx.TextCtrl(self, style=wx.TE_READONLY, size=(100, -1)), 0, wx.RIGHT, 5),
+                            (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5)
+                            ])
+
+            # self.Layout()
+
     def OnActivated(self, evt):
+        # Получение выбранного элемента и проверка, является ли он НЕ базой данных
         get_item = evt.GetItem()
         activated = self.treectrl_databases.GetItemText(get_item)
         if activated.endswith('.db'):
@@ -38,6 +79,7 @@ class MainFrame(wx.Frame):
             get_parent = self.treectrl_databases.GetItemParent(get_item)
             parent_name = self.treectrl_databases.GetItemText(get_parent)
 
+            # Поиск таблицы
             for key in self.all_tables:
                 if key != parent_name:
                     continue
@@ -46,10 +88,13 @@ class MainFrame(wx.Frame):
                         if item.find(activated) != -1:
                             add_act = item
 
+            # Переопределение массивов элементов и выделения выбранных элементов в дереве
             if len(self.added_items) <= 0:
                 self.added_items.append(add_act)
                 self.added_item_text.append(activated)
                 self.treectrl_databases.SetItemBold(get_item, True)
+                self.textctrl_column_names.append(add_act.split(':')[1])
+                self.textctrl_column_types.append(add_act.split(':')[2])
             else:
                 is_removed = False
                 for item in self.added_items:
@@ -57,13 +102,33 @@ class MainFrame(wx.Frame):
                         self.added_items.remove(add_act)
                         self.added_item_text.remove(activated)
                         self.treectrl_databases.SetItemBold(get_item, False)
+                        self.textctrl_column_names.remove(add_act.split(':')[1])
+                        self.textctrl_column_types.remove(add_act.split(':')[2])
                         is_removed = True
                         break
                 if not is_removed:
                     self.added_items.append(add_act)
                     self.added_item_text.append(activated)
                     self.treectrl_databases.SetItemBold(get_item, True)
-            self.textctrl_used_tables.SetValue(', '.join(self.added_item_text))
+                    self.textctrl_column_names.append(add_act.split(':')[1])
+                    self.textctrl_column_types.append(add_act.split(':')[2])
+            self.TableColumnsRegulator()
+
+    def TableColumnsRegulator(self):
+        self.table_items_panel.DestroyChildren()
+        self.table_items_sizer.Clear(True)
+        self.column_items.clear()
+        items = []
+
+        for i in range(0, len(self.textctrl_column_names)):
+            self.column_items.append([self.ColumnItem(self.table_items_panel, str(i), self.textctrl_column_names[i], self.textctrl_column_types[i], self.added_item_text[i]), str(i) + "0", str(i) + "1"])
+            items.append((self.column_items[i][0], 0, wx.ALL, 0))
+        self.column_items.append(self.ColumnItem(self.table_items_panel, "0", is_empty=True))
+        items.append((self.column_items[len(self.column_items) - 1], 0, wx.ALL, 0))
+
+        self.table_items_sizer.AddMany(items)
+        self.table_items_panel.Layout()
+        self.table_columns_panel.Layout()
 
     def Generate(self, event):
         start_generate_time = datetime.now()
@@ -89,6 +154,7 @@ class MainFrame(wx.Frame):
                 if rows_count <= 0:
                     return catcher.error_message('E006')
 
+                # Составление словаря со значениями для создания скрипта таблицы
                 temp = {'is_id_create': False}
                 if self.is_create_table:
                     id_create = self.id_column_checkbox.GetValue()
@@ -98,22 +164,46 @@ class MainFrame(wx.Frame):
                         temp['increment_start'] = increment
                 table_info[table_name] = temp
 
-                start_build_time = datetime.now()
-                builder = SQLGenerator(app_conn, table_info, rows_count, self.added_items)
-                query = ''
-                query += builder.BuildQuery(self.is_create_table)
-                build_time = datetime.now() - start_build_time
-                self.textctrl_sql.SetValue(query)
-                self.is_generated = True
-                self.is_saved = False
-                self.query_status = "Готово"
-                self.statusbar.SetStatusText(self.query_status, 0)
-                generate_time = datetime.now() - start_generate_time
+                # Получение значений имен столбцов
+                colnames = []
+                for i in range(len(self.added_items)):
+                    old_coltype = self.added_items[i].split(':')[2]
 
-                build_time = round(build_time.total_seconds(), 4)
-                generate_time = round(generate_time.total_seconds(), 2)
-                self.statusbar.SetStatusText("Сгенерировано за: " + str(build_time) + " с., всего: " + str(generate_time) + " с.", 2)
+                    textctrl_colname = self.table_items_panel.FindWindowById(int(self.column_items[i][1]))
+                    new_colname = textctrl_colname.GetValue()
+                    textctrl_coltype = self.table_items_panel.FindWindowById(int(self.column_items[i][2]))
+                    new_coltype = textctrl_coltype.GetValue()
 
+                    colnames.append(new_colname)
+                    self.added_items[i] = self.added_items[i].replace(old_coltype, new_coltype)
+
+                # Проверка имен столбцов на уникальность
+                temp_cols = []
+                for col in colnames:
+                    temp_cols.append(col)
+                visited = set()
+                dup = [x for x in temp_cols if x in visited or (visited.add(x) or False)]
+                if len(dup) > 0:
+                    self.query_status = catcher.error_message('E007')
+                    self.statusbar.SetStatusText(self.query_status, 0)
+                else:
+                    # Генерация
+                    start_build_time = datetime.now()
+                    builder = SQLGenerator(app_conn, table_info, rows_count, self.added_items, colnames)
+                    query = ''
+                    query += builder.BuildQuery(self.is_create_table)
+                    build_time = datetime.now() - start_build_time
+                    self.textctrl_sql.SetValue(query)
+                    self.is_generated = True
+                    self.is_saved = False
+                    self.query_status = "Готово"
+                    self.statusbar.SetStatusText(self.query_status, 0)
+                    generate_time = datetime.now() - start_generate_time
+
+                    # Подсчет времени работы
+                    build_time = round(build_time.total_seconds(), 4)
+                    generate_time = round(generate_time.total_seconds(), 2)
+                    self.statusbar.SetStatusText("Сгенерировано за: " + str(build_time) + " с., всего: " + str(generate_time) + " с.", 2)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
@@ -154,7 +244,8 @@ class MainFrame(wx.Frame):
     def ClearForm(self, event):
         if self.is_generated is True and self.is_saved is False:
             dlg = wx.MessageDialog(self,
-                                   'Вы уверены, что хотите очистить все поля?\nНесохраненный запрос будет удален навсегда!',
+                                   """Вы уверены, что хотите очистить все поля?\n
+                                   Несохраненный запрос будет удален навсегда!""",
                                    'Подтверждение очистки полей',
                                    wx.OK | wx.CANCEL | wx.ICON_QUESTION)
             result = dlg.ShowModal()
@@ -163,10 +254,11 @@ class MainFrame(wx.Frame):
                 self.textctrl_table_name.Clear()
                 self.textctrl_rows_count.Clear()
                 self.textctrl_sql.ClearAll()
-                self.textctrl_used_tables.Clear()
 
                 self.added_items.clear()
                 self.added_item_text.clear()
+                self.textctrl_column_names.clear()
+                self.textctrl_column_types.clear()
 
                 for items in self.tree_items.values():
                     for item in items:
@@ -182,7 +274,11 @@ class MainFrame(wx.Frame):
                 self.textctrl_increment_start.Hide()
                 self.statictext_increment_start.Hide()
 
+                self.TableColumnsRegulator()
 
+                self.query_status = "Ожидание"
+                self.statusbar.SetStatusText(self.query_status, 0)
+                self.statusbar.SetStatusText("", 2)
 
     def __init__(self):
         wx.Frame.__init__(self, None, title="SQLDataForge v1.0.1 alpha", size=(800, 600))
@@ -204,7 +300,7 @@ class MainFrame(wx.Frame):
                 root = self.treectrl_databases.AddRoot(key)
                 self.treectrl_databases.SetItemImage(root, database_image)
                 for full_item in value:
-                    item = full_item.split(':')[2]
+                    item = full_item.split(':')[3]
                     child = self.treectrl_databases.AppendItem(root, item)
                     self.treectrl_databases.SetItemImage(child, table_image)
                     temp_items.append(child)
@@ -313,7 +409,7 @@ class MainFrame(wx.Frame):
 
         # Notebook настроек
         # -----
-        notebook_settings = wx.Notebook(table_panel, size=(-1, 200))
+        notebook_settings = wx.Notebook(table_panel, size=(-1, 350))
 
         # Главная
         # ------
@@ -342,11 +438,41 @@ class MainFrame(wx.Frame):
         main_page_boxsizer.Add(header_panel, 0, wx.TOP | wx.EXPAND)
         # -------
 
-        statictext_used_tables = wx.StaticText(main_page_panel, label="Столбцы:")
-        main_page_boxsizer.Add(statictext_used_tables, 0, wx.RIGHT | wx.ALL, 5)
+        # -------
+        self.table_columns_panel = wx.Panel(main_page_panel, size=(-1, -1))
+        self.table_columns_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.table_columns_panel.SetSizer(self.table_columns_sizer)
 
-        self.textctrl_used_tables = wx.TextCtrl(main_page_panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
-        main_page_boxsizer.Add(self.textctrl_used_tables, 1, wx.RIGHT | wx.LEFT | wx.BOTTOM | wx.EXPAND | wx.ALL, 5)
+        # --------
+        table_columns_statictext_panel = wx.Panel(self.table_columns_panel)
+        tcs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        table_columns_statictext_panel.SetSizer(tcs_sizer)
+
+        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label='Имя столбца', size=(100, -1))
+        tcs_sizer.Add(statictext_column_name, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label='Тип столбца', size=(100, -1))
+        tcs_sizer.Add(statictext_column_type, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+        tcs_sizer.Add(wx.StaticText(table_columns_statictext_panel, label='', size=(200, -1)), 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        # --------
+        self.table_columns_sizer.Add(table_columns_statictext_panel, 0, wx.ALL)
+        # --------
+
+        # --------
+        self.table_items_panel = wx.Panel(self.table_columns_panel)
+        self.table_items_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.table_items_panel.SetSizer(self.table_items_sizer)
+
+        self.empty_item = self.ColumnItem(self.table_items_panel, "0",  is_empty=True)
+        self.table_items_sizer.Add(self.empty_item, 0, wx.ALL, 5)
+        # --------
+        self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL)
+
+        # -------
+        main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL)
+        # -------
+
+        # self.textctrl_used_tables = wx.TextCtrl(main_page_panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
+        # main_page_boxsizer.Add(self.textctrl_used_tables, 1, wx.RIGHT | wx.LEFT | wx.BOTTOM | wx.EXPAND | wx.ALL, 5)
         # ------
         notebook_settings.AddPage(main_page_panel, "Главная")
         # ------
@@ -390,7 +516,7 @@ class MainFrame(wx.Frame):
         # -----
 
         # Редактор кода
-        self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE)
+        self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE, size=(-1, 300))
         # Настройки шрифта
         self.textctrl_sql.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
                                        wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
@@ -420,8 +546,6 @@ class MainFrame(wx.Frame):
         self.statusbar = self.CreateStatusBar(1, wx.STB_ELLIPSIZE_END)
         self.statusbar.SetFieldsCount(3)
         self.statusbar.SetStatusText(self.query_status, 0)
-        self.statusbar.SetStatusText("", 1)
-        self.statusbar.SetStatusText("asasas", 2)
 
         main_panel.Layout()
         main_panel.Show()
