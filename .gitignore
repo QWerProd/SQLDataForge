@@ -159,9 +159,13 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
 
+# All .txt, but not requirements.txt
 *.txt
 !requirements.txt
 
+# Test files
 tests.py
-
 inserting_data.py
+
+# DB journals
+*.db-journal

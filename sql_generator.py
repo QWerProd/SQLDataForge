@@ -15,8 +15,9 @@ class SQLGenerator:
     tables = []
     cols = []
     column_names = []
+    indexes = []
 
-    def __init__(self, app_conn: sqlite3.Connection, table_info: dict, rows_count: int, tables: list, column_names: list) -> None:
+    def __init__(self, app_conn: sqlite3.Connection, table_info: dict, rows_count: int, tables: list, column_names: list, indexes: list) -> None:
         self.app_conn = app_conn
         for key, value in table_info.items():
             self.table_name = key
@@ -26,6 +27,7 @@ class SQLGenerator:
         self.cols.clear()
         self.column_names = column_names
         self.tables = tables
+        self.indexes = indexes
 
     def CreateHeader(self):
         self.queryrow1 += self.table_name
@@ -49,6 +51,18 @@ class SQLGenerator:
             query_createtable += '    PRIMARY KEY("id")\n'
         query_createtable += ');'
         return query_createtable
+
+    def CreateIndex(self, index_info: dict) -> str:
+        index = (f"CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX IF NOT EXISTS {index_info['index_name']}\n"
+                 f"ON {self.table_name}({','.join(index_info['columns'])})")
+        if index_info['condition'] == '':
+            index += ';'
+        else:
+            index += index_info['condition']
+            if not index_info['condition'].endswith(';'):
+                index += ';'
+
+        return index
 
     def GenerateValues(self) -> dict:
         list_of_dbs = DC.GetDBFromTables(self.tables)
@@ -146,8 +160,6 @@ class SQLGenerator:
 
         return datadict
 
-
-
     def CreateBody(self):
         # Get dict with data from tables
         data = self.GenerateValues()
@@ -175,12 +187,24 @@ class SQLGenerator:
             self.queryrow2.append(query)
             add_data = ''
 
-    def BuildQuery(self, isTable = False) -> str:
+    def BuildQuery(self, is_table=False) -> str:
         full_query = ''
+
+        # Сборка запроса
         self.CreateBody()
         self.CreateHeader()
-        if isTable:
+
+        # Создание таблицы
+        if is_table:
             full_query += self.CreateTable() + '\n\n'
+
+        # Создание индексов
+        indexes = []
+        for index in self.indexes:
+            indexes.append(self.CreateIndex(index))
+        full_query += '\n'.join(indexes) + '\n\n'
+
+        # Сборка значений
         full_query += self.queryrow1 + '\nVALUES '
         full_query += '      ,'.join(self.queryrow2)
 

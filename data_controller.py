@@ -8,7 +8,8 @@ catcher = ErrorCatcher()
 
 class DataController:
 
-    def SetDatabases(self) -> list:
+    @staticmethod
+    def SetDatabases() -> list:
         """Читает папку data/ и вносит сведения о пБД в сБД."""
         db_count = [0, 0]
         app_curs = app_conn.cursor()
@@ -27,8 +28,8 @@ class DataController:
                         db_count[1] += 1
         app_curs.close()
         return db_count
-                    
 
+    @staticmethod
     def GetDatabases(self) -> list:
         """Возвращает список пБД из сБД."""
         databases = []
@@ -41,6 +42,7 @@ class DataController:
         app_curs.close()
         return databases     
 
+    @staticmethod
     def GetTablesFromDB() -> dict:
         """Возвращает словарь с именами таблиц базы данных из специальной таблицы t_cases_info"""
         all_tables = {}
@@ -64,7 +66,8 @@ class DataController:
         
         return all_tables
 
-    def GetDBFromTables(tables : list) -> tuple:
+    @staticmethod
+    def GetDBFromTables(tables: list) -> tuple:
         """Принимает список таблиц, возвращает список баз данных, в которых они присутствуют"""
         all_tables = DataController.GetTablesFromDB()
         databases = []
@@ -79,8 +82,8 @@ class DataController:
 
         return tuple(databases)
 
-
-    def ParamChanger(param : str) -> str:
+    @staticmethod
+    def ParamChanger(param: str) -> str:
         """Переданный параметр возвращает исполняемый код для этого параметра"""
 
         curs = app_conn.cursor()
@@ -89,5 +92,3 @@ class DataController:
             return catcher.error_message('E002')
         else:
             return eval(param_name[0])
-
-DataController.GetTablesFromDB()

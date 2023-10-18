@@ -7,16 +7,24 @@ from data_controller import DataController
 from sql_generator import SQLGenerator
 from error_catcher import ErrorCatcher
 
+
 app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher()
+
+# Глобальный лист добавленных столбцов
+added_items = []
+added_item_text = []
+added_item_code = []
+
+# Листы индексов
+index_items = []
 
 
 class MainFrame(wx.Frame):
     tree_items = {}
-    added_items = []
-    added_item_text = []
     all_tables = {}
 
+    # Листы для страницы "Таблица"
     textctrl_column_names = []
     textctrl_column_types = []
     column_items = []
@@ -30,6 +38,14 @@ class MainFrame(wx.Frame):
     is_saved = False
     query_status = "Ожидание"
 
+    # Ключевые слова для лексера wx.stc.StyledTextCtrl
+    sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
+                    " if exists index on is")
+
+    id_added = 0
+
+    # ---------------------------------------------------
+
     class ColumnItem(wx.Panel):
         rownum = ""
         colname = ""
@@ -38,42 +54,195 @@ class MainFrame(wx.Frame):
         id_colname = ""
         id_coltype = ""
 
-        def __init__(self, parent: wx.Panel, id: str, column_name="", column_type="", column_code="", is_empty=False) -> None:
+        def __init__(self, parent: wx.Panel, rid: str, column_name="", column_type="", column_code="", is_empty=False):
             super().__init__(parent)
             self.colname = column_name
             self.coltype = column_type
             self.colcode = column_code
-            self.id_colname = id + "0"
-            self.id_coltype = id + "1"
+            self.id_colname = rid + "0"
+            self.id_coltype = rid + "1"
+
+            def on_colname_changed(event):
+                # Получаем необходимые значения
+                new_colname = textctrl_colname.GetValue()
+                item_id = int(textctrl_colname.GetId() / 10)
+
+                # Производим замену имени столбца на новое
+                added_item_code[item_id] = new_colname
+
+                # Обновляем значения списков у Индексов
+                for item in index_items:
+                    item.update_choices(added_item_code)
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.SetSizer(sizer)
-            if not is_empty:
-                textctrl_colname = wx.TextCtrl(self, int(self.id_colname), size=(100, -1))
-                textctrl_colname.SetValue(self.colname)
-                sizer.Add(textctrl_colname, 0, wx.RIGHT, 5)
 
-                textctrl_coltype = wx.TextCtrl(self, int(self.id_coltype), size=(100, -1), style=wx.TE_READONLY)
-                textctrl_coltype.SetValue(self.coltype)
-                sizer.Add(textctrl_coltype, 0, wx.RIGHT, 5)
-
-                statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
-                sizer.Add(statictext_colcode, 0, wx.ALIGN_CENTER_VERTICAL, 5)
-            else:
+            if is_empty:
                 sizer.AddMany([
-                            (wx.TextCtrl(self, style=wx.TE_READONLY, size=(100, -1)), 0, wx.RIGHT, 5),
-                            (wx.TextCtrl(self, style=wx.TE_READONLY, size=(100, -1)), 0, wx.RIGHT, 5),
-                            (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5)
-                            ])
+                    (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
+                    (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
+                    (wx.StaticText(self, label=self.colcode, size=(150, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5)
+                ])
+                return
 
-            # self.Layout()
+            textctrl_colname = wx.TextCtrl(self, int(self.id_colname), size=(150, -1))
+            textctrl_colname.SetValue(self.colname)
+            textctrl_colname.Bind(wx.EVT_TEXT, on_colname_changed)
+            sizer.Add(textctrl_colname, 0, wx.RIGHT, 5)
 
-    def OnActivated(self, evt):
+            textctrl_coltype = wx.TextCtrl(self, int(self.id_coltype), size=(150, -1), style=wx.TE_READONLY)
+            textctrl_coltype.SetValue(self.coltype)
+            sizer.Add(textctrl_coltype, 0, wx.RIGHT, 5)
+
+            statictext_colcode = wx.StaticText(self, label=self.colcode, size=(150, -1))
+            sizer.Add(statictext_colcode, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+
+    # ---------------------------------------------------
+
+    class IndexItem(wx.Panel):
+
+        parent = wx.Panel
+        index_name = str
+        condition = str
+        is_unique = bool
+
+        columns = list
+
+        def update_choices(self, choices: list):
+            self.combobox_index_columns.SetItems(choices)
+
+        def index_name_changed(self, event):
+            self.index_name = self.textctrl_index_name.GetValue()
+
+        def column_selected(self, event):
+            selection = self.combobox_index_columns.GetValue()
+
+            if selection in self.columns:
+                self.columns.remove(selection)
+            else:
+                self.columns.append(selection)
+
+            self.textctrl_columns.SetValue(','.join(self.columns))
+
+        def is_unique_enabled(self, event):
+            self.is_unique = self.checkbox_unique.GetValue()
+
+        def condition_changed(self, event):
+            self.condition = self.textctrl_condition.GetValue()
+
+            temprows = self.condition.split('\n')
+            for row in temprows:
+                row.strip()
+                if row.startswith('--'):
+                    self.condition = self.condition.replace(row, '')
+
+        def get_index(self) -> dict:
+            self.index_name = self.index_name.strip()
+            if len(self.index_name) == 0:
+                catcher.error_message('E008')
+            elif len(self.columns) == 0:
+                catcher.error_message('E009')
+            else:
+                index = dict()
+                index['index_name'] = self.index_name
+                index['columns'] = self.columns
+                index['is_unique'] = self.is_unique
+                index['condition'] = self.condition
+                return index
+
+        def selfdestroy(self, event):
+            index_items.remove(self)
+            self.Destroy()
+            self.parent.Layout()
+
+        def __init__(self, parent, index_num: int):
+            super().__init__(parent)
+            self.parent = parent
+            self.index_name = 'new_index' + str(index_num)
+            self.columns = []
+            self.condition = ''
+            self.is_unique = False
+
+            self.sizer = wx.BoxSizer(wx.VERTICAL)
+            self.SetSizer(self.sizer)
+
+            # ---------------------------------
+            first_panel = wx.Panel(self)
+            first_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            first_panel.SetSizer(first_sizer)
+
+            self.textctrl_index_name = wx.TextCtrl(first_panel, size=(125, -1))
+            self.textctrl_index_name.SetValue(self.index_name)
+            self.textctrl_index_name.Bind(wx.EVT_TEXT, self.index_name_changed)
+            first_sizer.AddMany([(wx.StaticText(first_panel, label="Имя индекса:", size=(75, -1)),
+                                  0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
+                                 (self.textctrl_index_name, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
+
+            self.combobox_index_columns = wx.ComboBox(first_panel, choices=added_item_code, size=(225, -1))
+            self.combobox_index_columns.Bind(wx.EVT_COMBOBOX, self.column_selected)
+            first_sizer.AddMany([(wx.StaticText(first_panel, label="Столбцы:", size=(55, -1)),
+                                  0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
+                                 (self.combobox_index_columns, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
+            # ---------------------------------
+            self.sizer.Add(first_panel, 0, wx.ALL, 0)
+
+            # ---------------------------------
+            second_panel = wx.Panel(self)
+            second_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            second_panel.SetSizer(second_sizer)
+
+            self.checkbox_unique = wx.CheckBox(second_panel, label="UNIQUE", size=(75, -1))
+            self.checkbox_unique.Bind(wx.EVT_CHECKBOX, self.is_unique_enabled)
+            second_sizer.Add(self.checkbox_unique, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
+
+            self.button_delete = wx.Button(second_panel, label="Удалить", style=wx.NO_BORDER)
+            self.button_delete.SetBitmapLabel(wx.Bitmap('img/16x16/minus.png', wx.BITMAP_TYPE_PNG))
+            self.button_delete.SetBackgroundColour(wx.Colour(255, 225, 225))
+            self.button_delete.Bind(wx.EVT_ENTER_WINDOW,
+                                    lambda x: self.button_delete.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+            self.button_delete.Bind(wx.EVT_BUTTON, self.selfdestroy)
+            second_sizer.Add(self.button_delete, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 5)
+
+            self.textctrl_columns = wx.TextCtrl(second_panel, size=(225, -1), style=wx.TE_READONLY)
+            self.textctrl_columns.Bind(wx.EVT_ENTER_WINDOW,
+                                       lambda x: self.textctrl_columns.SetCursor(wx.NullCursor))
+            second_sizer.Add(self.textctrl_columns, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 109)
+
+            # ---------------------------------
+            self.sizer.Add(second_panel, 0, wx.BOTTOM, 5)
+
+            # ---------------------------------
+            self.textctrl_condition = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(505, 75))
+            self.textctrl_condition.SetValue('-- Введите условия здесь\n')
+            self.textctrl_condition.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
+                                                 wx.Font(10, wx.FONTFAMILY_TELETYPE,
+                                                         wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+            self.textctrl_condition.StyleClearAll()
+            self.textctrl_condition.SetMarginWidth(1, 0)
+            self.textctrl_condition.SetUseHorizontalScrollBar(False)
+            self.textctrl_condition.SetLexer(wx.stc.STC_LEX_SQL)
+            self.textctrl_condition.SetKeyWords(0, MainFrame.sql_keywords)
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENT, wx.Colour(196, 69, 105))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, wx.Colour(196, 69, 105))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, wx.Colour(196, 69, 105))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_NUMBER, wx.Colour(30, 36, 96))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, wx.Colour(86, 166, 57))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_STRING, wx.Colour(86, 166, 57))
+            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_WORD, wx.Colour(146, 0, 242))
+            self.textctrl_condition.Bind(wx.stc.EVT_STC_CHANGE, self.condition_changed)
+
+            self.sizer.Add(self.textctrl_condition, 0, wx.ALL, 0)
+
+            self.Layout()
+
+    # ---------------------------------------------------
+
+    def on_activated(self, evt):
         # Получение выбранного элемента и проверка, является ли он НЕ базой данных
         get_item = evt.GetItem()
         activated = self.treectrl_databases.GetItemText(get_item)
         if activated.endswith('.db'):
-            return 0
+            return
         else:
             add_act = ""
             get_parent = self.treectrl_databases.GetItemParent(get_item)
@@ -89,70 +258,93 @@ class MainFrame(wx.Frame):
                             add_act = item
 
             # Переопределение массивов элементов и выделения выбранных элементов в дереве
-            if len(self.added_items) <= 0:
-                self.added_items.append(add_act)
-                self.added_item_text.append(activated)
+            if len(added_items) <= 0:
+                added_items.append(add_act)
+                added_item_text.append(activated)
+                added_item_code.append(add_act.split(':')[1])
                 self.treectrl_databases.SetItemBold(get_item, True)
                 self.textctrl_column_names.append(add_act.split(':')[1])
                 self.textctrl_column_types.append(add_act.split(':')[2])
             else:
                 is_removed = False
-                for item in self.added_items:
+                for item in added_items:
                     if activated in item:
-                        self.added_items.remove(add_act)
-                        self.added_item_text.remove(activated)
+                        added_items.remove(add_act)
+                        added_item_text.remove(activated)
+                        added_item_code.remove(add_act.split(':')[1])
                         self.treectrl_databases.SetItemBold(get_item, False)
                         self.textctrl_column_names.remove(add_act.split(':')[1])
                         self.textctrl_column_types.remove(add_act.split(':')[2])
                         is_removed = True
                         break
                 if not is_removed:
-                    self.added_items.append(add_act)
-                    self.added_item_text.append(activated)
+                    added_items.append(add_act)
+                    added_item_text.append(activated)
+                    added_item_code.append(add_act.split(':')[1])
                     self.treectrl_databases.SetItemBold(get_item, True)
                     self.textctrl_column_names.append(add_act.split(':')[1])
                     self.textctrl_column_types.append(add_act.split(':')[2])
-            self.TableColumnsRegulator()
+            self.table_columns_regulate()
 
-    def TableColumnsRegulator(self):
+    def table_columns_regulate(self):
         self.table_items_panel.DestroyChildren()
         self.table_items_sizer.Clear(True)
         self.column_items.clear()
         items = []
 
+        if self.is_id_column:
+            self.column_items.append([self.ColumnItem(self.table_items_panel, '0', 'id', 'INTEGER'),
+                                      '00', '01'])
+            items.append((self.column_items[0][0], 0, wx.ALL, 0))
+            self.id_added = 1
+
         for i in range(0, len(self.textctrl_column_names)):
-            self.column_items.append([self.ColumnItem(self.table_items_panel, str(i), self.textctrl_column_names[i], self.textctrl_column_types[i], self.added_item_text[i]), str(i) + "0", str(i) + "1"])
-            items.append((self.column_items[i][0], 0, wx.ALL, 0))
-        self.column_items.append(self.ColumnItem(self.table_items_panel, "0", is_empty=True))
+            self.column_items.append([self.ColumnItem(self.table_items_panel, str(i + self.id_added), self.textctrl_column_names[i],
+                                                      self.textctrl_column_types[i], added_item_text[i]),
+                                      str(i + self.id_added) + "0", str(i + self.id_added) + "1"])
+            items.append((self.column_items[i + self.id_added][0], 0, wx.ALL, 0))
+        self.column_items.append(self.ColumnItem(self.table_items_panel, "-1", is_empty=True))
         items.append((self.column_items[len(self.column_items) - 1], 0, wx.ALL, 0))
+
+        # Обновляем значения списков у Индексов
+        for item in index_items:
+            item.update_choices(added_item_code)
 
         self.table_items_sizer.AddMany(items)
         self.table_items_panel.Layout()
         self.table_columns_panel.Layout()
 
-    def Generate(self, event):
+    def generate(self, event):
+        self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
         start_generate_time = datetime.now()
+
         table_info = {}
+        indexes_info = []
         table_name = self.textctrl_table_name.GetValue()
         rows_count = self.textctrl_rows_count.GetValue()
 
         self.query_status = "Генерация запроса..."
         self.statusbar.SetStatusText(self.query_status, 0)
 
-        if len(self.added_items) == 0:
+        if len(added_items) == 0:
             self.query_status = catcher.error_message('E003')
+            self.SetCursor(wx.NullCursor)
             self.statusbar.SetStatusText(self.query_status, 0)
         elif table_name == '':
             self.query_status = catcher.error_message('E004')
+            self.SetCursor(wx.NullCursor)
             self.statusbar.SetStatusText(self.query_status, 0)
         elif rows_count == '':
             self.query_status = catcher.error_message('E005')
+            self.SetCursor(wx.NullCursor)
             self.statusbar.SetStatusText(self.query_status, 0)
         else:
             try:
                 rows_count = int(rows_count)
                 if rows_count <= 0:
-                    return catcher.error_message('E006')
+                    self.query_status = catcher.error_message('E006')
+                    self.statusbar.SetStatusText(self.query_status, 0)
+                    return
 
                 # Составление словаря со значениями для создания скрипта таблицы
                 temp = {'is_id_create': False}
@@ -164,18 +356,35 @@ class MainFrame(wx.Frame):
                         temp['increment_start'] = increment
                 table_info[table_name] = temp
 
+                # Составление словарей со значениями для создания скриптов индексов
+                for item in index_items:
+                    if item is None:
+                        return
+                    else:
+                        indexes_info.append(item.get_index())
+
+                # Проверка имен индексов на уникальность
+                temp_indexes = []
+                for col in indexes_info:
+                    temp_indexes.append(col['index_name'])
+                visited = set()
+                dup = [x for x in temp_indexes if x in visited or (visited.add(x) or False)]
+                if len(dup) > 0:
+                    self.query_status = catcher.error_message('E011')
+                    self.statusbar.SetStatusText(self.query_status, 0)
+                    return
+
                 # Получение значений имен столбцов
                 colnames = []
-                for i in range(len(self.added_items)):
-                    old_coltype = self.added_items[i].split(':')[2]
+                for i in range(len(added_items)):
+                    old_coltype = added_items[i].split(':')[2]
 
-                    textctrl_colname = self.table_items_panel.FindWindowById(int(self.column_items[i][1]))
-                    new_colname = textctrl_colname.GetValue()
-                    textctrl_coltype = self.table_items_panel.FindWindowById(int(self.column_items[i][2]))
+                    new_colname = added_item_code[i + self.id_added]
+                    textctrl_coltype = self.table_items_panel.FindWindowById(int(self.column_items[i + self.id_added][2]))
                     new_coltype = textctrl_coltype.GetValue()
 
                     colnames.append(new_colname)
-                    self.added_items[i] = self.added_items[i].replace(old_coltype, new_coltype)
+                    added_items[i] = added_items[i].replace(old_coltype, new_coltype)
 
                 # Проверка имен столбцов на уникальность
                 temp_cols = []
@@ -189,7 +398,7 @@ class MainFrame(wx.Frame):
                 else:
                     # Генерация
                     start_build_time = datetime.now()
-                    builder = SQLGenerator(app_conn, table_info, rows_count, self.added_items, colnames)
+                    builder = SQLGenerator(app_conn, table_info, rows_count, added_items, colnames, indexes_info)
                     query = ''
                     query += builder.BuildQuery(self.is_create_table)
                     build_time = datetime.now() - start_build_time
@@ -204,11 +413,14 @@ class MainFrame(wx.Frame):
                     build_time = round(build_time.total_seconds(), 4)
                     generate_time = round(generate_time.total_seconds(), 2)
                     self.statusbar.SetStatusText("Сгенерировано за: " + str(build_time) + " с., всего: " + str(generate_time) + " с.", 2)
+                    self.SetCursor(wx.NullCursor)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
+            finally:
+                self.SetCursor(wx.NullCursor)
 
-    def SaveScript(self, is_new=True):
+    def save_script(self, is_new=True):
         sql = self.textctrl_sql.GetValue()
         if sql == "":
             self.query_status = catcher.error_message('E001')
@@ -233,15 +445,15 @@ class MainFrame(wx.Frame):
             self.query_status = "Сохранено"
             self.statusbar.SetStatusText(self.query_status, 0)
 
-    def OnClose(self, event):
-        dlg = wx.MessageDialog(self, 'Вы действительно хотите выйти?', 'Подтверждение выхода',
-                               wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-        result = dlg.ShowModal()
-        dlg.Destroy()
-        if result == wx.ID_OK:
-            self.Destroy()
+    # def on_close(self, event):
+    #     dlg = wx.MessageDialog(self, 'Вы действительно хотите выйти?', 'Подтверждение выхода',
+    #                            wx.OK | wx.CANCEL | wx.ICON_QUESTION)
+    #     result = dlg.ShowModal()
+    #     dlg.Destroy()
+    #     if result == wx.ID_OK:
+    #         self.Destroy()
 
-    def ClearForm(self, event):
+    def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
             dlg = wx.MessageDialog(self,
                                    """Вы уверены, что хотите очистить все поля?\n
@@ -255,8 +467,8 @@ class MainFrame(wx.Frame):
                 self.textctrl_rows_count.Clear()
                 self.textctrl_sql.ClearAll()
 
-                self.added_items.clear()
-                self.added_item_text.clear()
+                added_items.clear()
+                added_item_text.clear()
                 self.textctrl_column_names.clear()
                 self.textctrl_column_types.clear()
 
@@ -274,21 +486,26 @@ class MainFrame(wx.Frame):
                 self.textctrl_increment_start.Hide()
                 self.statictext_increment_start.Hide()
 
-                self.TableColumnsRegulator()
+                self.table_columns_regulate()
 
                 self.query_status = "Ожидание"
                 self.statusbar.SetStatusText(self.query_status, 0)
                 self.statusbar.SetStatusText("", 2)
 
+    def delete_index(self, item):
+        index_items.remove(item)
+        item.Hide()
+        self.indexes_page_panel.Layout()
+
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SQLDataForge v1.0.1 alpha", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SQLDataForge v1.1", size=(800, 600))
         self.SetMinSize((800, 600))
         self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
-        self.Bind(wx.EVT_CLOSE, self.OnClose)
+        # self.Bind(wx.EVT_CLOSE, self.on_close)
 
-        def SetTreeItems():
+        def set_tree_items():
             self.all_tables = DataController.GetTablesFromDB()
             image_items = wx.ImageList(16, 16)
             database_image = image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
@@ -306,8 +523,9 @@ class MainFrame(wx.Frame):
                     temp_items.append(child)
                 self.tree_items[root] = temp_items
 
-        def TablePageEnabled(event):
+        def is_table_enabled(event):
             self.is_create_table = self.add_table_checkbox.GetValue()
+            self.is_id_column = False
 
             if self.is_create_table:
                 self.id_column_checkbox.Show()
@@ -317,19 +535,29 @@ class MainFrame(wx.Frame):
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')
                 self.id_column_checkbox.SetValue(False)
+            self.table_columns_regulate()
             table_page_panel.Layout()
 
-        def IDColumnEnabled(event):
+        def is_id_enabled(event):
             self.is_id_column = self.id_column_checkbox.GetValue()
 
             if self.is_id_column:
+                added_item_code.insert(0, 'id')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
             else:
+                added_item_code.remove('id')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')
+            self.table_columns_regulate()
             table_page_panel.Layout()
+
+        def create_index(event):
+            index_item = self.IndexItem(self.indexes_page_panel, len(index_items) + 1)
+            index_items.append(index_item)
+            self.indexes_page_sizer.Add(index_item, 0, wx.BOTTOM, 5)
+            self.indexes_page_panel.Layout()
 
         # -----Обновление списка пБД-----
         result = DataController.SetDatabases()
@@ -353,18 +581,18 @@ class MainFrame(wx.Frame):
         file_menu = wx.Menu()
         generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \tF9')
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
-        self.Bind(wx.EVT_MENU, self.Generate, generate_menuitem)
+        self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         file_menu.Append(generate_menuitem)
         clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \tF3')
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
-        self.Bind(wx.EVT_MENU, self.ClearForm, clear_menuitem)
+        self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
         file_menu.Append(clear_menuitem)
 
         file_menu.AppendSeparator()
 
         savefile_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Сохранить \tCtrl+S')
         savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
-        self.Bind(wx.EVT_MENU, self.SaveScript, savefile_menuitem)
+        self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
         file_menu.Append(savefile_menuitem)
 
         # Формирование меню
@@ -378,14 +606,14 @@ class MainFrame(wx.Frame):
 
         self.toolbar.AddTool(1, "Генерировать", wx.Bitmap("img/16x16/pencil ruler.png"),
                              shortHelp="Сгенерировать SQL-код")
-        self.Bind(wx.EVT_TOOL, self.Generate, id=1)
+        self.Bind(wx.EVT_TOOL, self.generate, id=1)
         self.toolbar.AddTool(2, "Очистить", wx.Bitmap("img/16x16/recycle bin sign.png"),
                              shortHelp="Очистить поля")
-        self.Bind(wx.EVT_TOOL, self.ClearForm, id=2)
+        self.Bind(wx.EVT_TOOL, self.clear_form, id=2)
         self.toolbar.AddSeparator()
         self.toolbar.AddTool(3, "Сохранить", wx.Bitmap("img/16x16/save.png"),
                              shortHelp="Сохранить скрипт")
-        self.Bind(wx.EVT_TOOL, self.SaveScript, id=3)
+        self.Bind(wx.EVT_TOOL, self.save_script, id=3)
 
         self.toolbar.Realize()
 
@@ -398,8 +626,8 @@ class MainFrame(wx.Frame):
         # Дерево баз данных
         self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1))
         data_boxsizer.Add(self.treectrl_databases, 0, wx.LEFT | wx.EXPAND)
-        SetTreeItems()
-        self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self.treectrl_databases)
+        set_tree_items()
+        self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
 
         # Контейнер работы с кейсами
         # ----
@@ -435,7 +663,8 @@ class MainFrame(wx.Frame):
         self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
         header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALL, border=5)
         # -------
-        main_page_boxsizer.Add(header_panel, 0, wx.TOP | wx.EXPAND)
+        main_page_boxsizer.Add(header_panel, 0, wx.EXPAND | wx.BOTTOM, 5)
+        main_page_boxsizer.Add(wx.StaticLine(main_page_panel), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
         # -------
 
         # -------
@@ -448,9 +677,9 @@ class MainFrame(wx.Frame):
         tcs_sizer = wx.BoxSizer(wx.HORIZONTAL)
         table_columns_statictext_panel.SetSizer(tcs_sizer)
 
-        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label='Имя столбца', size=(100, -1))
+        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label='Имя столбца', size=(150, -1))
         tcs_sizer.Add(statictext_column_name, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
-        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label='Тип столбца', size=(100, -1))
+        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label='Тип столбца', size=(150, -1))
         tcs_sizer.Add(statictext_column_type, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
         tcs_sizer.Add(wx.StaticText(table_columns_statictext_panel, label='', size=(200, -1)), 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         # --------
@@ -471,8 +700,6 @@ class MainFrame(wx.Frame):
         main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL)
         # -------
 
-        # self.textctrl_used_tables = wx.TextCtrl(main_page_panel, style=wx.TE_MULTILINE | wx.TE_READONLY)
-        # main_page_boxsizer.Add(self.textctrl_used_tables, 1, wx.RIGHT | wx.LEFT | wx.BOTTOM | wx.EXPAND | wx.ALL, 5)
         # ------
         notebook_settings.AddPage(main_page_panel, "Главная")
         # ------
@@ -485,7 +712,11 @@ class MainFrame(wx.Frame):
 
         self.add_table_checkbox = wx.CheckBox(table_page_panel, label="Создать таблицу")
         table_page_boxsizer.Add(self.add_table_checkbox, 0, wx.ALL, 5)
-        self.add_table_checkbox.Bind(wx.EVT_CHECKBOX, TablePageEnabled)
+        self.add_table_checkbox.Bind(wx.EVT_CHECKBOX, is_table_enabled)
+        self.add_table_checkbox.Bind(wx.EVT_ENTER_WINDOW,
+                                     lambda x: self.add_table_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+
+        table_page_boxsizer.Add(wx.StaticLine(table_page_panel), 0, wx.EXPAND | wx.ALL, 5)
 
         # -------
         id_column_panel = wx.Panel(table_page_panel)
@@ -493,12 +724,14 @@ class MainFrame(wx.Frame):
         id_column_panel.SetSizer(id_column_boxsizer)
 
         self.id_column_checkbox = wx.CheckBox(id_column_panel, label="Добавить ID для строк таблицы")
-        id_column_boxsizer.Add(self.id_column_checkbox, 0, wx.TOP|wx.LEFT|wx.RIGHT, 5)
-        self.Bind(wx.EVT_CHECKBOX, IDColumnEnabled)
+        id_column_boxsizer.Add(self.id_column_checkbox, 0, wx.TOP | wx.LEFT | wx.RIGHT, 5)
+        self.id_column_checkbox.Bind(wx.EVT_CHECKBOX, is_id_enabled)
+        self.id_column_checkbox.Bind(wx.EVT_ENTER_WINDOW,
+                                     lambda x: self.id_column_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.id_column_checkbox.Hide()
 
         self.statictext_increment_start = wx.StaticText(id_column_panel, label="Начальное значение ID:")
-        id_column_boxsizer.Add(self.statictext_increment_start, 0, wx.TOP|wx.RIGHT|wx.LEFT, 5)
+        id_column_boxsizer.Add(self.statictext_increment_start, 0, wx.TOP | wx.RIGHT | wx.LEFT, 5)
         self.statictext_increment_start.Hide()
 
         self.textctrl_increment_start = wx.TextCtrl(id_column_panel, size=(100, -1))
@@ -511,6 +744,27 @@ class MainFrame(wx.Frame):
 
         # ------
         notebook_settings.AddPage(table_page_panel, "Таблица")
+        # ------
+
+        # Индексы
+        # ------
+        self.indexes_page_panel = wx.Panel(notebook_settings)
+        self.indexes_page_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.indexes_page_panel.SetSizer(self.indexes_page_sizer)
+
+        self.button_new_index = wx.Button(self.indexes_page_panel, label="Новый индекс", style=wx.NO_BORDER)
+        self.button_new_index.SetBitmapLabel(wx.Bitmap("img/16x16/plus.png", wx.BITMAP_TYPE_PNG))
+        self.button_new_index.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.button_new_index.Bind(wx.EVT_ENTER_WINDOW,
+                                   lambda x: self.button_new_index.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+        self.button_new_index.Bind(wx.EVT_BUTTON, create_index)
+        self.indexes_page_sizer.Add(self.button_new_index, 0, wx.ALL, 5)
+
+        self.indexes_page_sizer.Add(wx.StaticLine(self.indexes_page_panel), 0,
+                                    wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+
+        # ------
+        notebook_settings.AddPage(self.indexes_page_panel, "Индексы")
         # -----
         table_boxsizer.Add(notebook_settings, 0, wx.TOP | wx.EXPAND)
         # -----
@@ -519,12 +773,13 @@ class MainFrame(wx.Frame):
         self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE, size=(-1, 300))
         # Настройки шрифта
         self.textctrl_sql.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
-                                       wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+                                       wx.Font(10, wx.FONTFAMILY_TELETYPE,
+                                               wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         self.textctrl_sql.StyleClearAll()
         # Подсветка синтаксиса
-        sql_keywords = "insert into values create table as text number primary key integer not null"
+
         self.textctrl_sql.SetLexer(wx.stc.STC_LEX_SQL)
-        self.textctrl_sql.SetKeyWords(0, sql_keywords)
+        self.textctrl_sql.SetKeyWords(0, self.sql_keywords)
         self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENT, wx.Colour(196, 69, 105))
         self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, wx.Colour(196, 69, 105))
         self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, wx.Colour(196, 69, 105))
