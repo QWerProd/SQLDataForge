@@ -420,7 +420,7 @@ class MainFrame(wx.Frame):
             finally:
                 self.SetCursor(wx.NullCursor)
 
-    def save_script(self, is_new=True):
+    def save_script(self):
         sql = self.textctrl_sql.GetValue()
         if sql == "":
             self.query_status = catcher.error_message('E001')

@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from data_controller import DataController as DC
 import sqlite3
@@ -155,6 +156,34 @@ class SQLGenerator:
 
                         # Генерация даты
                         datadict[table[0] + ':' + table[1]].append(str(mindate + datetime.timedelta(days=rnd_day)))
+                    elif table[2] == 'RChain':
+                        # Получение имен столбцов таблицы
+                        data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = "{table[0]}";""").fetchone()[0]
+                        pattern = r'"([^"]+)"'
+                        column_names = re.findall(pattern, data)
+
+                        # Отсеивание имени таблицы и столбца ID
+                        while True:
+                            if table[0] in column_names:
+                                column_names.remove(table[0])
+                            if "id" in column_names:
+                                column_names.remove("id")
+                            else:
+                                break
+
+                        # Поочередное получение данных
+                        datarow = ""
+                        for column in column_names:
+                            max_val = int(cursor.execute(f"""SELECT COUNT("{column}") 
+                                                         FROM {table[0]}
+                                                         WHERE "{column}" IS NOT NULL;""").fetchone()[0])
+
+                            item = cursor.execute(f"""SELECT {column} 
+                                                  FROM {table[0]} 
+                                                  WHERE id = {rd.randint(1, max_val)};""").fetchone()[0]
+                            datarow += item
+
+                        datadict[table[0] + ':' + table[1]].append(datarow)
             cursor.close()
             conn.close()
 

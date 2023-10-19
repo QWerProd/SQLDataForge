@@ -169,3 +169,4 @@ inserting_data.py
 
 # DB journals
 *.db-journal
+*.sqbpro
