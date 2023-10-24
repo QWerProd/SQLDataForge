@@ -1,11 +1,14 @@
 import wx
 import wx.stc
+import wx.lib.scrolledpanel
 import sqlite3
 
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
 from error_catcher import ErrorCatcher
+from connection_viewer import ConnectionViewer
+from new_conn import NewConnection
 
 
 app_conn = sqlite3.connect('app/app.db')
@@ -495,7 +498,15 @@ class MainFrame(wx.Frame):
     def delete_index(self, item):
         index_items.remove(item)
         item.Hide()
-        self.indexes_page_panel.Layout()
+        self.indexes_scrolledwindow.Layout()
+
+    def open_new_connection(self, event):
+        new_conn = NewConnection(app_conn)
+        new_conn.Show()
+
+    def open_connection_viewer(self, event):
+        conn_viewer = ConnectionViewer(app_conn)
+        conn_viewer.Show()
 
     def __init__(self):
         wx.Frame.__init__(self, None, title="SQLDataForge v1.1", size=(800, 600))
@@ -503,23 +514,16 @@ class MainFrame(wx.Frame):
         self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
-        # self.Bind(wx.EVT_CLOSE, self.on_close)
 
         def set_tree_items():
-            self.all_tables = DataController.GetTablesFromDB()
-            image_items = wx.ImageList(16, 16)
-            database_image = image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-            table_image = image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-            self.treectrl_databases.AssignImageList(image_items)
-
             for key, value in self.all_tables.items():
                 temp_items = []
-                root = self.treectrl_databases.AddRoot(key)
-                self.treectrl_databases.SetItemImage(root, database_image)
+                root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, key)
+                self.treectrl_databases.SetItemImage(root, self.database_image)
                 for full_item in value:
                     item = full_item.split(':')[3]
                     child = self.treectrl_databases.AppendItem(root, item)
-                    self.treectrl_databases.SetItemImage(child, table_image)
+                    self.treectrl_databases.SetItemImage(child, self.table_image)
                     temp_items.append(child)
                 self.tree_items[root] = temp_items
 
@@ -554,10 +558,11 @@ class MainFrame(wx.Frame):
             table_page_panel.Layout()
 
         def create_index(event):
-            index_item = self.IndexItem(self.indexes_page_panel, len(index_items) + 1)
+            index_item = self.IndexItem(self.indexes_scrolledwindow, len(index_items) + 1)
             index_items.append(index_item)
-            self.indexes_page_sizer.Add(index_item, 0, wx.BOTTOM, 5)
-            self.indexes_page_panel.Layout()
+            self.indexes_sizer.Add(index_item, 0, wx.BOTTOM, 5)
+            self.indexes_sizer.Layout()
+            self.indexes_scrolledwindow.SetupScrolling()
 
         # -----Обновление списка пБД-----
         result = DataController.SetDatabases()
@@ -577,12 +582,14 @@ class MainFrame(wx.Frame):
 
         # Меню
         menubar = wx.MenuBar()
+        # --------------
         # Файл
         file_menu = wx.Menu()
         generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \tF9')
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         file_menu.Append(generate_menuitem)
+
         clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \tF3')
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
@@ -595,8 +602,23 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
         file_menu.Append(savefile_menuitem)
 
+        # Подключения
+        # --------------
+        connect_menu = wx.Menu()
+        add_connect_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Добавить пБД... \tShift+Ctrl+N')
+        add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
+        self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
+        connect_menu.Append(add_connect_menuitem)
+        connect_menu.AppendSeparator()
+        view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД...')
+        view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
+        self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
+        connect_menu.Append(view_connects_menuitem)
+        # --------------
+
         # Формирование меню
         menubar.Append(file_menu, '&Файл')
+        menubar.Append(connect_menu, '&Подключения')
 
         # Установка
         self.SetMenuBar(menubar)
@@ -624,8 +646,14 @@ class MainFrame(wx.Frame):
         data_panel.SetSizer(data_boxsizer)
 
         # Дерево баз данных
-        self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1))
+        self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1), style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
+        self.treectrl_databases_root = self.treectrl_databases.AddRoot('')
         data_boxsizer.Add(self.treectrl_databases, 0, wx.LEFT | wx.EXPAND)
+        self.all_tables = DataController.GetTablesFromDB()
+        self.image_items = wx.ImageList(16, 16)
+        self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.table_image = self.image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.treectrl_databases.AssignImageList(self.image_items)
         set_tree_items()
         self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
 
@@ -652,19 +680,19 @@ class MainFrame(wx.Frame):
         header_panel.SetSizer(header_boxsizer)
 
         statictext_table_name = wx.StaticText(header_panel, label="Имя таблицы:")
-        header_boxsizer.Add(statictext_table_name, 0, wx.LEFT | wx.CENTER | wx.ALL, border=5)
+        header_boxsizer.Add(statictext_table_name, 0, wx.LEFT | wx.CENTER | wx.ALL, 5)
 
         self.textctrl_table_name = wx.TextCtrl(header_panel, size=(-1, -1))
-        header_boxsizer.Add(self.textctrl_table_name, 1, wx.CENTER | wx.EXPAND | wx.ALL, border=5)
+        header_boxsizer.Add(self.textctrl_table_name, 1, wx.CENTER | wx.EXPAND | wx.ALL, 5)
 
         statictext_rows_count = wx.StaticText(header_panel, label="Кол-во строк:")
-        header_boxsizer.Add(statictext_rows_count, 0, wx.CENTER | wx.RIGHT | wx.ALL, border=5)
+        header_boxsizer.Add(statictext_rows_count, 0, wx.CENTER | wx.RIGHT | wx.ALL, 5)
 
         self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
-        header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALL, border=5)
+        header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALL, 5)
         # -------
-        main_page_boxsizer.Add(header_panel, 0, wx.EXPAND | wx.BOTTOM, 5)
-        main_page_boxsizer.Add(wx.StaticLine(main_page_panel), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+        main_page_boxsizer.Add(header_panel, 0, wx.EXPAND, 5)
+        main_page_boxsizer.Add(wx.StaticLine(main_page_panel), 0, wx.EXPAND | wx.BOTTOM, 5)
         # -------
 
         # -------
@@ -716,7 +744,7 @@ class MainFrame(wx.Frame):
         self.add_table_checkbox.Bind(wx.EVT_ENTER_WINDOW,
                                      lambda x: self.add_table_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
 
-        table_page_boxsizer.Add(wx.StaticLine(table_page_panel), 0, wx.EXPAND | wx.ALL, 5)
+        table_page_boxsizer.Add(wx.StaticLine(table_page_panel), 0, wx.EXPAND | wx.ALL, 0)
 
         # -------
         id_column_panel = wx.Panel(table_page_panel)
@@ -761,8 +789,20 @@ class MainFrame(wx.Frame):
         self.indexes_page_sizer.Add(self.button_new_index, 0, wx.ALL, 5)
 
         self.indexes_page_sizer.Add(wx.StaticLine(self.indexes_page_panel), 0,
-                                    wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
+                                    wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
 
+        # -------
+
+        self.indexes_scrolledwindow = wx.lib.scrolledpanel.ScrolledPanel(self.indexes_page_panel, size=(-1, 1000))
+        # self.indexes_scrolledwindow.SetScrollbars(1, 1, 1, 1)
+        self.indexes_scrolledwindow.SetupScrolling()
+        self.indexes_scrolledwindow.SetAutoLayout(1)
+        # self.indexes_scrolledwindow.SetScrollbars(20, 20, 50, 50)
+        # self.indexes_scrolledwindow.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
+        self.indexes_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.indexes_scrolledwindow.SetSizer(self.indexes_sizer)
+        # -------
+        self.indexes_page_sizer.Add(self.indexes_scrolledwindow, 0, wx.EXPAND)
         # ------
         notebook_settings.AddPage(self.indexes_page_panel, "Индексы")
         # -----

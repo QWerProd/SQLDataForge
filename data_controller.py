@@ -30,14 +30,19 @@ class DataController:
         return db_count
 
     @staticmethod
-    def GetDatabases(self) -> list:
+    def GetDatabases(short=True) -> list:
         """Возвращает список пБД из сБД."""
         databases = []
 
         app_curs = app_conn.cursor()
-        dblist = app_curs.execute("SELECT dbname FROM t_databases").fetchall()
-        for dbname in dblist:
-            databases.append(dbname[0])
+        if short:
+            dblist = app_curs.execute("SELECT dbname FROM t_databases").fetchall()
+            for dbname in dblist:
+                databases.append(dbname[0])
+        else:
+            dblist = app_curs.execute("SELECT dbname, field_name, path, description FROM t_databases").fetchall()
+            for dbitem in dblist:
+                databases.append(dbitem)
 
         app_curs.close()
         return databases     
