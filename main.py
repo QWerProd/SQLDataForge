@@ -794,11 +794,8 @@ class MainFrame(wx.Frame):
         # -------
 
         self.indexes_scrolledwindow = wx.lib.scrolledpanel.ScrolledPanel(self.indexes_page_panel, size=(-1, 1000))
-        # self.indexes_scrolledwindow.SetScrollbars(1, 1, 1, 1)
         self.indexes_scrolledwindow.SetupScrolling()
         self.indexes_scrolledwindow.SetAutoLayout(1)
-        # self.indexes_scrolledwindow.SetScrollbars(20, 20, 50, 50)
-        # self.indexes_scrolledwindow.ShowScrollbars(wx.SHOW_SB_NEVER, wx.SHOW_SB_ALWAYS)
         self.indexes_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_scrolledwindow.SetSizer(self.indexes_sizer)
         # -------

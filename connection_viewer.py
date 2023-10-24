@@ -54,7 +54,8 @@ class ConnectionViewer(wx.Frame):
         else:
             self.db_desc_textctrl.SetValue(self.db_info[3])
 
-    def refresh(self, event):
+    def refresh(self, event=wx.EVT_BUTTON):
+        self.databases = DC.GetDatabases(False)
         self.treectrl_databases.DeleteAllItems()
         root = self.treectrl_databases.AddRoot('')
         self.local_root = self.treectrl_databases.AppendItem(root, 'локальные пБД')
@@ -63,9 +64,42 @@ class ConnectionViewer(wx.Frame):
         self.treectrl_databases.SetItemImage(self.global_root, self.closed_root)
         self.set_databases()
 
+        self.db_name_textctrl.Clear()
+        self.db_name_textctrl.Disable()
+        self.db_field_name_textctrl.Clear()
+        self.db_field_name_textctrl.Disable()
+        self.db_path_textctrl.Clear()
+        self.db_desc_textctrl.Clear()
+        self.db_desc_textctrl.Disable()
+        self.save_button.Disable()
+
     def new_connection(self, event):
         new_conn = NewConnection(self.connect)
         new_conn.Show()
+
+    def drop_connection(self, event):
+        item = self.treectrl_databases.GetSelection()
+        root_item = self.treectrl_databases.GetItemParent(item)
+        root_text = self.treectrl_databases.GetItemText(root_item)
+        if root_text == 'локальные пБД':
+            return wx.MessageBox('Вы не можете удалить пБД из локального репозитория', 'Ошибка удаления',
+                                 wx.OK | wx.ICON_WARNING)
+        elif len(self.databases) <= 1:
+            return wx.MessageBox('Должна остаться хотя бы одна пБД!', 'Ошибка удаления',
+                                 wx.OK | wx.ICON_WARNING)
+
+        database = self.treectrl_databases.GetItemText(item)
+        try:
+            cursor = self.connect.cursor()
+            cursor.execute(f"""DELETE FROM t_databases
+                               WHERE dbname = "{database}";""")
+            self.connect.commit()
+            cursor.close()
+
+            self.refresh()
+        except sqlite3.Error as e:
+            self.connect.rollback()
+            wx.MessageBox(e.sqlite_errorcode + '\n' + e.sqlite_errorname, 'Ошибка редактирования')
 
     def save_changes(self, event):
         try:
@@ -153,6 +187,12 @@ class ConnectionViewer(wx.Frame):
         self.add_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.add_database_button.Bind(wx.EVT_BUTTON, self.new_connection)
         buttons_sizer.Add(self.add_database_button, 0, wx.BOTTOM, 5)
+
+        self.delete_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
+                                                      bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/delete database.png')))
+        self.delete_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
+        self.delete_database_button.Bind(wx.EVT_BUTTON, self.drop_connection)
+        buttons_sizer.Add(self.delete_database_button, 0, wx.BOTTOM, 5)
 
         div_hor_sizer.Add(buttons_panel, 0, wx.ALL, 5)
         # -------------------------------

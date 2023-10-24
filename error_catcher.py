@@ -1,7 +1,4 @@
-from tkinter import messagebox
-
 import wx
-from wx import Dialog
 import sqlite3
 
 

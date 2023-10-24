@@ -1,6 +1,7 @@
 import os
 from error_catcher import ErrorCatcher
 import sqlite3
+from datetime import datetime
 
 app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher()
