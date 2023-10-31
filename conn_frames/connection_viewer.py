@@ -13,7 +13,7 @@ class ConnectionViewer(wx.Frame):
 
     def set_databases(self):
         for database in self.databases:
-            if database[2].startswith('data'):
+            if database[2].startswith('data') or database[2].endswith('SQLDataForge/data'):
                 item = self.treectrl_databases.AppendItem(self.local_root, database[0])
                 self.treectrl_databases.SetItemImage(item, self.database_image)
             else:

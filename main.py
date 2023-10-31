@@ -259,35 +259,36 @@ class MainFrame(wx.Frame):
                 else:
                     for item in self.all_tables[key]:
                         if item.find(activated) != -1:
-                            add_act = item
+                            add_act = key + ":" + item
+                            break
 
             # Переопределение массивов элементов и выделения выбранных элементов в дереве
             if len(added_items) <= 0:
                 added_items.append(add_act)
                 added_item_text.append(activated)
-                added_item_code.append(add_act.split(':')[1])
+                added_item_code.append(add_act.split(':')[2])
                 self.treectrl_databases.SetItemBold(get_item, True)
-                self.textctrl_column_names.append(add_act.split(':')[1])
-                self.textctrl_column_types.append(add_act.split(':')[2])
+                self.textctrl_column_names.append(add_act.split(':')[2])
+                self.textctrl_column_types.append(add_act.split(':')[3])
             else:
                 is_removed = False
                 for item in added_items:
                     if activated in item:
                         added_items.remove(add_act)
                         added_item_text.remove(activated)
-                        added_item_code.remove(add_act.split(':')[1])
+                        added_item_code.remove(add_act.split(':')[2])
                         self.treectrl_databases.SetItemBold(get_item, False)
-                        self.textctrl_column_names.remove(add_act.split(':')[1])
-                        self.textctrl_column_types.remove(add_act.split(':')[2])
+                        self.textctrl_column_names.remove(add_act.split(':')[2])
+                        self.textctrl_column_types.remove(add_act.split(':')[3])
                         is_removed = True
                         break
                 if not is_removed:
                     added_items.append(add_act)
                     added_item_text.append(activated)
-                    added_item_code.append(add_act.split(':')[1])
+                    added_item_code.append(add_act.split(':')[2])
                     self.treectrl_databases.SetItemBold(get_item, True)
-                    self.textctrl_column_names.append(add_act.split(':')[1])
-                    self.textctrl_column_types.append(add_act.split(':')[2])
+                    self.textctrl_column_names.append(add_act.split(':')[2])
+                    self.textctrl_column_types.append(add_act.split(':')[3])
             self.table_columns_regulate()
 
     def table_columns_regulate(self):
@@ -381,7 +382,7 @@ class MainFrame(wx.Frame):
                 # Получение значений имен столбцов
                 colnames = []
                 for i in range(len(added_items)):
-                    old_coltype = added_items[i].split(':')[2]
+                    old_coltype = added_items[i].split(':')[3]
 
                     new_colname = added_item_code[i + self.id_added]
                     textctrl_coltype = self.table_items_panel.FindWindowById(int(self.column_items[i + self.id_added][2]))
@@ -448,7 +449,6 @@ class MainFrame(wx.Frame):
             self.is_saved = True
             self.query_status = "Сохранено"
             self.statusbar.SetStatusText(self.query_status, 0)
-
 
     def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
@@ -785,7 +785,7 @@ class MainFrame(wx.Frame):
         id_column_boxsizer.Add(self.textctrl_increment_start, 0, wx.LEFT, 5)
         self.textctrl_increment_start.Hide()
 
-        table_page_boxsizer.Add(id_column_panel, 0, wx.TOP | wx.EXPAND)
+        table_page_boxsizer.Add(id_column_panel, 0, wx.TOP | wx.EXPAND, 5)
         # -------
 
         # ------

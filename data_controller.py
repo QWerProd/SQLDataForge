@@ -84,7 +84,7 @@ class DataController:
                 if key in databases:
                     break
                 for item in tables:
-                    if item_main == item:
+                    if item_main in item:
                         databases.append(key)
                         break
 

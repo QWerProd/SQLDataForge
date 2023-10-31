@@ -46,7 +46,7 @@ class SQLGenerator:
         if self.new_table_info['is_id_create']:
             items.append(f'id INTEGER NOT NULL\n')
         for i in range(len(self.cols)):
-            items.append(f'{self.column_names[i]} {self.cols[i][3]}\n')
+            items.append(f'{self.column_names[i]} {self.cols[i][4]}\n')
         query_createtable += '   ,'.join(items)
         if self.new_table_info['is_id_create']:
             query_createtable += '    PRIMARY KEY("id")\n'
@@ -68,11 +68,14 @@ class SQLGenerator:
     def GenerateValues(self) -> dict:
         list_of_dbs = DC.GetDBFromTables(self.tables)
         app_curs = self.app_conn.cursor()
-        path_of_dbs = app_curs.execute('SELECT path FROM t_databases ' +
-                                       'WHERE dbname IN ("' + '","'.join(list_of_dbs) + '")').fetchone()
+        connects = []
+
+        query = ('SELECT path FROM t_databases ' +
+                 'WHERE dbname IN ("' + '","'.join(list_of_dbs) + '")')
+        path_of_dbs = app_curs.execute(query).fetchall()
         databases = []
         for i in range(0, len(list_of_dbs)):
-            databases.append((list_of_dbs[i], path_of_dbs[i]))
+            databases.append((list_of_dbs[i], path_of_dbs[i][0]))
 
         datadict = dict()
 
@@ -88,104 +91,113 @@ class SQLGenerator:
                 # self.column_names.append('id')
 
         for database in databases:
-            conn = sqlite3.connect(database[1])
+            conn = sqlite3.connect(database[1] + '\\' + database[0])
+            connects.append([conn, database[0]])
             cursor = conn.cursor()
             temp_cols = []
 
             for colnames in self.tables:
-                temp_cols.append([colnames.split(':')[0], colnames.split(':')[1]])
+                temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2]])
 
             for item in temp_cols:
-                query = f"""SELECT table_name, column_name, gen_key, column_type
-                        FROM t_cases_info
-                        WHERE table_name = "{item[0]}"
-                        AND   column_name = "{item[1]}";"""
-                temp_cols = cursor.execute(query).fetchone()
-                self.cols.append(temp_cols)
+                if item[0] == database[0]:
+                    query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
+                                FROM t_cases_info
+                                WHERE table_name = "{item[1]}"
+                                AND   column_name = "{item[2]}";"""
+                    temp_cols = cursor.execute(query).fetchone()
+                    self.cols.append(temp_cols)
 
-            # Generate data from all tables
-            for table in self.cols:
-                # Getting maximum value of rows
-                max_val = cursor.execute(f"SELECT COUNT(*) FROM {table[0]};").fetchone()[0]
+        # Generate data from all tables
+        for table in self.cols:
+            loc_conn = sqlite3.Connection
+            for conn_row in connects:
+                if conn_row[1] == table[0]:
+                    loc_conn = conn_row[0]
+                    break
+            cursor = loc_conn.cursor()
 
-                # Creating list of columns
-                # self.column_names.append(table[1])
+            # Getting maximum value of rows
+            max_val = cursor.execute(f"SELECT COUNT(*) FROM {table[1]};").fetchone()[0]
 
-                datadict[table[0] + ':' + table[1]] = list()
+            # Creating list of columns
+            # self.column_names.append(table[1])
 
-                for i in range(self.rows_count):
-                    # Getting random data from datasets
-                    if table[2] == 'RSet':
-                        row_number = rd.randint(1, max_val)
-                        data = cursor.execute(f"""SELECT {table[1]}
-                                                  FROM {table[0]}
-                                                  WHERE id = {row_number};""").fetchone()[0]
-                        datadict[table[0] + ':' + table[1]].append(data)
-                    # Generating random number in given interval
-                    elif table[2] == 'RValue':
-                        break
-                        # Временно не поддерживается!
-                        # dirty_values = cursor.execute(f"""SELECT minvalue, maxvalue
-                        #                                   FROM {table[0]};""").fetchone()
-                        # minvalue = int(dirty_values[0])
-                        # maxvalue = int(dirty_values[1])
-                        #
-                        # datadict[table[0]].append((rd.randint(minvalue, maxvalue), ))
-                    elif table[2] == 'RDate':
-                        data = cursor.execute(f"""SELECT minvalue, minvalue_subtract, maxvalue, maxvalue_subtract
-                                                  FROM {table[0]};""").fetchone()
-                        # Обработка минимального значения
-                        mindate = data[0]
-                        maxdate = data[2]
-                        try:
-                            mindate = datetime.datetime.strptime(mindate, '%Y-%m-%d')
-                        except ValueError:
-                            mindate = DC.ParamChanger(mindate)
-                        mindate = mindate - datetime.timedelta(days=data[1] * 365)
+            datadict[table[0] + ':' + table[1] + ':' + table[2]] = list()
 
-                        # Обработка максимального значения
-                        try:
-                            maxdate = datetime.datetime.strptime(maxdate, '%Y-%m-%d')
-                        except ValueError:
-                            maxdate = DC.ParamChanger(maxdate)
-                        maxdate = maxdate - datetime.timedelta(days=data[3] * 365)
+            for i in range(self.rows_count):
+                # Getting random data from datasets
+                if table[3] == 'RSet':
+                    row_number = rd.randint(1, max_val)
+                    data = cursor.execute(f"""SELECT {table[2]}
+                                              FROM {table[1]}
+                                              WHERE id = {row_number};""").fetchone()[0]
+                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(data)
+                elif table[3] == 'RValue':
+                    data = cursor.execute(f"""SELECT min_value, max_value
+                                                      FROM {table[1]};""").fetchone()
+                    minvalue = int(data[0])
+                    maxvalue = int(data[1])
 
-                        # Выбор рандомного дня из промежутка
-                        days = (maxdate - mindate).days
-                        rnd_day = rd.randint(1, days)
+                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(rd.randint(minvalue, maxvalue)))
+                elif table[3] == 'RDate':
+                    data = cursor.execute(f"""SELECT minvalue, minvalue_subtract, maxvalue, maxvalue_subtract
+                                              FROM {table[1]};""").fetchone()
+                    # Обработка минимального значения
+                    mindate = data[0]
+                    maxdate = data[2]
+                    try:
+                        mindate = datetime.datetime.strptime(mindate, '%Y-%m-%d')
+                    except ValueError:
+                        mindate = DC.ParamChanger(mindate)
+                    mindate = mindate - datetime.timedelta(days=data[1] * 365)
 
-                        # Генерация даты
-                        datadict[table[0] + ':' + table[1]].append(str(mindate + datetime.timedelta(days=rnd_day)))
-                    elif table[2] == 'RChain':
-                        # Получение имен столбцов таблицы
-                        data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = "{table[0]}";""").fetchone()[0]
-                        pattern = r'"([^"]+)"'
-                        column_names = re.findall(pattern, data)
+                    # Обработка максимального значения
+                    try:
+                        maxdate = datetime.datetime.strptime(maxdate, '%Y-%m-%d')
+                    except ValueError:
+                        maxdate = DC.ParamChanger(maxdate)
+                    maxdate = maxdate - datetime.timedelta(days=data[3] * 365)
 
-                        # Отсеивание имени таблицы и столбца ID
-                        while True:
-                            if table[0] in column_names:
-                                column_names.remove(table[0])
-                            if "id" in column_names:
-                                column_names.remove("id")
-                            else:
-                                break
+                    # Выбор рандомного дня из промежутка
+                    days = (maxdate - mindate).days
+                    rnd_day = rd.randint(1, days)
 
-                        # Поочередное получение данных
-                        datarow = ""
-                        for column in column_names:
-                            max_val = int(cursor.execute(f"""SELECT COUNT("{column}") 
-                                                         FROM {table[0]}
-                                                         WHERE "{column}" IS NOT NULL;""").fetchone()[0])
+                    # Генерация даты
+                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(mindate + datetime.timedelta(days=rnd_day)))
+                elif table[3] == 'RChain':
+                    # Получение имен столбцов таблицы
+                    data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = "{table[1]}";""").fetchone()[0]
+                    pattern = r'"([^"]+)"'
+                    column_names = re.findall(pattern, data)
 
-                            item = cursor.execute(f"""SELECT {column} 
-                                                  FROM {table[0]} 
-                                                  WHERE id = {rd.randint(1, max_val)};""").fetchone()[0]
-                            datarow += item
+                    # Отсеивание имени таблицы и столбца ID
+                    while True:
+                        if table[1] in column_names:
+                            column_names.remove(table[1])
+                        if "id" in column_names:
+                            column_names.remove("id")
+                        else:
+                            break
 
-                        datadict[table[0] + ':' + table[1]].append(datarow)
+                    # Поочередное получение данных
+                    datarow = ""
+                    for column in column_names:
+                        max_val = int(cursor.execute(f"""SELECT COUNT("{column}") 
+                                                     FROM {table[1]}
+                                                     WHERE "{column}" IS NOT NULL;""").fetchone()[0])
+
+                        item = cursor.execute(f"""SELECT {column} 
+                                              FROM {table[1]} 
+                                              WHERE id = {rd.randint(1, max_val)};""").fetchone()[0]
+                        datarow += item
+
+                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(datarow)
             cursor.close()
-            conn.close()
+
+        # Закрываем все коннекты к пБД
+        for conn in connects:
+            conn[0].close()
 
         return datadict
 
