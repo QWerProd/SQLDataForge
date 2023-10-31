@@ -1,6 +1,8 @@
 import os
 from error_catcher import ErrorCatcher
 import sqlite3
+
+# Импорты для параметров
 from datetime import datetime
 
 app_conn = sqlite3.connect('app/app.db')
@@ -58,7 +60,7 @@ class DataController:
             databases[unit[0]] = unit[1]
 
         for database, path in databases.items():
-            conn = sqlite3.connect(path)
+            conn = sqlite3.connect(path + '\\' + database)
             cursor = conn.cursor()
             tables = cursor.execute(f"""SELECT table_name, column_name, column_type, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
 

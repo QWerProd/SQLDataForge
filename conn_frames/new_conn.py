@@ -94,7 +94,8 @@ class NewConnection(wx.Frame):
                 return catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
 
     def __init__(self, app_conn: sqlite3.Connection):
-        wx.Frame.__init__(self, None, title='Новое подключение', size=(500, 300))
+        wx.Frame.__init__(self, None, title='Новое подключение', size=(500, 300),
+                          style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_TOOL_WINDOW | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 300))
         self.SetMaxSize((500, 300))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))

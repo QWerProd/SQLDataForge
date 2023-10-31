@@ -1,8 +1,9 @@
+import os
 import wx
 import sqlite3
 
 from data_controller import DataController as DC
-from new_conn import NewConnection
+from conn_frames.new_conn import NewConnection
 
 
 class ConnectionViewer(wx.Frame):
@@ -12,7 +13,7 @@ class ConnectionViewer(wx.Frame):
 
     def set_databases(self):
         for database in self.databases:
-            if database[2].startswith('data/'):
+            if database[2].startswith('data'):
                 item = self.treectrl_databases.AppendItem(self.local_root, database[0])
                 self.treectrl_databases.SetItemImage(item, self.database_image)
             else:
@@ -76,6 +77,7 @@ class ConnectionViewer(wx.Frame):
     def new_connection(self, event):
         new_conn = NewConnection(self.connect)
         new_conn.Show()
+        new_conn.SetFocus()
 
     def drop_connection(self, event):
         item = self.treectrl_databases.GetSelection()
@@ -99,25 +101,36 @@ class ConnectionViewer(wx.Frame):
             self.refresh()
         except sqlite3.Error as e:
             self.connect.rollback()
-            wx.MessageBox(e.sqlite_errorcode + '\n' + e.sqlite_errorname, 'Ошибка редактирования')
+            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка удаления')
 
     def save_changes(self, event):
         try:
+            cursor = self.connect.cursor()
+            rowid = cursor.execute(f"""SELECT id FROM t_databases 
+                                       WHERE path = '{self.db_info[2]}' AND dbname = '{self.db_info[0]}';""").fetchone()[0]
+
+            # Получаем значения из полей
             dbname = self.db_name_textctrl.GetValue()
+            if not dbname.endswith('.db'):
+                dbname += '.db'
             db_field_name = self.db_field_name_textctrl.GetValue()
             db_desc = self.db_desc_textctrl.GetValue()
 
-            cursor = self.connect.cursor()
+            # Переименовываем файл если есть изменения в имени файла
+            if self.db_info[0] != dbname:
+                os.rename(self.db_info[2] + '/' + self.db_info[0], self.db_info[2] + '/' + dbname)
+
+            # Изменение данных
             cursor.execute(f"""UPDATE t_databases
                                SET dbname = "{dbname}",
                                    field_name = "{db_field_name}",
                                    description = "{db_desc}"
-                               WHERE path = "{self.db_info[2]}";""")
+                               WHERE id = {int(rowid)};""")
             self.connect.commit()
             wx.MessageBox(f'пБД {dbname} успешно изменена!', 'Успешное изменение', wx.OK | wx.ICON_INFORMATION)
         except sqlite3.Error as e:
             self.connect.rollback()
-            wx.MessageBox(e.sqlite_errorcode + '\n' + e.sqlite_errorname, 'Ошибка редактирования')
+            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка сохранения')
 
     def close(self, event):
         if self.db_name_textctrl.IsEnabled():
@@ -131,7 +144,8 @@ class ConnectionViewer(wx.Frame):
             self.Destroy()
 
     def __init__(self, conn: sqlite3.Connection):
-        wx.Frame.__init__(self, None, title="Доступные пБД", size=(500, 550))
+        wx.Frame.__init__(self, None, title="Доступные пБД", size=(500, 550),
+                          style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_TOOL_WINDOW | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 550))
         self.SetMaxSize((500, 550))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))

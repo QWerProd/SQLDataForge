@@ -7,8 +7,9 @@ from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
 from error_catcher import ErrorCatcher
-from connection_viewer import ConnectionViewer
-from new_conn import NewConnection
+from conn_frames.connection_viewer import ConnectionViewer
+from conn_frames.new_conn import NewConnection
+from conn_frames.new_udb_wizard import UDBCreateMaster
 
 
 app_conn = sqlite3.connect('app/app.db')
@@ -448,13 +449,6 @@ class MainFrame(wx.Frame):
             self.query_status = "Сохранено"
             self.statusbar.SetStatusText(self.query_status, 0)
 
-    # def on_close(self, event):
-    #     dlg = wx.MessageDialog(self, 'Вы действительно хотите выйти?', 'Подтверждение выхода',
-    #                            wx.OK | wx.CANCEL | wx.ICON_QUESTION)
-    #     result = dlg.ShowModal()
-    #     dlg.Destroy()
-    #     if result == wx.ID_OK:
-    #         self.Destroy()
 
     def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
@@ -495,6 +489,23 @@ class MainFrame(wx.Frame):
                 self.statusbar.SetStatusText(self.query_status, 0)
                 self.statusbar.SetStatusText("", 2)
 
+    def refresh(self, event):
+        self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
+        self.all_tables = DataController.GetTablesFromDB()
+        self.set_tree_items()
+
+    def set_tree_items(self):
+        for key, value in self.all_tables.items():
+            temp_items = []
+            root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, key)
+            self.treectrl_databases.SetItemImage(root, self.database_image)
+            for full_item in value:
+                item = full_item.split(':')[3]
+                child = self.treectrl_databases.AppendItem(root, item)
+                self.treectrl_databases.SetItemImage(child, self.table_image)
+                temp_items.append(child)
+            self.tree_items[root] = temp_items
+
     def delete_index(self, item):
         index_items.remove(item)
         item.Hide()
@@ -503,10 +514,17 @@ class MainFrame(wx.Frame):
     def open_new_connection(self, event):
         new_conn = NewConnection(app_conn)
         new_conn.Show()
+        new_conn.SetFocus()
 
     def open_connection_viewer(self, event):
         conn_viewer = ConnectionViewer(app_conn)
         conn_viewer.Show()
+        conn_viewer.SetFocus()
+
+    def open_newudb_master(self, event):
+        create_master = UDBCreateMaster(app_conn, catcher)
+        create_master.Show()
+        create_master.SetFocus()
 
     def __init__(self):
         wx.Frame.__init__(self, None, title="SQLDataForge v1.1", size=(800, 600))
@@ -514,18 +532,6 @@ class MainFrame(wx.Frame):
         self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
-
-        def set_tree_items():
-            for key, value in self.all_tables.items():
-                temp_items = []
-                root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, key)
-                self.treectrl_databases.SetItemImage(root, self.database_image)
-                for full_item in value:
-                    item = full_item.split(':')[3]
-                    child = self.treectrl_databases.AppendItem(root, item)
-                    self.treectrl_databases.SetItemImage(child, self.table_image)
-                    temp_items.append(child)
-                self.tree_items[root] = temp_items
 
         def is_table_enabled(event):
             self.is_create_table = self.add_table_checkbox.GetValue()
@@ -590,6 +596,11 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         file_menu.Append(generate_menuitem)
 
+        refresh_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Обновить \tF5')
+        refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
+        self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
+        file_menu.Append(refresh_menuitem)
+
         clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \tF3')
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
@@ -609,6 +620,10 @@ class MainFrame(wx.Frame):
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         connect_menu.Append(add_connect_menuitem)
+        create_udb_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Создать пБД...')
+        create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
+        self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
+        connect_menu.Append(create_udb_menuitem)
         connect_menu.AppendSeparator()
         view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД...')
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
@@ -632,10 +647,13 @@ class MainFrame(wx.Frame):
         self.toolbar.AddTool(2, "Очистить", wx.Bitmap("img/16x16/recycle bin sign.png"),
                              shortHelp="Очистить поля")
         self.Bind(wx.EVT_TOOL, self.clear_form, id=2)
+        self.toolbar.AddTool(3, "Обновить", wx.Bitmap("img/16x16/update.png"),
+                             shortHelp="Обновить список пБД")
+        self.Bind(wx.EVT_TOOL, self.refresh, id=3)
         self.toolbar.AddSeparator()
-        self.toolbar.AddTool(3, "Сохранить", wx.Bitmap("img/16x16/save.png"),
+        self.toolbar.AddTool(4, "Сохранить", wx.Bitmap("img/16x16/save.png"),
                              shortHelp="Сохранить скрипт")
-        self.Bind(wx.EVT_TOOL, self.save_script, id=3)
+        self.Bind(wx.EVT_TOOL, self.save_script, id=4)
 
         self.toolbar.Realize()
 
@@ -654,7 +672,7 @@ class MainFrame(wx.Frame):
         self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.table_image = self.image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_items)
-        set_tree_items()
+        self.set_tree_items()
         self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
 
         # Контейнер работы с кейсами
