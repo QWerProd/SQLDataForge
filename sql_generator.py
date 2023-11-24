@@ -8,6 +8,7 @@ import random as rd
 
 class SQLGenerator:
     app_conn = sqlite3.Connection
+    is_simple_mode = bool
     queryrow1 = "INSERT INTO "
     queryrow2 = []
     table_name = ""
@@ -18,16 +19,22 @@ class SQLGenerator:
     column_names = []
     indexes = []
 
-    def __init__(self, app_conn: sqlite3.Connection, table_info: dict, rows_count: int, tables: list, column_names: list, indexes: list) -> None:
+    def __init__(self, app_conn: sqlite3.Connection, rows_count: int, tables: list, column_names: list,
+                 table_info: dict = None, indexes: list = None) -> None:
         self.app_conn = app_conn
-        for key, value in table_info.items():
-            self.table_name = key
-            self.new_table_info = value
+
         self.rows_count = rows_count
         self.queryrow2.clear()
         self.cols.clear()
         self.column_names = column_names
         self.tables = tables
+        self.is_simple_mode = True
+
+        if table_info is not None:
+            self.is_simple_mode = False
+            for key, value in table_info.items():
+                self.table_name = key
+                self.new_table_info = value
         self.indexes = indexes
 
     def CreateHeader(self):
@@ -66,55 +73,72 @@ class SQLGenerator:
         return index
 
     def GenerateValues(self) -> dict:
-        list_of_dbs = DC.GetDBFromTables(self.tables)
-        app_curs = self.app_conn.cursor()
+        simp_conn = sqlite3.Connection
+        list_of_dbs = []
         connects = []
+        datadict = {}
+        for table_item in self.tables:
+            list_of_dbs.append(table_item.split(':')[0])
 
-        query = ('SELECT path FROM t_databases ' +
-                 'WHERE dbname IN ("' + '","'.join(list_of_dbs) + '")')
-        path_of_dbs = app_curs.execute(query).fetchall()
-        databases = []
-        for i in range(0, len(list_of_dbs)):
-            databases.append((list_of_dbs[i], path_of_dbs[i][0]))
+        if self.is_simple_mode:
+            db_name = DC.GetDBFromTables([list_of_dbs[0], ])[0]
+            simp_conn = sqlite3.connect('data/' + db_name)
+            curs = simp_conn.cursor()
 
-        datadict = dict()
+            data = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, column_type
+                                    FROM t_cases_info
+                                    WHERE table_name = "{list_of_dbs[0]}"
+                                    AND   column_name = "{list_of_dbs[1]}";""").fetchone()
+            self.cols.append(data)
+        else:
+            app_curs = self.app_conn.cursor()
 
-        id_column = False
-        if self.new_table_info['is_id_create']:
-            increment = int(self.new_table_info['increment_start'])
-            id_column = True
-            if id_column:
-                row = []
-                for i in range(increment, self.rows_count + increment):
-                    row.append(i)
-                datadict['id'] = row
-                # self.column_names.append('id')
+            query = ('SELECT path FROM t_databases ' +
+                     'WHERE dbname IN ("' + '","'.join(list_of_dbs) + '")')
+            path_of_dbs = app_curs.execute(query).fetchall()
+            databases = []
+            for i in range(0, len(list_of_dbs)):
+                databases.append((list_of_dbs[i], path_of_dbs[i][0]))
 
-        for database in databases:
-            conn = sqlite3.connect(database[1] + '\\' + database[0])
-            connects.append([conn, database[0]])
-            cursor = conn.cursor()
-            temp_cols = []
+            id_column = False
+            if self.new_table_info['is_id_create']:
+                increment = int(self.new_table_info['increment_start'])
+                id_column = True
+                if id_column:
+                    row = []
+                    for i in range(increment, self.rows_count + increment):
+                        row.append(i)
+                    datadict['id'] = row
+                    # self.column_names.append('id')
 
-            for colnames in self.tables:
-                temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2]])
+            for database in databases:
+                conn = sqlite3.connect(database[1] + '\\' + database[0])
+                connects.append([conn, database[0]])
+                cursor = conn.cursor()
+                temp_cols = []
 
-            for item in temp_cols:
-                if item[0] == database[0]:
-                    query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
-                                FROM t_cases_info
-                                WHERE table_name = "{item[1]}"
-                                AND   column_name = "{item[2]}";"""
-                    temp_cols = cursor.execute(query).fetchone()
-                    self.cols.append(temp_cols)
+                for colnames in self.tables:
+                    temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2]])
+
+                for item in temp_cols:
+                    if item[0] == database[0]:
+                        query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
+                                    FROM t_cases_info
+                                    WHERE table_name = "{item[1]}"
+                                    AND   column_name = "{item[2]}";"""
+                        temp_cols = cursor.execute(query).fetchone()
+                        self.cols.append(temp_cols)
 
         # Generate data from all tables
         for table in self.cols:
             loc_conn = sqlite3.Connection
-            for conn_row in connects:
-                if conn_row[1] == table[0]:
-                    loc_conn = conn_row[0]
-                    break
+            if self.is_simple_mode:
+                loc_conn = simp_conn
+            else:
+                for conn_row in connects:
+                    if conn_row[1] == table[0]:
+                        loc_conn = conn_row[0]
+                        break
             cursor = loc_conn.cursor()
 
             # Getting maximum value of rows

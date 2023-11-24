@@ -13,7 +13,7 @@ class DataController:
 
     @staticmethod
     def SetDatabases() -> list:
-        """Читает папку data/ и вносит сведения о пБД в сБД."""
+        """Читает папку data/ и вносит сведения о пБД в сБД. Возвращает массив с количеством [успешных добавлений / ошибок]"""
         db_count = [0, 0]
         app_curs = app_conn.cursor()
         templist = app_curs.execute("SELECT dbname FROM t_databases").fetchall()
@@ -33,8 +33,9 @@ class DataController:
         return db_count
 
     @staticmethod
-    def GetDatabases(short=True) -> list:
-        """Возвращает список пБД из сБД."""
+    def GetDatabases(short=True) -> dict:
+        """Возвращает словарь пБД с путем к файлу из сБД.
+        {'Person.db': 'data'}"""
         databases = []
 
         app_curs = app_conn.cursor()
@@ -52,7 +53,11 @@ class DataController:
 
     @staticmethod
     def GetTablesFromDB() -> dict:
-        """Возвращает словарь с именами таблиц базы данных из специальной таблицы t_cases_info"""
+        """Возвращает словарь с именами таблиц базы данных из специальной таблицы t_cases_info.
+        {'Person.db':
+        ['t_person_man_names:last_name:TEXT:Фамилия (М)',
+        't_person_man_names:first_name:TEXT:Имя (М)', ...],
+        ...}"""
         all_tables = {}
         databases = {}
         result = app_conn.execute("SELECT dbname, path FROM t_databases").fetchall()
@@ -84,7 +89,7 @@ class DataController:
                 if key in databases:
                     break
                 for item in tables:
-                    if item_main in item:
+                    if item in item_main:
                         databases.append(key)
                         break
 
@@ -100,3 +105,33 @@ class DataController:
             return catcher.error_message('E002')
         else:
             return eval(param_name[0])
+
+    @staticmethod
+    def GetListSimpleGens() -> dict:
+        """Возвращает список всех простых генераторов"""
+
+        gens = {}
+        curs = app_conn.cursor()
+        data = curs.execute(f"SELECT gen_code, gen_name, gen_type FROM t_simple_gen").fetchall()
+
+        for datarow in data:
+            if not datarow[2] in gens:
+                gens[datarow[2]] = []
+            gens[datarow[2]].append((datarow[0], datarow[1]))
+
+        return gens
+
+    @staticmethod
+    def BuildDictOfGens() -> dict:
+        """Собирает словарь со всеми полями для простого генератора.
+        {'<Раздел>': [(<ключ>, '<подпись для меню>'), ...], ...}"""
+        gens = DataController.GetListSimpleGens()
+        user_gens = DataController.GetTablesFromDB()
+
+        for database, values in user_gens.items():
+            gens[database] = []
+            for items in values:
+                gen_key = ':'.join(items.split(':')[0:2])
+                gens[database].append((gen_key, items.split(':')[3]))
+
+        return gens

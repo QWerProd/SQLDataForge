@@ -208,7 +208,7 @@ class UDBCreateMaster(wx.Frame):
         def __init__(self, parent: wx.Panel):
             wx.Panel.__init__(self, parent)
 
-            # ------------------------------
+            # ---------------
             self.data_sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.data_sizer)
 
@@ -216,7 +216,7 @@ class UDBCreateMaster(wx.Frame):
                                               label='Укажите нужно ли добавлять создаваемую пБД в SQLDataForge.\n'
                                                     'Заполните все поля при необходимости.')
             self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
-            # ------------------------------------------------------------
+            # ------------------------------
 
             self.div_hor_panel = wx.Panel(self)
             self.div_hor_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -227,7 +227,7 @@ class UDBCreateMaster(wx.Frame):
             self.adding_enabled_checkbox.Bind(wx.EVT_CHECKBOX, self.adding_enable)
             self.div_hor_sizer.Add(self.adding_enabled_checkbox, 0, wx.LEFT | wx.BOTTOM, 10)
 
-            # ------------------------------------------------------------------------------------------
+            # ------------------------------
 
             # Обертка для полей ввода
             self.div_vert_panel = wx.Panel(self.div_hor_panel, size=(-1, 250))
@@ -246,7 +246,7 @@ class UDBCreateMaster(wx.Frame):
 
             self.div_vert_sizer.Add(self.db_alias_name_panel, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 10)
             self.db_alias_name_panel.Hide()
-            # ------------------------------------------------------------
+            # ------------------------------
 
             self.db_desc_panel = wx.Panel(self.div_vert_panel)
             self.db_desc_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -262,10 +262,10 @@ class UDBCreateMaster(wx.Frame):
             self.db_desc_panel.Hide()
 
             self.div_hor_sizer.Add(self.div_vert_panel, 1, wx.LEFT, 100)
-            # ------------------------------------------------------------------------------------------
+            # ------------------------------
 
             self.data_sizer.Add(self.div_hor_panel, 0, wx.EXPAND)
-            # ------------------------------------------------------------
+            # ---------------
 
             self.Layout()
 

@@ -10,6 +10,7 @@ from error_catcher import ErrorCatcher
 from conn_frames.connection_viewer import ConnectionViewer
 from conn_frames.new_conn import NewConnection
 from conn_frames.new_udb_wizard import UDBCreateMaster
+from single_generator import SimpleGenerator
 
 
 app_conn = sqlite3.connect('app/app.db')
@@ -27,6 +28,10 @@ index_items = []
 class MainFrame(wx.Frame):
     tree_items = {}
     all_tables = {}
+
+    # Переменные "Простого генератора"
+    gens = {}
+    simplegens_menuitem = []
 
     # Листы для страницы "Таблица"
     textctrl_column_names = []
@@ -46,6 +51,7 @@ class MainFrame(wx.Frame):
     sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
                     " if exists index on is")
 
+    # Переменная отвечает за изменение индекса обращения к столбцам
     id_added = 0
 
     # ---------------------------------------------------
@@ -403,7 +409,7 @@ class MainFrame(wx.Frame):
                 else:
                     # Генерация
                     start_build_time = datetime.now()
-                    builder = SQLGenerator(app_conn, table_info, rows_count, added_items, colnames, indexes_info)
+                    builder = SQLGenerator(app_conn, rows_count, added_items, colnames, table_info, indexes_info)
                     query = ''
                     query += builder.BuildQuery(self.is_create_table)
                     build_time = datetime.now() - start_build_time
@@ -526,8 +532,19 @@ class MainFrame(wx.Frame):
         create_master.Show()
         create_master.SetFocus()
 
+    def open_simple_generator_from_menu(self, event):
+        menuitem = self.GetMenuBar().FindItemById(event.GetId())
+
+        for simpgen_menuitem in self.simpgens_menuitems:
+            if menuitem in simpgen_menuitem:
+                item_code = simpgen_menuitem[1]
+                simple_generator = SimpleGenerator(app_conn, catcher, item_code)
+                simple_generator.Show()
+                simple_generator.SetFocus()
+                break
+
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SQLDataForge v1.1", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SQLDataForge v1.2", size=(800, 600))
         self.SetMinSize((800, 600))
         self.Center()
         self.Maximize()
@@ -588,8 +605,9 @@ class MainFrame(wx.Frame):
 
         # Меню
         menubar = wx.MenuBar()
-        # --------------
+
         # Файл
+        # --------------
         file_menu = wx.Menu()
         generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \tF9')
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
@@ -620,20 +638,42 @@ class MainFrame(wx.Frame):
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         connect_menu.Append(add_connect_menuitem)
+
         create_udb_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Создать пБД...')
         create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         connect_menu.Append(create_udb_menuitem)
+
         connect_menu.AppendSeparator()
+
         view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД...')
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         connect_menu.Append(view_connects_menuitem)
+
+        # Генератор
         # --------------
+        generator_menu = wx.Menu()
+        self.gens = DataController.BuildDictOfGens()
+        self.simpgens_menuitems = []
+        for database, gen in self.gens.items():
+            database_menuitem = wx.Menu()
+            if database == 'simple':
+                generator_menu.AppendSubMenu(database_menuitem, f'&Простые генераторы')
+                generator_menu.AppendSeparator()
+            else:
+                generator_menu.AppendSubMenu(database_menuitem, f'&{database}')
+
+            for item in gen:
+                gen_menuitem = wx.MenuItem(database_menuitem, wx.ID_ANY, item[1])
+                self.Bind(wx.EVT_MENU, self.open_simple_generator_from_menu, gen_menuitem)
+                database_menuitem.Append(gen_menuitem)
+                self.simpgens_menuitems.append([gen_menuitem, item[0]])
 
         # Формирование меню
         menubar.Append(file_menu, '&Файл')
         menubar.Append(connect_menu, '&Подключения')
+        menubar.Append(generator_menu, '&Генератор')
 
         # Установка
         self.SetMenuBar(menubar)
