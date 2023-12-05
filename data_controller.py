@@ -3,10 +3,10 @@ from app.error_catcher import ErrorCatcher
 import sqlite3
 
 # Импорты для параметров
+import datetime
 
 app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher()
-
 
 class DataController:
 

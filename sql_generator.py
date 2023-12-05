@@ -1,10 +1,11 @@
-import datetime
 import re
 
 from data_controller import DataController as DC
 import sqlite3
 import random as rd
 
+# Импорты для генераторов
+import datetime
 
 class SQLGenerator:
     app_conn = sqlite3.Connection
@@ -77,8 +78,10 @@ class SQLGenerator:
         list_of_dbs = []
         connects = []
         datadict = {}
+        temp = []
         for table_item in self.tables:
-            list_of_dbs.append(table_item.split(':')[0])
+            temp.append(table_item.split(':')[0])
+            list_of_dbs = list(set(temp))
 
         if self.is_simple_mode:
             db_name = DC.GetDBFromTables([list_of_dbs[0], ])[0]
