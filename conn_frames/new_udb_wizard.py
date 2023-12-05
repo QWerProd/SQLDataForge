@@ -2,7 +2,7 @@ import wx
 import wx.adv
 import sqlite3
 
-from error_catcher import ErrorCatcher
+from app.error_catcher import ErrorCatcher
 
 
 class UDBCreateMaster(wx.Frame):
@@ -302,7 +302,8 @@ class UDBCreateMaster(wx.Frame):
 
     def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher):
         wx.Frame.__init__(self, None, title='Мастер создания пБД', size=(600, 350),
-                          style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.FRAME_TOOL_WINDOW | wx.CAPTION)
+                          style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.CAPTION)
+        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((600, 350))
         self.SetMaxSize((600, 350))
 

@@ -2,7 +2,7 @@ import sqlite3
 import wx
 
 from data_controller import DataController
-from error_catcher import ErrorCatcher
+from app.error_catcher import ErrorCatcher
 from sql_generator import SQLGenerator
 
 # Библиотеки для генераторов
@@ -20,7 +20,7 @@ class SimpleGenerator(wx.Frame):
 
     open_code = str
 
-    class TextedTextCtrl(wx.Panel):
+    class LabeledTextCtrl(wx.Panel):
 
         label = str
 
@@ -154,7 +154,7 @@ class SimpleGenerator(wx.Frame):
                 if gen_name == '':
                     gen_name = item_info[2]
                 if item_info[1] == 'TextCtrl':
-                    entry_field = SimpleGenerator.TextedTextCtrl(self.data_panel, item_info[0])
+                    entry_field = SimpleGenerator.LabeledTextCtrl(self.data_panel, item_info[0])
                     self.curr_data_fields.append(entry_field)
                     self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 20)
                     self.data_panel.Layout()
@@ -213,7 +213,9 @@ class SimpleGenerator(wx.Frame):
                               'Ошибка значения', wx.OK | wx.ICON_ERROR)
 
     def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher, open_code: str = None):
-        wx.Frame.__init__(self, None, title='Генератор простых значений', size=(700, 325))
+        wx.Frame.__init__(self, None, title='Генератор простых значений', size=(700, 325),
+                          style= wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
+        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
         self.SetMaxSize((700, 400))
         self.app_conn = app_conn
@@ -290,8 +292,6 @@ class SimpleGenerator(wx.Frame):
         self.items_count_textctrl.SetValue('1')
         self.buttons_sizer.Add(self.items_count_textctrl, 0, wx.ALIGN_CENTER_VERTICAL)
 
-        self.buttons_sizer.Add(112, 0, 0)
-
         self.cancel_button = wx.Button(self.buttons_panel, label='Отмена', size=(75, -1))
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
@@ -299,7 +299,7 @@ class SimpleGenerator(wx.Frame):
         self.generate_button.Bind(wx.EVT_BUTTON, self.start_generate)
         self.buttons_sizer.Add(self.generate_button, 0, wx.ALL, 5)
 
-        self.field_sizer.Add(self.buttons_panel, 0, wx.EXPAND)
+        self.field_sizer.Add(self.buttons_panel, 0, wx.ALIGN_RIGHT)
         # ------------------------------
 
         self.splitter.SplitVertically(self.items_treectrl, self.field_panel, 175)

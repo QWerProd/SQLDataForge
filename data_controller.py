@@ -1,9 +1,8 @@
 import os
-from error_catcher import ErrorCatcher
+from app.error_catcher import ErrorCatcher
 import sqlite3
 
 # Импорты для параметров
-from datetime import datetime
 
 app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher()
@@ -100,11 +99,13 @@ class DataController:
         """Переданный параметр возвращает исполняемый код для этого параметра"""
 
         curs = app_conn.cursor()
-        param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}'").fetchone()
+        param_name = curs.execute(f"SELECT param_value, param_type FROM t_params WHERE param_name = '{param}';").fetchone()
         if param_name is None:
             return catcher.error_message('E002')
-        else:
+        elif param_name[1] == 'GEN':
             return eval(param_name[0])
+        else:
+            return param_name[0]
 
     @staticmethod
     def GetListSimpleGens() -> dict:
@@ -112,7 +113,7 @@ class DataController:
 
         gens = {}
         curs = app_conn.cursor()
-        data = curs.execute(f"SELECT gen_code, gen_name, gen_type FROM t_simple_gen").fetchall()
+        data = curs.execute(f"SELECT gen_code, gen_name, gen_type FROM t_simple_gen WHERE is_valid = 'Y';").fetchall()
 
         for datarow in data:
             if not datarow[2] in gens:

@@ -6,11 +6,13 @@ import sqlite3
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
-from error_catcher import ErrorCatcher
+from app.error_catcher import ErrorCatcher
 from conn_frames.connection_viewer import ConnectionViewer
 from conn_frames.new_conn import NewConnection
 from conn_frames.new_udb_wizard import UDBCreateMaster
 from single_generator import SimpleGenerator
+from app.settings import Settings
+from app.app_parameters import APP_PARAMETERS
 
 
 app_conn = sqlite3.connect('app/app.db')
@@ -23,6 +25,9 @@ added_item_code = []
 
 # Листы индексов
 index_items = []
+
+# Редакторы кода для обновления стилей
+stc_redactors = []
 
 
 class MainFrame(wx.Frame):
@@ -223,22 +228,9 @@ class MainFrame(wx.Frame):
 
             # ---------------------------------
             self.textctrl_condition = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(505, 75))
+            stc_redactors.append(self.textctrl_condition)
             self.textctrl_condition.SetValue('-- Введите условия здесь\n')
-            self.textctrl_condition.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
-                                                 wx.Font(10, wx.FONTFAMILY_TELETYPE,
-                                                         wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-            self.textctrl_condition.StyleClearAll()
-            self.textctrl_condition.SetMarginWidth(1, 0)
-            self.textctrl_condition.SetUseHorizontalScrollBar(False)
-            self.textctrl_condition.SetLexer(wx.stc.STC_LEX_SQL)
-            self.textctrl_condition.SetKeyWords(0, MainFrame.sql_keywords)
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENT, wx.Colour(196, 69, 105))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, wx.Colour(196, 69, 105))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, wx.Colour(196, 69, 105))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_NUMBER, wx.Colour(30, 36, 96))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, wx.Colour(86, 166, 57))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_STRING, wx.Colour(86, 166, 57))
-            self.textctrl_condition.StyleSetForeground(wx.stc.STC_SQL_WORD, wx.Colour(146, 0, 242))
+            MainFrame.reset_style(self.textctrl_condition)
             self.textctrl_condition.Bind(wx.stc.EVT_STC_CHANGE, self.condition_changed)
 
             self.sizer.Add(self.textctrl_condition, 0, wx.ALL, 0)
@@ -532,6 +524,12 @@ class MainFrame(wx.Frame):
         create_master.Show()
         create_master.SetFocus()
 
+    def open_settings_frame(self, event):
+        with Settings(self, app_conn) as sett:
+            res = sett.ShowModal()
+            if res == 1:
+                self.update_stc_style()
+
     def open_simple_generator_from_menu(self, event):
         menuitem = self.GetMenuBar().FindItemById(event.GetId())
 
@@ -543,12 +541,54 @@ class MainFrame(wx.Frame):
                 simple_generator.SetFocus()
                 break
 
+    def close_app(self, event):
+        if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True':
+            result = wx.MessageBox('Вы уверены, что хотите выйти из приложения?', 'Подтвердите выход',
+                                   wx.YES_NO | wx.NO_DEFAULT, self)
+            if result == wx.YES:
+                self.Destroy()
+                exit()
+            else:
+                return
+        else:
+            self.Destroy()
+            exit()
+
+    def update_stc_style(self):
+        for redactor in stc_redactors:
+            self.reset_style(redactor)
+
+    @staticmethod
+    def reset_style(stc_redactor: wx.stc.StyledTextCtrl):
+        # Настройки шрифта
+        stc_redactor.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
+                                  wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
+                                          family=wx.FONTFAMILY_TELETYPE,
+                                          style=wx.FONTSTYLE_NORMAL,
+                                          weight=int(APP_PARAMETERS['STC_FONT_BOLD'])))
+        stc_redactor.StyleClearAll()
+        # Подсветка синтаксиса
+        stc_redactor.SetLexer(wx.stc.STC_LEX_SQL)
+        stc_redactor.SetKeyWords(0, MainFrame.sql_keywords)
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_NUMBER, APP_PARAMETERS['STC_COLOUR_NUMBER'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, APP_PARAMETERS['STC_COLOUR_STRING'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_STRING'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD, APP_PARAMETERS['STC_COLOUR_WORD'])
+        # Боковое поле
+        stc_redactor.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
+        stc_redactor.SetMarginWidth(1, 45)
+
+
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SQLDataForge v1.2", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SDForge v1.3", size=(800, 600))
         self.SetMinSize((800, 600))
         self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.Bind(wx.EVT_CLOSE, self.close_app)
 
         def is_table_enabled(event):
             self.is_create_table = self.add_table_checkbox.GetValue()
@@ -670,10 +710,19 @@ class MainFrame(wx.Frame):
                 database_menuitem.Append(gen_menuitem)
                 self.simpgens_menuitems.append([gen_menuitem, item[0]])
 
+        # Инструменты
+        # --------------
+        tools_menu = wx.Menu()
+        settings_menuitem = wx.MenuItem(tools_menu, wx.ID_ANY, 'Настройки...')
+        settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
+        self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
+        tools_menu.Append(settings_menuitem)
+
         # Формирование меню
         menubar.Append(file_menu, '&Файл')
         menubar.Append(connect_menu, '&Подключения')
         menubar.Append(generator_menu, '&Генератор')
+        menubar.Append(tools_menu, '&Инструменты')
 
         # Установка
         self.SetMenuBar(menubar)
@@ -866,25 +915,9 @@ class MainFrame(wx.Frame):
 
         # Редактор кода
         self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE, size=(-1, 300))
-        # Настройки шрифта
-        self.textctrl_sql.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
-                                       wx.Font(10, wx.FONTFAMILY_TELETYPE,
-                                               wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        self.textctrl_sql.StyleClearAll()
-        # Подсветка синтаксиса
-
-        self.textctrl_sql.SetLexer(wx.stc.STC_LEX_SQL)
-        self.textctrl_sql.SetKeyWords(0, self.sql_keywords)
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENT, wx.Colour(196, 69, 105))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, wx.Colour(196, 69, 105))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, wx.Colour(196, 69, 105))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_NUMBER, wx.Colour(30, 36, 96))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, wx.Colour(86, 166, 57))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_STRING, wx.Colour(86, 166, 57))
-        self.textctrl_sql.StyleSetForeground(wx.stc.STC_SQL_WORD, wx.Colour(146, 0, 242))
-        # Боковое поле
-        self.textctrl_sql.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
-        self.textctrl_sql.SetMarginWidth(1, 45)
+        stc_redactors.append(self.textctrl_sql)
+        # Установка стилей
+        self.reset_style(self.textctrl_sql)
         table_boxsizer.Add(self.textctrl_sql, 1, wx.BOTTOM | wx.LEFT | wx.EXPAND)
         # ----
         data_boxsizer.Add(table_panel, 1, wx.BOTTOM | wx.RIGHT | wx.EXPAND)

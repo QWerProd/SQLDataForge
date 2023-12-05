@@ -145,7 +145,7 @@ class ConnectionViewer(wx.Frame):
 
     def __init__(self, conn: sqlite3.Connection):
         wx.Frame.__init__(self, None, title="Доступные пБД", size=(500, 550),
-                          style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_TOOL_WINDOW | wx.FRAME_NO_TASKBAR)
+                          style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 550))
         self.SetMaxSize((500, 550))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
@@ -270,7 +270,6 @@ class ConnectionViewer(wx.Frame):
         self.buttons_panel = wx.Panel(self.main_panel)
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
-        self.buttons_sizer.Add(320, 0, 0)
 
         self.close_button = wx.Button(self.buttons_panel, label='Закрыть', size=(75, -1))
         self.close_button.Bind(wx.EVT_BUTTON, self.close)
@@ -281,7 +280,7 @@ class ConnectionViewer(wx.Frame):
         self.save_button.Bind(wx.EVT_BUTTON, self.save_changes)
         self.buttons_sizer.Add(self.save_button, 0, wx.ALL, 5)
 
-        self.main_sizer.Add(self.buttons_panel, 0, wx.BOTTOM | wx.EXPAND, 5)
+        self.main_sizer.Add(self.buttons_panel, 0, wx.BOTTOM | wx.ALIGN_RIGHT, 5)
         # ------------
 
         self.main_panel.Layout()
