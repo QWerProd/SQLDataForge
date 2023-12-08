@@ -1,6 +1,7 @@
 import wx
 import re
 import wx.stc
+from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin, TextEditMixin
 from app.app_parameters import APP_PARAMETERS
 
 
@@ -177,10 +178,10 @@ class CodeRedactor(SimpleEntry):
 
         self.styledtextctrl = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 150))
         self.styledtextctrl.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
-                                       wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
-                                               family=wx.FONTFAMILY_TELETYPE,
-                                               style=wx.FONTSTYLE_NORMAL,
-                                               weight=int(APP_PARAMETERS['STC_FONT_BOLD'])))
+                                         wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
+                                                 family=wx.FONTFAMILY_TELETYPE,
+                                                 style=wx.FONTSTYLE_NORMAL,
+                                                 weight=int(APP_PARAMETERS['STC_FONT_BOLD'])))
         self.styledtextctrl.StyleClearAll()
         # Подсветка синтаксиса
         sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
@@ -197,9 +198,53 @@ class CodeRedactor(SimpleEntry):
         # Боковое поле
         self.styledtextctrl.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
         self.styledtextctrl.SetMarginWidth(1, 45)
-        self.styledtextctrl.SetValue("""UPDATE t_persons as p\nSET    p.age = 18\nWHERE  p.first_name = 'Smith'; -- Only one Smith on this table :)""")
+        for textrow in self.title.split('\\n'):
+            self.styledtextctrl.AppendText(textrow + '\n')
         self.sizer.Add(self.styledtextctrl, 1, wx.EXPAND)
 
     def change_param(self, param): pass
 
     def set_value(self, value): pass
+
+
+class TableSystemColumns(wx.ListCtrl, ListCtrlAutoWidthMixin, TextEditMixin):
+
+    parent = wx.Panel
+    title = list
+    choices = list
+    params = dict
+
+    def __init__(self, parent: wx.Panel, title: list, choices: list):
+        wx.ListCtrl.__init__(self, parent, style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VRULES)
+        ListCtrlAutoWidthMixin.__init__(self)
+        TextEditMixin.__init__(self)
+        self.parent = parent
+        self.title = title
+        self.choices = choices
+        self.params = {}
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.change_param)
+
+    def set_value(self, value):
+        size = self.GetSize()
+        # Добавление заголовков (без id)
+        for colname in self.title:
+            self.AppendColumn(colname)
+            self.resizeColumn(100)
+        self.SetHeaderAttr(wx.ItemAttr(self.GetForegroundColour(),
+                                       self.GetBackgroundColour(),
+                                       wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)))
+        # Добавление значений
+        for rowvalue in self.choices:
+            self.Append(rowvalue[1:])
+
+    def change_param(self, event):
+        row_id = event.GetIndex()
+        col_id = event.GetColumn()
+        new_value = event.GetText()
+
+        if col_id == 0:
+            return
+        else:
+            self.params[self.choices[row_id][0]] = new_value
+
+    def get_params(self) -> dict: return self.params

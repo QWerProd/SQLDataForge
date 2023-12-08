@@ -97,7 +97,13 @@ class Settings(wx.Dialog):
                     menu_entry_panel = SpinNumber(self.settings_item_panel, entry[2], list(entry[3].split(':')))
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
                 elif entry[1] == 'CodeRedactor':
-                    menu_entry_panel = CodeRedactor(self.settings_item_panel)
+                    menu_entry_panel = CodeRedactor(self.settings_item_panel, entry[2])
+                    self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
+                elif entry[1] == 'TableSystemColumns':
+                    title_columns = entry[2].split(':')
+                    curs = self.app_conn.cursor()
+                    data_rows = curs.execute(entry[3]).fetchall()
+                    menu_entry_panel = TableSystemColumns(self.settings_item_panel, title_columns, data_rows)
                     self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
 
                 if menu_name in self.changed_params.keys():
@@ -122,7 +128,7 @@ class Settings(wx.Dialog):
             self.changed_params[menu_item] = {}
             self.changed_params_journal[menu_item] = {}
         for param_entry in self.curr_param_items:
-            if param_entry[0] is not None:
+            if param_entry[0] is not None and type(param_entry[1]) not in (TableSystemColumns, ):
                 param_value = param_entry[1].param
                 if self.prev_page is not None and APP_PARAMETERS[param_entry[0]] != str(param_value):
                     self.changed_params[self.prev_page][param_entry[0]] = str(param_value)
@@ -130,6 +136,14 @@ class Settings(wx.Dialog):
                 elif APP_PARAMETERS[param_entry[0]] != str(param_value):
                     self.changed_params[menu_item][param_entry[0]] = str(param_value)
                     self.changed_params_journal[menu_item][param_entry[0]] = str(param_value)
+            elif type(param_entry[1]) in (TableSystemColumns, ):
+                param_values = param_entry[1].get_params()
+                if self.prev_page is not None:
+                    self.changed_params[self.prev_page] = param_values
+                    self.changed_params_journal[self.prev_page] = param_values
+                else:
+                    self.changed_params[menu_item] = param_values
+                    self.changed_params_journal[menu_item] = param_values
 
         self.prev_page = menu_item
 

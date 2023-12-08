@@ -649,24 +649,24 @@ class MainFrame(wx.Frame):
         # Файл
         # --------------
         file_menu = wx.Menu()
-        generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \tF9')
+        generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \t' + APP_PARAMETERS['KEY_EXECUTE'])
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         file_menu.Append(generate_menuitem)
 
-        refresh_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Обновить \tF5')
+        refresh_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Обновить \t' + APP_PARAMETERS['KEY_REFRESH'])
         refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
         self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
         file_menu.Append(refresh_menuitem)
 
-        clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \tF3')
+        clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
         file_menu.Append(clear_menuitem)
 
         file_menu.AppendSeparator()
 
-        savefile_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Сохранить \tCtrl+S')
+        savefile_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Сохранить \t' + APP_PARAMETERS['KEY_SAVE_SQL'])
         savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
         self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
         file_menu.Append(savefile_menuitem)
@@ -674,19 +674,19 @@ class MainFrame(wx.Frame):
         # Подключения
         # --------------
         connect_menu = wx.Menu()
-        add_connect_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Добавить пБД... \tShift+Ctrl+N')
+        add_connect_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Добавить пБД... \t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         connect_menu.Append(add_connect_menuitem)
 
-        create_udb_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Создать пБД...')
+        create_udb_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Создать пБД... \t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
         create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         connect_menu.Append(create_udb_menuitem)
 
         connect_menu.AppendSeparator()
 
-        view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД...')
+        view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД... \t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         connect_menu.Append(view_connects_menuitem)
@@ -713,7 +713,7 @@ class MainFrame(wx.Frame):
         # Инструменты
         # --------------
         tools_menu = wx.Menu()
-        settings_menuitem = wx.MenuItem(tools_menu, wx.ID_ANY, 'Настройки...')
+        settings_menuitem = wx.MenuItem(tools_menu, wx.ID_ANY, 'Настройки... \t' + APP_PARAMETERS['KEY_SETTINGS'])
         settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
         tools_menu.Append(settings_menuitem)
