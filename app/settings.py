@@ -80,7 +80,7 @@ class Settings(wx.Dialog):
                 menu_entry_panel = None
                 if entry[1] == 'CheckboxPoint':
                     menu_entry_panel = CheckboxPoint(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL, 2)
+                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
                 elif entry[1] == 'RadioSelect':
                     menu_entry_panel = RadioSelect(self.settings_item_panel, entry[2], entry[3])
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL, 2)
@@ -105,6 +105,9 @@ class Settings(wx.Dialog):
                     data_rows = curs.execute(entry[3]).fetchall()
                     menu_entry_panel = TableSystemColumns(self.settings_item_panel, title_columns, data_rows)
                     self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
+                elif entry[1] == 'MaskedTextEntry':
+                    menu_entry_panel = MaskedTextEntry(self.settings_item_panel, entry[2])
+                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
 
                 if menu_name in self.changed_params.keys():
                     if entry[0] in self.changed_params[menu_name].keys():
@@ -237,14 +240,17 @@ class Settings(wx.Dialog):
 
         self.ok_button = wx.Button(self.buttons_panel, label='ОК', size=(75, -1))
         self.ok_button.Bind(wx.EVT_BUTTON, self.apply_close)
+        self.ok_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.ok_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.cancel_button = wx.Button(self.buttons_panel, label='Отмена', size=(75, -1))
         self.cancel_button.Bind(wx.EVT_BUTTON, self.close)
+        self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.apply_button = wx.Button(self.buttons_panel, label='Принять', size=(75, -1))
         self.apply_button.Bind(wx.EVT_BUTTON, self.apply)
+        self.apply_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.apply_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.apply_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.sizer.Add(self.buttons_panel, 0, wx.ALIGN_RIGHT)

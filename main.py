@@ -208,6 +208,7 @@ class MainFrame(wx.Frame):
 
             self.checkbox_unique = wx.CheckBox(second_panel, label="UNIQUE", size=(75, -1))
             self.checkbox_unique.Bind(wx.EVT_CHECKBOX, self.is_unique_enabled)
+            self.checkbox_unique.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.checkbox_unique.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             second_sizer.Add(self.checkbox_unique, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
 
             self.button_delete = wx.Button(second_panel, label="Удалить", style=wx.NO_BORDER)
@@ -230,7 +231,7 @@ class MainFrame(wx.Frame):
             self.textctrl_condition = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(505, 75))
             stc_redactors.append(self.textctrl_condition)
             self.textctrl_condition.SetValue('-- Введите условия здесь\n')
-            MainFrame.reset_style(self.textctrl_condition)
+            MainFrame.stc_reset_style(self.textctrl_condition)
             self.textctrl_condition.Bind(wx.stc.EVT_STC_CHANGE, self.condition_changed)
 
             self.sizer.Add(self.textctrl_condition, 0, wx.ALL, 0)
@@ -531,7 +532,7 @@ class MainFrame(wx.Frame):
                 self.update_stc_style()
 
     def open_simple_generator_from_menu(self, event):
-        menuitem = self.GetMenuBar().FindItemById(event.GetId())
+        menuitem = self.menubar.FindItemById(event.GetId())
 
         for simpgen_menuitem in self.simpgens_menuitems:
             if menuitem in simpgen_menuitem:
@@ -556,10 +557,10 @@ class MainFrame(wx.Frame):
 
     def update_stc_style(self):
         for redactor in stc_redactors:
-            self.reset_style(redactor)
+            self.stc_reset_style(redactor)
 
     @staticmethod
-    def reset_style(stc_redactor: wx.stc.StyledTextCtrl):
+    def stc_reset_style(stc_redactor: wx.stc.StyledTextCtrl):
         # Настройки шрифта
         stc_redactor.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
                                   wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
@@ -644,52 +645,52 @@ class MainFrame(wx.Frame):
         main_panel.SetSizer(main_boxsizer)
 
         # Меню
-        menubar = wx.MenuBar()
+        self.menubar = wx.MenuBar()
 
         # Файл
         # --------------
-        file_menu = wx.Menu()
-        generate_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Генерировать \t' + APP_PARAMETERS['KEY_EXECUTE'])
+        self.file_menu = wx.Menu()
+        generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Генерировать \t' + APP_PARAMETERS['KEY_EXECUTE'])
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
-        file_menu.Append(generate_menuitem)
+        self.file_menu.Append(generate_menuitem)
 
-        refresh_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Обновить \t' + APP_PARAMETERS['KEY_REFRESH'])
+        refresh_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Обновить \t' + APP_PARAMETERS['KEY_REFRESH'])
         refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
         self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
-        file_menu.Append(refresh_menuitem)
+        self.file_menu.Append(refresh_menuitem)
 
-        clear_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Очистить \t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
+        clear_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Очистить \t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
-        file_menu.Append(clear_menuitem)
+        self.file_menu.Append(clear_menuitem)
 
-        file_menu.AppendSeparator()
+        self.file_menu.AppendSeparator()
 
-        savefile_menuitem = wx.MenuItem(file_menu, wx.ID_ANY, 'Сохранить \t' + APP_PARAMETERS['KEY_SAVE_SQL'])
+        savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Сохранить \t' + APP_PARAMETERS['KEY_SAVE_SQL'])
         savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
         self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
-        file_menu.Append(savefile_menuitem)
+        self.file_menu.Append(savefile_menuitem)
 
         # Подключения
         # --------------
-        connect_menu = wx.Menu()
-        add_connect_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Добавить пБД... \t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
+        self.connect_menu = wx.Menu()
+        add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Добавить пБД... \t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
-        connect_menu.Append(add_connect_menuitem)
+        self.connect_menu.Append(add_connect_menuitem)
 
-        create_udb_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Создать пБД... \t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
+        create_udb_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Создать пБД... \t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
         create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
-        connect_menu.Append(create_udb_menuitem)
+        self.connect_menu.Append(create_udb_menuitem)
 
-        connect_menu.AppendSeparator()
+        self.connect_menu.AppendSeparator()
 
-        view_connects_menuitem = wx.MenuItem(connect_menu, wx.ID_ANY, 'Все доступные пБД... \t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
+        view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Все доступные пБД... \t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
-        connect_menu.Append(view_connects_menuitem)
+        self.connect_menu.Append(view_connects_menuitem)
 
         # Генератор
         # --------------
@@ -712,20 +713,20 @@ class MainFrame(wx.Frame):
 
         # Инструменты
         # --------------
-        tools_menu = wx.Menu()
-        settings_menuitem = wx.MenuItem(tools_menu, wx.ID_ANY, 'Настройки... \t' + APP_PARAMETERS['KEY_SETTINGS'])
+        self.tools_menu = wx.Menu()
+        settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY, 'Настройки... \t' + APP_PARAMETERS['KEY_SETTINGS'])
         settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
-        tools_menu.Append(settings_menuitem)
+        self.tools_menu.Append(settings_menuitem)
 
         # Формирование меню
-        menubar.Append(file_menu, '&Файл')
-        menubar.Append(connect_menu, '&Подключения')
-        menubar.Append(generator_menu, '&Генератор')
-        menubar.Append(tools_menu, '&Инструменты')
+        self.menubar.Append(self.file_menu, '&Файл')
+        self.menubar.Append(self.connect_menu, '&Подключения')
+        self.menubar.Append(generator_menu, '&Генератор')
+        self.menubar.Append(self.tools_menu, '&Инструменты')
 
         # Установка
-        self.SetMenuBar(menubar)
+        self.SetMenuBar(self.menubar)
 
         # Панель инструментов
         self.toolbar = self.CreateToolBar()
@@ -917,7 +918,7 @@ class MainFrame(wx.Frame):
         self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE, size=(-1, 300))
         stc_redactors.append(self.textctrl_sql)
         # Установка стилей
-        self.reset_style(self.textctrl_sql)
+        self.stc_reset_style(self.textctrl_sql)
         table_boxsizer.Add(self.textctrl_sql, 1, wx.BOTTOM | wx.LEFT | wx.EXPAND)
         # ----
         data_boxsizer.Add(table_panel, 1, wx.BOTTOM | wx.RIGHT | wx.EXPAND)

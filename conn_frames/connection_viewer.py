@@ -42,6 +42,7 @@ class ConnectionViewer(wx.Frame):
         self.db_field_name_textctrl.Enable()
         self.db_desc_textctrl.Enable()
         self.save_button.Enable()
+        self.save_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.save_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
 
         # Ставим значения
         self.db_name_textctrl.SetValue(self.db_info[0])
@@ -73,6 +74,7 @@ class ConnectionViewer(wx.Frame):
         self.db_desc_textctrl.Clear()
         self.db_desc_textctrl.Disable()
         self.save_button.Disable()
+        self.save_button.Unbind(wx.EVT_ENTER_WINDOW)
 
     def new_connection(self, event):
         new_conn = NewConnection(self.connect)
@@ -91,19 +93,23 @@ class ConnectionViewer(wx.Frame):
                                  wx.OK | wx.ICON_WARNING)
 
         database = self.treectrl_databases.GetItemText(item)
+
+        cursor = sqlite3.Cursor
         try:
             cursor = self.connect.cursor()
             cursor.execute(f"""DELETE FROM t_databases
                                WHERE dbname = "{database}";""")
             self.connect.commit()
-            cursor.close()
 
             self.refresh()
         except sqlite3.Error as e:
             self.connect.rollback()
             wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка удаления')
+        finally:
+            cursor.close()
 
     def save_changes(self, event):
+        cursor = sqlite3.Cursor
         try:
             cursor = self.connect.cursor()
             rowid = cursor.execute(f"""SELECT id FROM t_databases 
@@ -131,6 +137,8 @@ class ConnectionViewer(wx.Frame):
         except sqlite3.Error as e:
             self.connect.rollback()
             wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка сохранения')
+        finally:
+            cursor.close()
 
     def close(self, event):
         if self.db_name_textctrl.IsEnabled():
@@ -194,18 +202,21 @@ class ConnectionViewer(wx.Frame):
                                               bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/update.png')))
         self.refresh_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.refresh_button.Bind(wx.EVT_BUTTON, self.refresh)
+        self.refresh_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.refresh_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.refresh_button, 0, wx.BOTTOM, 5)
 
         self.add_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
                                                    bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/database  add.png')))
         self.add_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.add_database_button.Bind(wx.EVT_BUTTON, self.new_connection)
+        self.add_database_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.add_database_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.add_database_button, 0, wx.BOTTOM, 5)
 
         self.delete_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
                                                       bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/delete database.png')))
         self.delete_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.delete_database_button.Bind(wx.EVT_BUTTON, self.drop_connection)
+        self.delete_database_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.delete_database_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.delete_database_button, 0, wx.BOTTOM, 5)
 
         div_hor_sizer.Add(buttons_panel, 0, wx.ALL, 5)
@@ -273,6 +284,7 @@ class ConnectionViewer(wx.Frame):
 
         self.close_button = wx.Button(self.buttons_panel, label='Закрыть', size=(75, -1))
         self.close_button.Bind(wx.EVT_BUTTON, self.close)
+        self.close_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.close_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.close_button, 0, wx.ALL, 5)
 
         self.save_button = wx.Button(self.buttons_panel, label='Сохранить', size=(75, -1))

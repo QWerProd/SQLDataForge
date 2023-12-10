@@ -1,11 +1,13 @@
 import re
 
 from data_controller import DataController as DC
+from app.app_parameters import APP_PARAMETERS
 import sqlite3
 import random as rd
 
 # Импорты для генераторов
 import datetime
+
 
 class SQLGenerator:
     app_conn = sqlite3.Connection
@@ -174,14 +176,14 @@ class SQLGenerator:
                     mindate = data[0]
                     maxdate = data[2]
                     try:
-                        mindate = datetime.datetime.strptime(mindate, '%Y-%m-%d')
+                        mindate = datetime.datetime.strptime(mindate, APP_PARAMETERS['FORMAT_DATE'])
                     except ValueError:
                         mindate = DC.ParamChanger(mindate)
                     mindate = mindate - datetime.timedelta(days=data[1] * 365)
 
                     # Обработка максимального значения
                     try:
-                        maxdate = datetime.datetime.strptime(maxdate, '%Y-%m-%d')
+                        maxdate = datetime.datetime.strptime(maxdate, APP_PARAMETERS['FORMAT_DATE'])
                     except ValueError:
                         maxdate = DC.ParamChanger(maxdate)
                     maxdate = maxdate - datetime.timedelta(days=data[3] * 365)
@@ -191,7 +193,8 @@ class SQLGenerator:
                     rnd_day = rd.randint(1, days)
 
                     # Генерация даты
-                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(mindate + datetime.timedelta(days=rnd_day)))
+                    gen_date = datetime.datetime.strftime(mindate + datetime.timedelta(days=rnd_day), APP_PARAMETERS['FORMAT_DATE'])
+                    datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(gen_date))
                 elif table[3] == 'RChain':
                     # Получение имен столбцов таблицы
                     data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = "{table[1]}";""").fetchone()[0]

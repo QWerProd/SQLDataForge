@@ -37,6 +37,7 @@ class UDBCreateMaster(wx.Frame):
 
         if self.page_num == 0:
             self.previous_button.Disable()
+            self.previous_button.Unbind(wx.EVT_ENTER_WINDOW)
 
         if self.page_num == 1:
             self.next_button.SetLabel('Далее ->')
@@ -66,6 +67,7 @@ class UDBCreateMaster(wx.Frame):
 
         if self.page_num != 0:
             self.previous_button.Enable()
+            self.previous_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.previous_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
 
         if self.page_num == 2:
             self.next_button.SetLabel('Готово')
@@ -169,6 +171,7 @@ class UDBCreateMaster(wx.Frame):
 
             self.explore_path_button = wx.Button(self.db_path_panel, label='...', size=(25, 24), style=wx.NO_BORDER)
             self.explore_path_button.Bind(wx.EVT_BUTTON, self.explore_path)
+            self.explore_path_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.explore_path_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             self.db_path_sizer.Add(self.explore_path_button, 0, wx.ALIGN_CENTER_VERTICAL, 10)
 
             self.data_sizer.Add(self.db_path_panel, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM | wx.RIGHT, 20)
@@ -225,6 +228,8 @@ class UDBCreateMaster(wx.Frame):
             self.adding_enabled_checkbox = wx.CheckBox(self.div_hor_panel, label='Добавить в SQLDataForge')
             self.adding_enabled_checkbox.SetFocus()
             self.adding_enabled_checkbox.Bind(wx.EVT_CHECKBOX, self.adding_enable)
+            self.adding_enabled_checkbox.Bind(wx.EVT_ENTER_WINDOW,
+                                              lambda x: self.adding_enabled_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             self.div_hor_sizer.Add(self.adding_enabled_checkbox, 0, wx.LEFT | wx.BOTTOM, 10)
 
             # ------------------------------
@@ -390,6 +395,7 @@ class UDBCreateMaster(wx.Frame):
 
         self.cancel_button = wx.Button(self.buttons_panel, label='Отмена')
         self.cancel_button.Bind(wx.EVT_BUTTON, self.cancel)
+        self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
         self.previous_button = wx.Button(self.buttons_panel, label='<- Назад')
@@ -399,6 +405,7 @@ class UDBCreateMaster(wx.Frame):
 
         self.next_button = wx.Button(self.buttons_panel, label='Далее ->')
         self.next_button.Bind(wx.EVT_BUTTON, self.next_page)
+        self.next_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.next_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.next_button, 0, wx.ALL, 5)
 
         self.main_sizer.Add(self.buttons_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)

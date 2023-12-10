@@ -34,12 +34,14 @@ class RadioSelect(SimpleEntry):
 
         self.start_radiobutton = wx.RadioButton(self, id=0, label=self.choices[0], style=wx.RB_GROUP)
         self.start_radiobutton.Bind(wx.EVT_RADIOBUTTON, self.change_param)
+        self.start_radiobutton.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.start_radiobutton.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.sizer.Add(self.start_radiobutton, 0, wx.LEFT | wx.BOTTOM, 2)
         self.radiobuttons[0] = self.start_radiobutton
 
         for i in range(1, len(self.choices)):
             radiobutton = wx.RadioButton(self, id=i, label=self.choices[i])
             radiobutton.Bind(wx.EVT_RADIOBUTTON, self.change_param)
+            radiobutton.Bind(wx.EVT_ENTER_WINDOW, lambda x: radiobutton.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             self.sizer.Add(radiobutton, 0, wx.LEFT | wx.BOTTOM, 2)
             self.radiobuttons[i] = radiobutton
 
@@ -58,11 +60,15 @@ class RadioSelect(SimpleEntry):
 
 class CheckboxPoint(SimpleEntry):
     def __init__(self, parent: wx.Panel, title: str):
-        super().__init__(parent, title)
+        super().__init__(parent, title, sizer_mode=wx.HORIZONTAL)
 
-        self.checkbox = wx.CheckBox(self, label=self.title)
+        statictext = wx.StaticText(self, label=self.title)
+        self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.checkbox = wx.CheckBox(self, style=wx.ALIGN_RIGHT)
         self.checkbox.Bind(wx.EVT_CHECKBOX, self.change_param)
-        self.sizer.Add(self.checkbox, 0, wx.ALL, 5)
+        self.checkbox.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+        self.sizer.Add(self.checkbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         self.Layout()
 
@@ -86,6 +92,7 @@ class SelectorBox(SimpleEntry):
 
         self.choicesbox = wx.Choice(self, choices=label_choices, size=(100, -1))
         self.choicesbox.Bind(wx.EVT_CHOICE, self.change_param)
+        self.choicesbox.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.choicesbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.sizer.Add(self.choicesbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
 
         self.Layout()
@@ -126,7 +133,7 @@ class HEXEnter(SimpleEntry):
             self.colour_panel.Refresh()
 
     def set_value(self, value):
-        self.hex_textctrl.SetValue(value)
+        self.hex_textctrl.SetValue(str(value))
         self.colour_panel.SetBackgroundColour(value)
         self.param = value
         self.colour_panel.Refresh()
@@ -248,3 +255,36 @@ class TableSystemColumns(wx.ListCtrl, ListCtrlAutoWidthMixin, TextEditMixin):
             self.params[self.choices[row_id][0]] = new_value
 
     def get_params(self) -> dict: return self.params
+
+
+class MaskedTextEntry(SimpleEntry):
+
+    mask = str
+
+    def __init__(self, parent: wx.Panel, title: str, mask: str = None):
+        super().__init__(parent, title, sizer_mode=wx.HORIZONTAL)
+        self.mask = mask
+
+        statictext = wx.StaticText(self, label=self.title)
+        self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.textctrl = wx.TextCtrl(self)
+        self.textctrl.Bind(wx.EVT_TEXT, self.change_param)
+        self.sizer.Add(self.textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.Layout()
+
+    def change_param(self, event):
+        if self.mask is not None:
+            try:
+                masked = '{:' + self.mask + '}'
+                date = masked.format(self.param)
+                self.param = self.textctrl.GetValue()
+            except:
+                return
+        else:
+            self.param = self.textctrl.GetValue()
+
+    def set_value(self, value):
+        self.textctrl.SetValue(str(value))
+        self.param = value

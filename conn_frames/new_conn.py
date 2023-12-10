@@ -144,6 +144,7 @@ class NewConnection(wx.Frame):
         self.db_path_textctrl = wx.TextCtrl(second_panel, size=(-1, 22))
         self.explore_path_button = wx.Button(second_panel, label='...', size=(25, 24), style=wx.NO_BORDER)
         self.explore_path_button.Bind(wx.EVT_BUTTON, self.file_explore)
+        self.explore_path_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.explore_path_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         second_sizer.AddMany([(wx.StaticText(second_panel, label='Путь к пБД:', size=(75, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5),
                               (self.db_path_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                               (self.explore_path_button, 0, wx.ALIGN_CENTER_VERTICAL, 5)])
@@ -176,14 +177,17 @@ class NewConnection(wx.Frame):
 
         self.cancel_button = wx.Button(buttons_panel, label='Отмена', size=(75, -1))
         self.cancel_button.Bind(wx.EVT_BUTTON, self.close)
+        self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
         self.test_button = wx.Button(buttons_panel, label='Тест...', size=(75, -1))
         self.test_button.Bind(wx.EVT_BUTTON, self.test_connect)
+        self.test_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.test_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.test_button, 0, wx.ALL, 5)
 
         self.apply_button = wx.Button(buttons_panel, label='Применить', size=(75, -1))
         self.apply_button.Bind(wx.EVT_BUTTON, self.apply_changes)
+        self.apply_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.apply_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.apply_button, 0, wx.ALL, 5)
 
         self.main_sizer.Add(buttons_panel, 0,  wx.TOP | wx.BOTTOM | wx.EXPAND, 5)

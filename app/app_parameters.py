@@ -15,7 +15,8 @@ APP_PARAMETERS = {
     'KEY_SAVE_SQL': str,
     'KEY_SETTINGS': str,
     'KEY_CREATE_UDB_WIZARD': str,
-    'KEY_UDB_VIEWER': str
+    'KEY_UDB_VIEWER': str,
+    'FORMAT_DATE': str
 }
 
 for param in APP_PARAMETERS.keys():
