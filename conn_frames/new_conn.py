@@ -2,8 +2,9 @@ import wx
 import sqlite3
 
 from app.error_catcher import ErrorCatcher
+from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS
 
-catcher = ErrorCatcher()
+catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
 
 class NewConnection(wx.Frame):
@@ -17,7 +18,9 @@ class NewConnection(wx.Frame):
     is_tested = False
 
     def file_explore(self, event):
-        with wx.FileDialog(self, 'Выбрать файл...', wildcard='Файлы SQLite (*.db)|*.db', style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dialog:
+        with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
+                           wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dialog:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return
 
@@ -31,7 +34,8 @@ class NewConnection(wx.Frame):
         if self.db_name == '' and self.db_path == '':
             self.Destroy()
         else:
-            result = wx.MessageBox('Введенные данные будут удалены!', 'Вы уверены?', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            result = wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.CLOSE.MESSAGE'],
+                                   APP_TEXT_LABELS['MESSAGE_BOX.CAPTION_APPROVE'], wx.OK | wx.CANCEL | wx.ICON_WARNING)
             if result == wx.OK:
                 self.Destroy()
             else:
@@ -43,7 +47,8 @@ class NewConnection(wx.Frame):
         self.db_desc = self.db_desc_textctrl.GetValue()
 
         if self.db_path == '':
-            return wx.MessageBox('Введите корректный путь к пБД!', 'Пустой путь', wx.OK | wx.ICON_WARNING)
+            return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_FALSE.MESSAGE'],
+                                 APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_FALSE.CAPTION'], wx.OK | wx.ICON_WARNING)
 
         try:
             conn = sqlite3.connect(self.db_path)
@@ -58,7 +63,8 @@ class NewConnection(wx.Frame):
             if len(result) == 0:
                 return catcher.error_message('E013')
 
-            wx.MessageBox('Тестовое подключение успешно!', 'Успешное подключение', wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],
+                          APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
             self.is_tested = True
 
         except sqlite3.Error as e:
@@ -70,13 +76,13 @@ class NewConnection(wx.Frame):
         self.db_desc = self.db_desc_textctrl.GetValue()
 
         if self.db_path == '':
-            return wx.MessageBox('Введите корректный путь к пБД!', 'Пустой путь', wx.OK | wx.ICON_WARNING)
+            return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_FALSE.MESSAGE'],
+                                 APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_FALSE.CAPTION'], wx.OK | wx.ICON_WARNING)
 
         field_name = self.db_name_textctrl.GetValue()
         if not self.is_tested:
-            dialog = wx.MessageBox('Вы пытаетесь добавить пБД без тестирования подключения!\n'
-                                   'Для продолжения работы подтвердите добавление!',
-                                   'Подтвердите добавление пБД',
+            dialog = wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.MESSAGE'],
+                                   APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.CAPTION'],
                                    wx.ICON_WARNING | wx.OK | wx.CANCEL)
             if dialog == wx.CANCEL:
                 return
@@ -88,13 +94,14 @@ class NewConnection(wx.Frame):
                                    VALUES ("{self.db_name}", "{self.db_path}", "{self.db_name if field_name == '' else field_name}", "{self.db_desc}");""")
                 self.app_conn.commit()
                 cursor.close()
-                wx.MessageBox(f'пБД {self.db_name} успешно добавлена!', 'Успешное добавление', wx.OK | wx.ICON_INFORMATION)
+                wx.MessageBox(self.db_name + ':\n' + APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE'],
+                              APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
             except sqlite3.Error as e:
                 self.app_conn.rollback()
                 return catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
 
     def __init__(self, app_conn: sqlite3.Connection):
-        wx.Frame.__init__(self, None, title='Новое подключение', size=(500, 300),
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_CONN.TITLE'], size=(500, 300),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 300))
         self.SetMaxSize((500, 300))
@@ -131,7 +138,8 @@ class NewConnection(wx.Frame):
         first_panel.SetSizer(first_sizer)
 
         self.db_name_textctrl = wx.TextCtrl(first_panel, size=(-1, 22))
-        first_sizer.AddMany([(wx.StaticText(first_panel, label='Имя пБД:', size=(75, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5),
+        first_sizer.AddMany([(wx.StaticText(first_panel, label=APP_TEXT_LABELS['NEW_CONN.DB_NAME'],
+                                            size=(75, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5),
                              (self.db_name_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)])
 
         data_sizer.Add(first_panel, 0, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
@@ -145,7 +153,8 @@ class NewConnection(wx.Frame):
         self.explore_path_button = wx.Button(second_panel, label='...', size=(25, 24), style=wx.NO_BORDER)
         self.explore_path_button.Bind(wx.EVT_BUTTON, self.file_explore)
         self.explore_path_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.explore_path_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
-        second_sizer.AddMany([(wx.StaticText(second_panel, label='Путь к пБД:', size=(75, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5),
+        second_sizer.AddMany([(wx.StaticText(second_panel, label=APP_TEXT_LABELS['NEW_CONN.DB_PATH'],
+                                             size=(75, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5),
                               (self.db_path_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                               (self.explore_path_button, 0, wx.ALIGN_CENTER_VERTICAL, 5)])
 
@@ -157,8 +166,8 @@ class NewConnection(wx.Frame):
         third_panel.SetSizer(third_sizer)
 
         self.db_desc_textctrl = wx.TextCtrl(third_panel, style=wx.TE_MULTILINE)
-        self.db_desc_textctrl.SetHint('Введите описание пБД...')
-        third_sizer.AddMany([(wx.StaticText(third_panel, label='Описание пБД:'), 0, wx.TOP, 5),
+        self.db_desc_textctrl.SetHint(APP_TEXT_LABELS['NEW_CONN.DB_DESC.HINT'])
+        third_sizer.AddMany([(wx.StaticText(third_panel, label=APP_TEXT_LABELS['NEW_CONN.DB_DESC']), 0, wx.TOP, 5),
                              (self.db_desc_textctrl, 1, wx.BOTTOM | wx.EXPAND, 5)])
 
         data_sizer.Add(third_panel, 1, wx.TOP | wx.BOTTOM | wx.EXPAND, 5)
@@ -175,17 +184,17 @@ class NewConnection(wx.Frame):
         buttons_panel.SetSizer(buttons_sizer)
         buttons_sizer.Add(220, 0, 0)
 
-        self.cancel_button = wx.Button(buttons_panel, label='Отмена', size=(75, -1))
+        self.cancel_button = wx.Button(buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'], size=(75, -1))
         self.cancel_button.Bind(wx.EVT_BUTTON, self.close)
         self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
-        self.test_button = wx.Button(buttons_panel, label='Тест...', size=(75, -1))
+        self.test_button = wx.Button(buttons_panel, label=APP_TEXT_LABELS['BUTTON.TEST'], size=(75, -1))
         self.test_button.Bind(wx.EVT_BUTTON, self.test_connect)
         self.test_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.test_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.test_button, 0, wx.ALL, 5)
 
-        self.apply_button = wx.Button(buttons_panel, label='Применить', size=(75, -1))
+        self.apply_button = wx.Button(buttons_panel, label=APP_TEXT_LABELS['BUTTON.APPLY'], size=(75, -1))
         self.apply_button.Bind(wx.EVT_BUTTON, self.apply_changes)
         self.apply_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.apply_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.apply_button, 0, wx.ALL, 5)

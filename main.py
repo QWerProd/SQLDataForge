@@ -2,6 +2,8 @@ import wx
 import wx.stc
 import wx.lib.scrolledpanel
 import sqlite3
+import subprocess
+import sys
 
 from datetime import datetime
 from data_controller import DataController
@@ -12,11 +14,11 @@ from conn_frames.new_conn import NewConnection
 from conn_frames.new_udb_wizard import UDBCreateMaster
 from single_generator import SimpleGenerator
 from app.settings import Settings
-from app.app_parameters import APP_PARAMETERS
+from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES
 
 
 app_conn = sqlite3.connect('app/app.db')
-catcher = ErrorCatcher()
+catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
 # Глобальный лист добавленных столбцов
 added_items = []
@@ -50,7 +52,7 @@ class MainFrame(wx.Frame):
     # Параметры состояния
     is_generated = False
     is_saved = False
-    query_status = "Ожидание"
+    query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
 
     # Ключевые слова для лексера wx.stc.StyledTextCtrl
     sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
@@ -189,13 +191,13 @@ class MainFrame(wx.Frame):
             self.textctrl_index_name = wx.TextCtrl(first_panel, size=(125, -1))
             self.textctrl_index_name.SetValue(self.index_name)
             self.textctrl_index_name.Bind(wx.EVT_TEXT, self.index_name_changed)
-            first_sizer.AddMany([(wx.StaticText(first_panel, label="Имя индекса:", size=(75, -1)),
+            first_sizer.AddMany([(wx.StaticText(first_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_NAME'], size=(75, -1)),
                                   0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                                  (self.textctrl_index_name, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
 
             self.combobox_index_columns = wx.ComboBox(first_panel, choices=added_item_code, size=(225, -1))
             self.combobox_index_columns.Bind(wx.EVT_COMBOBOX, self.column_selected)
-            first_sizer.AddMany([(wx.StaticText(first_panel, label="Столбцы:", size=(55, -1)),
+            first_sizer.AddMany([(wx.StaticText(first_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_COLUMNS'], size=(55, -1)),
                                   0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                                  (self.combobox_index_columns, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
             # ---------------------------------
@@ -211,7 +213,8 @@ class MainFrame(wx.Frame):
             self.checkbox_unique.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.checkbox_unique.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             second_sizer.Add(self.checkbox_unique, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
 
-            self.button_delete = wx.Button(second_panel, label="Удалить", style=wx.NO_BORDER)
+            self.button_delete = wx.Button(second_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'],
+                                           style=wx.NO_BORDER, size=(81, -1))
             self.button_delete.SetBitmapLabel(wx.Bitmap('img/16x16/minus.png', wx.BITMAP_TYPE_PNG))
             self.button_delete.SetBackgroundColour(wx.Colour(255, 225, 225))
             self.button_delete.Bind(wx.EVT_ENTER_WINDOW,
@@ -230,7 +233,7 @@ class MainFrame(wx.Frame):
             # ---------------------------------
             self.textctrl_condition = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(505, 75))
             stc_redactors.append(self.textctrl_condition)
-            self.textctrl_condition.SetValue('-- Введите условия здесь\n')
+            self.textctrl_condition.SetValue(APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.ENTER_CONDITION_HERE'] + '\n')
             MainFrame.stc_reset_style(self.textctrl_condition)
             self.textctrl_condition.Bind(wx.stc.EVT_STC_CHANGE, self.condition_changed)
 
@@ -327,7 +330,7 @@ class MainFrame(wx.Frame):
         table_name = self.textctrl_table_name.GetValue()
         rows_count = self.textctrl_rows_count.GetValue()
 
-        self.query_status = "Генерация запроса..."
+        self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.GENERATING']
         self.statusbar.SetStatusText(self.query_status, 0)
 
         if len(added_items) == 0:
@@ -409,14 +412,15 @@ class MainFrame(wx.Frame):
                     self.textctrl_sql.SetValue(query)
                     self.is_generated = True
                     self.is_saved = False
-                    self.query_status = "Готово"
+                    self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
                     self.statusbar.SetStatusText(self.query_status, 0)
                     generate_time = datetime.now() - start_generate_time
 
                     # Подсчет времени работы
                     build_time = round(build_time.total_seconds(), 4)
                     generate_time = round(generate_time.total_seconds(), 2)
-                    self.statusbar.SetStatusText("Сгенерировано за: " + str(build_time) + " с., всего: " + str(generate_time) + " с.", 2)
+                    self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
+                                                 + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(generate_time) + " с.", 2)
                     self.SetCursor(wx.NullCursor)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
@@ -424,14 +428,16 @@ class MainFrame(wx.Frame):
             finally:
                 self.SetCursor(wx.NullCursor)
 
-    def save_script(self):
+    def save_script(self, event=None):
         sql = self.textctrl_sql.GetValue()
         if sql == "":
             self.query_status = catcher.error_message('E001')
             self.statusbar.SetStatusText(self.query_status, 0)
         else:
-            with wx.FileDialog(self, "Сохранить как...", wildcard="Файл SQL(*.sql)|*.sql", style=wx.FD_SAVE) as file_dialog:
-                if file_dialog.ShowModal() == wx.CANCEL:
+            with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_SAVE'],
+                               wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
+                               style=wx.FD_SAVE) as file_dialog:
+                if file_dialog.ShowModal() == wx.ID_CANCEL:
                     return
 
                 file_path = file_dialog.GetPath()
@@ -443,18 +449,18 @@ class MainFrame(wx.Frame):
 
                 with open(file_path, mode='w', encoding="utf-8") as reader:
                     reader.write(sql)
-                wx.MessageBox("Файл " + file_name + " сохранен в " + file_path, "Сохранено",
-                              wx.ICON_INFORMATION | wx.OK, self)
+                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.FILE'] + file_name +
+                              APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.SAVED'] + file_path,
+                              APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'], wx.ICON_INFORMATION | wx.OK, self)
             self.is_saved = True
-            self.query_status = "Сохранено"
+            self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'] + ' - ' + file_name
             self.statusbar.SetStatusText(self.query_status, 0)
 
     def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
             dlg = wx.MessageDialog(self,
-                                   """Вы уверены, что хотите очистить все поля?\n
-                                   Несохраненный запрос будет удален навсегда!""",
-                                   'Подтверждение очистки полей',
+                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLEAR_FORM.MESSAGE'],
+                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLEAR_FORM.CAPTION'],
                                    wx.OK | wx.CANCEL | wx.ICON_QUESTION)
             result = dlg.ShowModal()
             dlg.Destroy()
@@ -484,7 +490,7 @@ class MainFrame(wx.Frame):
 
                 self.table_columns_regulate()
 
-                self.query_status = "Ожидание"
+                self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
                 self.statusbar.SetStatusText(self.query_status, 0)
                 self.statusbar.SetStatusText("", 2)
 
@@ -528,8 +534,11 @@ class MainFrame(wx.Frame):
     def open_settings_frame(self, event):
         with Settings(self, app_conn) as sett:
             res = sett.ShowModal()
-            if res == 1:
+            if res > 0:
                 self.update_stc_style()
+            if res > 1:
+                self.relaunch_app()
+                self.Destroy()
 
     def open_simple_generator_from_menu(self, event):
         menuitem = self.menubar.FindItemById(event.GetId())
@@ -544,7 +553,8 @@ class MainFrame(wx.Frame):
 
     def close_app(self, event):
         if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True':
-            result = wx.MessageBox('Вы уверены, что хотите выйти из приложения?', 'Подтвердите выход',
+            result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.MESSAGE'],
+                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.MESSAGE'],
                                    wx.YES_NO | wx.NO_DEFAULT, self)
             if result == wx.YES:
                 self.Destroy()
@@ -554,6 +564,13 @@ class MainFrame(wx.Frame):
         else:
             self.Destroy()
             exit()
+
+    @staticmethod
+    def relaunch_app():
+        new_process = subprocess.Popen([sys.executable] + sys.argv)
+
+    # Статические методы для обновления при изменениях в приложении
+    ###############################################################
 
     def update_stc_style(self):
         for redactor in stc_redactors:
@@ -582,14 +599,20 @@ class MainFrame(wx.Frame):
         stc_redactor.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
         stc_redactor.SetMarginWidth(1, 45)
 
+    def update_text_labels(self):
+        pass
+        ###############################################################
 
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SDForge v1.3", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SDForge v1.4", size=(800, 600))
         self.SetMinSize((800, 600))
         self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
+
+        # Локаль приложения
+        locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']], wx.LOCALE_LOAD_DEFAULT)
 
         def is_table_enabled(event):
             self.is_create_table = self.add_table_checkbox.GetValue()
@@ -631,10 +654,14 @@ class MainFrame(wx.Frame):
         # -----Обновление списка пБД-----
         result = DataController.SetDatabases()
         if result[0] == 0 and result[1] > 0:
-            wx.MessageBox('Добавлено новых пБД: ' + str(result[0]) + ', ошибок: ' + str(result[1]), 'Обновление',
+            wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.MESSAGE1'] + str(result[0]) +
+                          APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.MESSAGE2'] + str(result[1]),
+                          APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.CAPTION'],
                           wx.OK | wx.ICON_ERROR | wx.CENTRE)
         elif result[0] > 0 and result[1] > 0:
-            wx.MessageBox('Добавлено новых пБД: ' + str(result[0]) + ', ошибок: ' + str(result[1]), 'Обновление',
+            wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.MESSAGE1'] + str(result[0]) +
+                          APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.MESSAGE2'] + str(result[1]),
+                          APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.CAPTION'],
                           wx.OK | wx.ICON_INFORMATION | wx.CENTRE)
         # -------------------------------
 
@@ -650,24 +677,28 @@ class MainFrame(wx.Frame):
         # Файл
         # --------------
         self.file_menu = wx.Menu()
-        generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Генерировать \t' + APP_PARAMETERS['KEY_EXECUTE'])
+        generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.GENERATE'] + ' \t' + APP_PARAMETERS['KEY_EXECUTE'])
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         self.file_menu.Append(generate_menuitem)
 
-        refresh_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Обновить \t' + APP_PARAMETERS['KEY_REFRESH'])
+        refresh_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                       APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.REFRESH'] + '\t' + APP_PARAMETERS['KEY_REFRESH'])
         refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
         self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
         self.file_menu.Append(refresh_menuitem)
 
-        clear_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Очистить \t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
+        clear_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                     APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.CLEAR_ALL'] + '\t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
         self.file_menu.Append(clear_menuitem)
 
         self.file_menu.AppendSeparator()
 
-        savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY, 'Сохранить \t' + APP_PARAMETERS['KEY_SAVE_SQL'])
+        savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['BUTTON.SAVE'] + '\t' + APP_PARAMETERS['KEY_SAVE_SQL'])
         savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
         self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
         self.file_menu.Append(savefile_menuitem)
@@ -675,19 +706,22 @@ class MainFrame(wx.Frame):
         # Подключения
         # --------------
         self.connect_menu = wx.Menu()
-        add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Добавить пБД... \t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
+        add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
+                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.ADD_UDB'] + '\t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         self.connect_menu.Append(add_connect_menuitem)
 
-        create_udb_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Создать пБД... \t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
+        create_udb_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
+                                          APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.CREATE_UDB'] + '\t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
         create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         self.connect_menu.Append(create_udb_menuitem)
 
         self.connect_menu.AppendSeparator()
 
-        view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY, 'Все доступные пБД... \t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
+        view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
+                                             APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.UDB_VIEWER'] + '\t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         self.connect_menu.Append(view_connects_menuitem)
@@ -700,7 +734,7 @@ class MainFrame(wx.Frame):
         for database, gen in self.gens.items():
             database_menuitem = wx.Menu()
             if database == 'simple':
-                generator_menu.AppendSubMenu(database_menuitem, f'&Простые генераторы')
+                generator_menu.AppendSubMenu(database_menuitem, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
                 generator_menu.AppendSeparator()
             else:
                 generator_menu.AppendSubMenu(database_menuitem, f'&{database}')
@@ -714,16 +748,17 @@ class MainFrame(wx.Frame):
         # Инструменты
         # --------------
         self.tools_menu = wx.Menu()
-        settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY, 'Настройки... \t' + APP_PARAMETERS['KEY_SETTINGS'])
+        settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS['KEY_SETTINGS'])
         settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
         self.tools_menu.Append(settings_menuitem)
 
         # Формирование меню
-        self.menubar.Append(self.file_menu, '&Файл')
-        self.menubar.Append(self.connect_menu, '&Подключения')
-        self.menubar.Append(generator_menu, '&Генератор')
-        self.menubar.Append(self.tools_menu, '&Инструменты')
+        self.menubar.Append(self.file_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE'])
+        self.menubar.Append(self.connect_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS'])
+        self.menubar.Append(generator_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR'])
+        self.menubar.Append(self.tools_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS'])
 
         # Установка
         self.SetMenuBar(self.menubar)
@@ -732,17 +767,17 @@ class MainFrame(wx.Frame):
         self.toolbar = self.CreateToolBar()
 
         self.toolbar.AddTool(1, "Генерировать", wx.Bitmap("img/16x16/pencil ruler.png"),
-                             shortHelp="Сгенерировать SQL-код")
+                             shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.GENERATE'])
         self.Bind(wx.EVT_TOOL, self.generate, id=1)
         self.toolbar.AddTool(2, "Очистить", wx.Bitmap("img/16x16/recycle bin sign.png"),
-                             shortHelp="Очистить поля")
+                             shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.CLEAR_ALL'])
         self.Bind(wx.EVT_TOOL, self.clear_form, id=2)
         self.toolbar.AddTool(3, "Обновить", wx.Bitmap("img/16x16/update.png"),
-                             shortHelp="Обновить список пБД")
+                             shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.REFRESH'])
         self.Bind(wx.EVT_TOOL, self.refresh, id=3)
         self.toolbar.AddSeparator()
         self.toolbar.AddTool(4, "Сохранить", wx.Bitmap("img/16x16/save.png"),
-                             shortHelp="Сохранить скрипт")
+                             shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.SAVE_SQL'])
         self.Bind(wx.EVT_TOOL, self.save_script, id=4)
 
         self.toolbar.Realize()
@@ -787,13 +822,13 @@ class MainFrame(wx.Frame):
         header_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_boxsizer)
 
-        statictext_table_name = wx.StaticText(header_panel, label="Имя таблицы:")
+        statictext_table_name = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
         header_boxsizer.Add(statictext_table_name, 0, wx.LEFT | wx.CENTER | wx.ALL, 5)
 
         self.textctrl_table_name = wx.TextCtrl(header_panel, size=(-1, -1))
         header_boxsizer.Add(self.textctrl_table_name, 1, wx.CENTER | wx.EXPAND | wx.ALL, 5)
 
-        statictext_rows_count = wx.StaticText(header_panel, label="Кол-во строк:")
+        statictext_rows_count = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.ROW_COUNT'])
         header_boxsizer.Add(statictext_rows_count, 0, wx.CENTER | wx.RIGHT | wx.ALL, 5)
 
         self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
@@ -813,9 +848,9 @@ class MainFrame(wx.Frame):
         tcs_sizer = wx.BoxSizer(wx.HORIZONTAL)
         table_columns_statictext_panel.SetSizer(tcs_sizer)
 
-        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label='Имя столбца', size=(150, -1))
+        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_NAME'], size=(150, -1))
         tcs_sizer.Add(statictext_column_name, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
-        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label='Тип столбца', size=(150, -1))
+        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_TYPE'], size=(150, -1))
         tcs_sizer.Add(statictext_column_type, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
         tcs_sizer.Add(wx.StaticText(table_columns_statictext_panel, label='', size=(200, -1)), 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         # --------
@@ -837,7 +872,7 @@ class MainFrame(wx.Frame):
         # -------
 
         # ------
-        notebook_settings.AddPage(main_page_panel, "Главная")
+        notebook_settings.AddPage(main_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE'])
         # ------
 
         # Таблица 
@@ -846,7 +881,7 @@ class MainFrame(wx.Frame):
         table_page_boxsizer = wx.BoxSizer(wx.VERTICAL)
         table_page_panel.SetSizer(table_page_boxsizer)
 
-        self.add_table_checkbox = wx.CheckBox(table_page_panel, label="Создать таблицу")
+        self.add_table_checkbox = wx.CheckBox(table_page_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.CREATE_TABLE'])
         table_page_boxsizer.Add(self.add_table_checkbox, 0, wx.ALL, 5)
         self.add_table_checkbox.Bind(wx.EVT_CHECKBOX, is_table_enabled)
         self.add_table_checkbox.Bind(wx.EVT_ENTER_WINDOW,
@@ -859,14 +894,14 @@ class MainFrame(wx.Frame):
         id_column_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         id_column_panel.SetSizer(id_column_boxsizer)
 
-        self.id_column_checkbox = wx.CheckBox(id_column_panel, label="Добавить ID для строк таблицы")
+        self.id_column_checkbox = wx.CheckBox(id_column_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.ADD_ID'])
         id_column_boxsizer.Add(self.id_column_checkbox, 0, wx.TOP | wx.LEFT | wx.RIGHT, 5)
         self.id_column_checkbox.Bind(wx.EVT_CHECKBOX, is_id_enabled)
         self.id_column_checkbox.Bind(wx.EVT_ENTER_WINDOW,
                                      lambda x: self.id_column_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.id_column_checkbox.Hide()
 
-        self.statictext_increment_start = wx.StaticText(id_column_panel, label="Начальное значение ID:")
+        self.statictext_increment_start = wx.StaticText(id_column_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.INIT_VALUE_ID'])
         id_column_boxsizer.Add(self.statictext_increment_start, 0, wx.TOP | wx.RIGHT | wx.LEFT, 5)
         self.statictext_increment_start.Hide()
 
@@ -879,7 +914,7 @@ class MainFrame(wx.Frame):
         # -------
 
         # ------
-        notebook_settings.AddPage(table_page_panel, "Таблица")
+        notebook_settings.AddPage(table_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE'])
         # ------
 
         # Индексы
@@ -888,7 +923,7 @@ class MainFrame(wx.Frame):
         self.indexes_page_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_page_panel.SetSizer(self.indexes_page_sizer)
 
-        self.button_new_index = wx.Button(self.indexes_page_panel, label="Новый индекс", style=wx.NO_BORDER)
+        self.button_new_index = wx.Button(self.indexes_page_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.NEW_INDEX'], style=wx.NO_BORDER)
         self.button_new_index.SetBitmapLabel(wx.Bitmap("img/16x16/plus.png", wx.BITMAP_TYPE_PNG))
         self.button_new_index.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.button_new_index.Bind(wx.EVT_ENTER_WINDOW,
@@ -909,7 +944,7 @@ class MainFrame(wx.Frame):
         # -------
         self.indexes_page_sizer.Add(self.indexes_scrolledwindow, 0, wx.EXPAND)
         # ------
-        notebook_settings.AddPage(self.indexes_page_panel, "Индексы")
+        notebook_settings.AddPage(self.indexes_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE'])
         # -----
         table_boxsizer.Add(notebook_settings, 0, wx.TOP | wx.EXPAND)
         # -----

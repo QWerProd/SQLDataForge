@@ -3,6 +3,7 @@ import wx.adv
 import sqlite3
 
 from app.error_catcher import ErrorCatcher
+from app.app_parameters import APP_TEXT_LABELS
 
 
 class UDBCreateMaster(wx.Frame):
@@ -22,7 +23,8 @@ class UDBCreateMaster(wx.Frame):
     pages = []
 
     def cancel(self, event):
-        dialog = wx.MessageBox('Все введенные данные будут неизбежно утеряны!', 'Вы уверены?',
+        dialog = wx.MessageBox(APP_TEXT_LABELS['NEW_UDB_WIZARD.CANCEL_MESSAGE.MESSAGE'],
+                               APP_TEXT_LABELS['MESSAGE_BOX.CAPTION_APPROVE'],
                                wx.OK | wx.CANCEL)
         if dialog == wx.CANCEL:
             return
@@ -40,18 +42,20 @@ class UDBCreateMaster(wx.Frame):
             self.previous_button.Unbind(wx.EVT_ENTER_WINDOW)
 
         if self.page_num == 1:
-            self.next_button.SetLabel('Далее ->')
+            self.next_button.SetLabel(APP_TEXT_LABELS['NEW_UDB_WIZARD.BUTTON.NEXT'])
             self.next_button.Bind(wx.EVT_BUTTON, self.next_page)
 
     def next_page(self, event):
         if self.page_num == 0:
             self.db_name, self.db_path = self.page1.get_items()
             if self.db_name == '' or self.db_path == '':
-                return wx.MessageBox('Все поля должны быть заполнены!', 'Заполните поля', wx.OK | wx.ICON_ERROR)
+                return wx.MessageBox(APP_TEXT_LABELS['NEW_UDB_WIZARD.NEXT_PAGE_MESSAGE.MESSAGE'],
+                                     APP_TEXT_LABELS['NEW_UDB_WIZARD.NEXT_PAGE_MESSAGE.CAPTION'], wx.OK | wx.ICON_ERROR)
         elif self.page_num == 1:
             self.is_adding_enabled, self.db_alias, self.db_desc = self.page2.get_items()
             if self.is_adding_enabled and (self.db_alias == '' or self.db_desc == ''):
-                return wx.MessageBox('Все поля должны быть заполнены!', 'Заполните поля', wx.OK | wx.ICON_ERROR)
+                return wx.MessageBox(APP_TEXT_LABELS['NEW_UDB_WIZARD.NEXT_PAGE_MESSAGE.MESSAGE'],
+                                     APP_TEXT_LABELS['NEW_UDB_WIZARD.NEXT_PAGE_MESSAGE.CAPTION'], wx.OK | wx.ICON_ERROR)
             else:
                 self.dict_db['db_name'] = self.db_name
                 self.dict_db['db_path'] = self.db_path
@@ -70,7 +74,7 @@ class UDBCreateMaster(wx.Frame):
             self.previous_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.previous_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
 
         if self.page_num == 2:
-            self.next_button.SetLabel('Готово')
+            self.next_button.SetLabel(APP_TEXT_LABELS['NEW_UDB_WIZARD.BUTTON.FINISH'])
             self.next_button.SetFocus()
             self.next_button.Bind(wx.EVT_BUTTON, self.finish)
 
@@ -102,8 +106,8 @@ class UDBCreateMaster(wx.Frame):
                 self.app_conn.commit()
                 app_curs.close()
 
-            wx.MessageBox('Макет пользовательской Базы Данных создан в ' + self.db_path + "\\" + self.db_name,
-                          'Макет пБД создан!', wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox(APP_TEXT_LABELS['NEW_UDB_WIZARD.FINISH.SUCCESS_MESSAGE.MESSAGE'] + self.db_path + "\\" + self.db_name,
+                          APP_TEXT_LABELS['NEW_UDB_WIZARD.FINISH.SUCCESS_MESSAGE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
             self.Destroy()
         except sqlite3.Error as e:
             connect.rollback()
@@ -118,8 +122,8 @@ class UDBCreateMaster(wx.Frame):
         db_path = ''
 
         def explore_path(self, event):
-            with wx.DirDialog(None, 'Укажите путь для пБД...', ) as dir_dialog:
-                if dir_dialog.ShowModal() == wx.CANCEL:
+            with wx.DirDialog(None, APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DIR_DIALOG'], ) as dir_dialog:
+                if dir_dialog.ShowModal() == wx.ID_CANCEL:
                     return
 
                 self.db_path = dir_dialog.GetPath()
@@ -140,7 +144,7 @@ class UDBCreateMaster(wx.Frame):
             self.data_sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.data_sizer)
 
-            header_statictext = wx.StaticText(self, label='Укажите имя создаваемого файла и путь, в котором нужно сохранить файл.')
+            header_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.TITLE'])
             self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
 
             # ---------------------------------------------
@@ -149,7 +153,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_name_panel.SetSizer(self.db_name_sizer)
 
-            db_name_statictext = wx.StaticText(self.db_name_panel, label='Имя файла:', size=(80, -1))
+            db_name_statictext = wx.StaticText(self.db_name_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_NAME'] + ':', size=(80, -1))
             self.db_name_sizer.Add(db_name_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             self.db_name_textctrl = wx.TextCtrl(self.db_name_panel, size=(-1, 22))
@@ -163,7 +167,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_path_panel.SetSizer(self.db_path_sizer)
 
-            db_path_statictext = wx.StaticText(self.db_path_panel, label='Путь к файлу:', size=(80, -1))
+            db_path_statictext = wx.StaticText(self.db_path_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_PATH'] + ':', size=(80, -1))
             self.db_path_sizer.Add(db_path_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             self.db_path_textctrl = wx.TextCtrl(self.db_path_panel, size=(-1, 22))
@@ -216,8 +220,8 @@ class UDBCreateMaster(wx.Frame):
             self.SetSizer(self.data_sizer)
 
             header_statictext = wx.StaticText(self,
-                                              label='Укажите нужно ли добавлять создаваемую пБД в SQLDataForge.\n'
-                                                    'Заполните все поля при необходимости.')
+                                              label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.TITLE'])
+            header_statictext.Wrap(header_statictext.GetSize()[0])
             self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
             # ------------------------------
 
@@ -225,7 +229,7 @@ class UDBCreateMaster(wx.Frame):
             self.div_hor_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.div_hor_panel.SetSizer(self.div_hor_sizer)
 
-            self.adding_enabled_checkbox = wx.CheckBox(self.div_hor_panel, label='Добавить в SQLDataForge')
+            self.adding_enabled_checkbox = wx.CheckBox(self.div_hor_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE'] + ':')
             self.adding_enabled_checkbox.SetFocus()
             self.adding_enabled_checkbox.Bind(wx.EVT_CHECKBOX, self.adding_enable)
             self.adding_enabled_checkbox.Bind(wx.EVT_ENTER_WINDOW,
@@ -243,7 +247,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_alias_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_alias_name_panel.SetSizer(self.db_alias_name_sizer)
 
-            db_alias_statictext = wx.StaticText(self.db_alias_name_panel, label='Псевдоним:', size=(80, -1))
+            db_alias_statictext = wx.StaticText(self.db_alias_name_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS'] + ':', size=(80, -1))
             self.db_alias_name_sizer.Add(db_alias_statictext, 0, wx.ALIGN_CENTER_VERTICAL)
 
             self.db_alias_textctrl = wx.TextCtrl(self.db_alias_name_panel)
@@ -257,7 +261,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_desc_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_desc_panel.SetSizer(self.db_desc_sizer)
 
-            db_desc_statictext = wx.StaticText(self.db_desc_panel, label='Описание:', size=(80, -1))
+            db_desc_statictext = wx.StaticText(self.db_desc_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC'], size=(80, -1))
             self.db_desc_sizer.Add(db_desc_statictext, 0, wx.ALIGN_CENTER_VERTICAL)
 
             self.db_desc_textctrl = wx.TextCtrl(self.db_desc_panel, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL, size=(-1, 75))
@@ -281,13 +285,13 @@ class UDBCreateMaster(wx.Frame):
         def set_info(self, db: dict):
             self.dict_db = db
 
-            info_text = (f"Информация о файле:\n"
-                         f"    Имя файла - {self.dict_db['db_name']}\n"
-                         f"    Путь к файлу - {self.dict_db['db_path']}\n\n")
+            info_text = (APP_TEXT_LABELS['NEW_UDB_WIZARD.THIRD_PAGE.INFO_TITLE'] + ":\n"
+                         "    " + APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_NAME'] + f" - {self.dict_db['db_name']}\n"
+                         "    " + APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_PATH'] + f" - {self.dict_db['db_path']}\n\n")
             if 'db_alias' in self.dict_db:
-                info_text += (f"    Дополнительная информация:\n"
-                              f"        Псевдоним - {self.dict_db['db_alias']}\n"
-                              f"        Описание - {self.dict_db['db_desc']}")
+                info_text += (f"    " + APP_TEXT_LABELS['NEW_UDB_WIZARD.THIRD_PAGE.INFO_ADDON'] + ":\n"
+                              f"        " + APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS'] + f" - {self.dict_db['db_alias']}\n"
+                              f"        " + APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC'] + f" - {self.dict_db['db_desc']}")
 
             self.info_textctrl.SetValue(info_text)
 
@@ -297,7 +301,7 @@ class UDBCreateMaster(wx.Frame):
             self.data_sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.data_sizer)
 
-            info_statictext = wx.StaticText(self, label='Проверьте правильность указанных данных.')
+            info_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.THIRD_PAGE.INFO_CHECK'])
             self.data_sizer.Add(info_statictext, 0, wx.ALL, 20)
 
             self.info_textctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.TE_READONLY, size=(-1, 400))
@@ -306,7 +310,7 @@ class UDBCreateMaster(wx.Frame):
             self.Layout()
 
     def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher):
-        wx.Frame.__init__(self, None, title='Мастер создания пБД', size=(600, 350),
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(600, 350),
                           style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.CAPTION)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((600, 350))
@@ -339,11 +343,11 @@ class UDBCreateMaster(wx.Frame):
         header_info_sizer = wx.BoxSizer(wx.VERTICAL)
         header_info_panel.SetSizer(header_info_sizer)
 
-        info_header_statictext = wx.StaticText(header_info_panel, label='Мастер создания пБД')
+        info_header_statictext = wx.StaticText(header_info_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'])
         info_header_statictext.SetFont(self.small_header_font)
         header_info_sizer.Add(info_header_statictext, 0, wx.ALL)
 
-        info_data_statictext = wx.StaticText(header_info_panel, label='Данный мастер предназначен для создания рабочего каркаса пБД')
+        info_data_statictext = wx.StaticText(header_info_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.INFORMATION'])
         header_info_sizer.Add(info_data_statictext, 0, wx.ALL)
 
         header_sizer.Add(header_info_panel, 0, wx.ALL, 10)
@@ -393,17 +397,17 @@ class UDBCreateMaster(wx.Frame):
 
         self.buttons_sizer.Add(320, 0, 0)
 
-        self.cancel_button = wx.Button(self.buttons_panel, label='Отмена')
+        self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'])
         self.cancel_button.Bind(wx.EVT_BUTTON, self.cancel)
         self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
-        self.previous_button = wx.Button(self.buttons_panel, label='<- Назад')
+        self.previous_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.BUTTON.PREVIOUS'])
         self.previous_button.Bind(wx.EVT_BUTTON, self.previous_page)
         self.previous_button.Disable()
         self.buttons_sizer.Add(self.previous_button, 0, wx.ALL, 5)
 
-        self.next_button = wx.Button(self.buttons_panel, label='Далее ->')
+        self.next_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.BUTTON.NEXT'])
         self.next_button.Bind(wx.EVT_BUTTON, self.next_page)
         self.next_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.next_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.next_button, 0, wx.ALL, 5)

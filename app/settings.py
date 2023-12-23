@@ -4,7 +4,7 @@ import wx.stc
 import wx.lib.scrolledpanel
 
 from app.settings_entries import *
-from app.app_parameters import APP_PARAMETERS
+from app.app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
 
 
 class Settings(wx.Dialog):
@@ -23,20 +23,26 @@ class Settings(wx.Dialog):
 
     def set_settings_items(self):
         curs = self.app_conn.cursor()
-        id_parents = curs.execute(f"""SELECT id, sett_label
-                                      FROM t_settings_items
-                                      WHERE id_fk IS NULL
-                                      AND is_valid = 'Y'
-                                      ORDER BY id;""").fetchall()
+        id_parents = curs.execute(f"""SELECT si.id, lt.text
+                                      FROM t_settings_items as si,
+                                           t_lang_text as lt
+                                      WHERE si.id_fk IS NULL
+                                      AND si.is_valid = 'Y'
+                                      AND si.sett_label = lt.label
+                                      AND lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
+                                      ORDER BY si.id;""").fetchall()
 
         for parent in id_parents:
             self.sett_items[(parent[0], parent[1])] = []
             self.parent_items.append(parent[1])
-            id_childrens = curs.execute(f"""SELECT id, sett_label
-                                            FROM t_settings_items
-                                            WHERE id_fk = {parent[0]}
-                                            AND is_valid = 'Y'
-                                            ORDER BY id;""").fetchall()
+            id_childrens = curs.execute(f"""SELECT si.id, lt.text
+                                            FROM t_settings_items as si,
+                                                 t_lang_text as lt
+                                            WHERE si.id_fk = {parent[0]}
+                                            AND si.is_valid = 'Y'
+                                            AND si.sett_label = lt.label
+                                            AND lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
+                                            ORDER BY si.id;""").fetchall()
             for child in id_childrens:
                 self.sett_items[(parent[0], parent[1])].append((child[0], child[1]))
 
@@ -67,13 +73,17 @@ class Settings(wx.Dialog):
             self.settings_item_panel.DestroyChildren()
 
             curs = self.app_conn.cursor()
-            entries = curs.execute(f"""SELECT p.param_name, sip.entry_type, sip.entry_label, sip.entry_choices, p.param_value
+            entries = curs.execute(f"""SELECT p.param_name, sip.entry_type, lt.text, sip.entry_choices, p.param_value, lt2.text
                                        FROM t_settings_items_params as sip
                                        JOIN t_settings_items as si ON sip.id_parent = si.id
                                        LEFT JOIN t_params as p ON sip.id_param = p.id
-                                       WHERE si.sett_label = '{menu_name}'
+                                       LEFT JOIN t_lang_text as lt ON sip.entry_label = lt.label
+                                       LEFT JOIN t_lang_text as lt2 ON sip.entry_label_choices = lt2.label
+                                       WHERE si.sett_label = (SELECT label FROM t_lang_text WHERE text = '{menu_name}' AND label LIKE 'APP.%')
                                        AND   sip.is_valid = 'Y'
                                        AND   si.is_valid = 'Y'
+                                       AND   (lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}' OR lt.lang IS NULL)
+                                       AND   (lt2.lang = '{APP_PARAMETERS['APP_LANGUAGE']}' OR lt2.lang IS NULL)
                                        ORDER BY sip.posid;""").fetchall()
 
             for entry in entries:
@@ -85,7 +95,7 @@ class Settings(wx.Dialog):
                     menu_entry_panel = RadioSelect(self.settings_item_panel, entry[2], entry[3])
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL, 2)
                 elif entry[1] == 'SelectorBox':
-                    menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], list(entry[3].split(':')))
+                    menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'), entry[5].split(':'))
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
                 elif entry[1] == 'HEXEnter':
                     menu_entry_panel = HEXEnter(self.settings_item_panel, entry[2])
@@ -97,12 +107,21 @@ class Settings(wx.Dialog):
                     menu_entry_panel = SpinNumber(self.settings_item_panel, entry[2], list(entry[3].split(':')))
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
                 elif entry[1] == 'CodeRedactor':
-                    menu_entry_panel = CodeRedactor(self.settings_item_panel, entry[2])
+                    menu_entry_panel = CodeRedactor(self.settings_item_panel, entry[3])
                     self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
                 elif entry[1] == 'TableSystemColumns':
                     title_columns = entry[2].split(':')
                     curs = self.app_conn.cursor()
-                    data_rows = curs.execute(entry[3]).fetchall()
+                    # Подстановка текущего значения языка приложения
+                    query = entry[3].replace('$0', APP_PARAMETERS['APP_LANGUAGE'])
+
+                    # Подстановка остальных значений
+                    if entry[5] is not None:
+                        items = str(entry[5]).split(':')
+                        for i in range(len(items)):
+                            query = query.replace(f'${i + 1}', APP_PARAMETERS[items[i]])
+
+                    data_rows = curs.execute(query).fetchall()
                     menu_entry_panel = TableSystemColumns(self.settings_item_panel, title_columns, data_rows)
                     self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
                 elif entry[1] == 'MaskedTextEntry':
@@ -153,7 +172,8 @@ class Settings(wx.Dialog):
     def close(self, event):
         for values in self.changed_params.values():
             if len(values.keys()) > 0:
-                dlg = wx.MessageBox('Все несохраненные изменения будут удалены!', 'Подтвердите выход',
+                dlg = wx.MessageBox(APP_TEXT_LABELS['SETTINGS.MESSAGE_BOX.CLOSE.ALL_CLEAR'],
+                                    APP_TEXT_LABELS['MESSAGE_BOX.CAPTION_APPROVE'],
                                     wx.YES_NO | wx.NO_DEFAULT)
                 if dlg == wx.YES:
                     self.EndModal(0)
@@ -164,15 +184,32 @@ class Settings(wx.Dialog):
         self.EndModal(0)
 
     def apply(self, event):
-        self.change_settings()
+        ret_code = self.change_settings()
+        if ret_code == 2:
+            if self.restart_offer():
+                self.EndModal(ret_code)
+        self.set_setting_page(menu_name=self.prev_page)
 
     def apply_close(self, event):
-        self.change_settings()
-        self.EndModal(1)
+        ret_code = self.change_settings()
+        if ret_code == 2:
+            if not self.restart_offer():
+                ret_code -= 1
+        self.EndModal(ret_code)
 
-    def change_settings(self):
+    def restart_offer(self):
+        """Возвращает True/False как ответ, необходима ли перезагрузка приложения."""
+        dlg = wx.MessageDialog(self,
+                               APP_TEXT_LABELS['SETTINGS.RESTART_FOR_APPLY_CHANGES.MESSAGE'],
+                               APP_TEXT_LABELS['SETTINGS.RESTART_FOR_APPLY_CHANGES.CAPTION'],
+                               wx.YES_NO | wx.YES_DEFAULT)
+        result = True if dlg.ShowModal() == wx.ID_YES else False
+        return result
+
+    def change_settings(self) -> int:
         curs = self.app_conn.cursor()
         self.set_params()
+        changed_params = []
         for entry_page_name, entry_page_params in self.changed_params.items():
             for entry_name, entry_value in entry_page_params.items():
                 curs.execute(f"""UPDATE t_params
@@ -180,12 +217,16 @@ class Settings(wx.Dialog):
                                  WHERE  param_name = '{entry_name}';""")
                 self.app_conn.commit()
                 APP_PARAMETERS[entry_name] = entry_value
+                changed_params.append(entry_name)
         self.changed_params.clear()
-        self.set_setting_page(menu_name=self.prev_page)
+        ret_code = int(curs.execute(f"""SELECT MAX(p.update_layout)
+                                    FROM t_params p
+                                    WHERE p.param_name IN ('{"','".join(changed_params)}');""").fetchone()[0])
         curs.close()
+        return ret_code
 
     def __init__(self, parent: wx.Frame, app_conn: sqlite3.Connection):
-        super().__init__(parent, title='Настройки', size=(700, 500),
+        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500),
                          style=wx.CAPTION | wx.CLOSE_BOX)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
@@ -238,17 +279,17 @@ class Settings(wx.Dialog):
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
 
-        self.ok_button = wx.Button(self.buttons_panel, label='ОК', size=(75, -1))
+        self.ok_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.OK'], size=(75, -1))
         self.ok_button.Bind(wx.EVT_BUTTON, self.apply_close)
         self.ok_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.ok_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.ok_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.cancel_button = wx.Button(self.buttons_panel, label='Отмена', size=(75, -1))
+        self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'], size=(75, -1))
         self.cancel_button.Bind(wx.EVT_BUTTON, self.close)
         self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
-        self.apply_button = wx.Button(self.buttons_panel, label='Принять', size=(75, -1))
+        self.apply_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.APPLY'], size=(75, -1))
         self.apply_button.Bind(wx.EVT_BUTTON, self.apply)
         self.apply_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.apply_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.apply_button, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)

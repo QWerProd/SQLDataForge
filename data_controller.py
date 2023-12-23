@@ -1,12 +1,14 @@
 import os
 from app.error_catcher import ErrorCatcher
+from app.app_parameters import APP_PARAMETERS
 import sqlite3
 
 # Импорты для параметров
 import datetime
 
 app_conn = sqlite3.connect('app/app.db')
-catcher = ErrorCatcher()
+catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
+
 
 class DataController:
 
@@ -64,9 +66,13 @@ class DataController:
             databases[unit[0]] = unit[1]
 
         for database, path in databases.items():
-            conn = sqlite3.connect(path + '\\' + database)
-            cursor = conn.cursor()
-            tables = cursor.execute(f"""SELECT table_name, column_name, column_type, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
+            try:
+                conn = sqlite3.connect(path + '\\' + database)
+                cursor = conn.cursor()
+                tables = cursor.execute(f"""SELECT table_name, column_name, column_type, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
+            except sqlite3.Error:
+                catcher.error_message('E012')
+                exit(12)
 
             list_tables = []
             for item in tables:
@@ -113,7 +119,12 @@ class DataController:
 
         gens = {}
         curs = app_conn.cursor()
-        data = curs.execute(f"SELECT gen_code, gen_name, gen_type FROM t_simple_gen WHERE is_valid = 'Y';").fetchall()
+        data = curs.execute(f"SELECT sg.gen_code, lt.text, sg.gen_type "
+                            f"FROM t_simple_gen as sg,"
+                            f"     t_lang_text as lt "
+                            f"WHERE sg.is_valid = 'Y' "
+                            f"AND   sg.gen_name = lt.label "
+                            f"AND   lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}';").fetchall()
 
         for datarow in data:
             if not datarow[2] in gens:
@@ -126,6 +137,7 @@ class DataController:
     def BuildDictOfGens() -> dict:
         """Собирает словарь со всеми полями для простого генератора.
         {'<Раздел>': [(<ключ>, '<подпись для меню>'), ...], ...}"""
+
         gens = DataController.GetListSimpleGens()
         user_gens = DataController.GetTablesFromDB()
 
@@ -136,3 +148,22 @@ class DataController:
                 gens[database].append((gen_key, items.split(':')[3]))
 
         return gens
+
+    @staticmethod
+    def SetLangLabels(lang: str) -> dict:
+        """Собирает словарь для подписей в приложении
+        в зависимости от установленного языка"""
+
+        curs = sqlite3.Cursor
+        try:
+            curs = app_conn.cursor()
+            text_labels = curs.execute(f"""SELECT label, text
+                                           FROM t_lang_text
+                                           WHERE lang = '{lang}';""").fetchall()
+
+            text_dict = dict(text_labels)
+            return text_dict
+        except sqlite3.Error:
+            return 1
+        finally:
+            curs.close()

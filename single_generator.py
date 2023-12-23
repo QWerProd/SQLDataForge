@@ -4,6 +4,7 @@ import wx
 from data_controller import DataController
 from app.error_catcher import ErrorCatcher
 from sql_generator import SQLGenerator
+from app.app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
 
 # Библиотеки для генераторов
 import random
@@ -81,7 +82,7 @@ class SimpleGenerator(wx.Frame):
             self.row_count = self.curs.execute(f"""SELECT COUNT(\"{self.column_info.split(':')[1]}\")
                                                    FROM \"{self.column_info.split(':')[0]}\";""").fetchone()[0]
 
-            header_statictext = wx.StaticText(self, label=f'Количество строк выборки: {self.row_count}')
+            header_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['SINGLE_GENERATOR.SELECT_DB.SELECT_COUNT'] + str(self.row_count))
             self.sizer.Add(header_statictext, 0, wx.ALL, 5)
 
             self.select_listctrl = wx.ListBox(self, choices=self.db_data)
@@ -93,7 +94,7 @@ class SimpleGenerator(wx.Frame):
         root = self.items_treectrl.AddRoot('')
         for key, value in self.gens.items():
             if key == 'simple':
-                second_root = self.items_treectrl.AppendItem(root, 'Простые генераторы')
+                second_root = self.items_treectrl.AppendItem(root, APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
             else:
                 second_root = self.items_treectrl.AppendItem(root, key)
             for item in value:
@@ -133,7 +134,7 @@ class SimpleGenerator(wx.Frame):
             entry_item.Hide()
             # Но пока ничего такого не будет :)
             label = entry_item.get_column_name()
-            data_field_prod = wx.StaticText(self.data_panel, label=f'Сгенерируйте поле \n"{label}"!')
+            data_field_prod = wx.StaticText(self.data_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.GO_GENERATE'] + f' \n"{label}"!')
             self.data_sizer.Add(data_field_prod, 1, wx.ALL, 50)
             self.curr_data_fields.append(entry_item)
             self.data_panel.Layout()
@@ -142,11 +143,17 @@ class SimpleGenerator(wx.Frame):
         else:
             app_conn = sqlite3.connect('app/app.db')
             curs = app_conn.cursor()
-            gen_items_info = curs.execute(f"""SELECT se.entry_name, se.entry_type, s.gen_name
+            gen_items_info = curs.execute(f"""SELECT lt.text, se.entry_type, lt2.text
                                               FROM t_simple_gen_entries as se,
-                                                   t_simple_gen as s
+                                                   t_simple_gen as s,
+                                                   t_lang_text as lt,
+                                                   t_lang_text as lt2
                                               WHERE se.id_field = s.id
                                               AND   s.gen_code = '{open_code}'
+                                              AND   se.entry_name = lt.label
+                                              AND   s.gen_name = lt2.label
+                                              AND   lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
+                                              AND   lt2.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
                                               ORDER BY se.posid;""").fetchall()
 
             gen_name = ''
@@ -209,12 +216,12 @@ class SimpleGenerator(wx.Frame):
             except sqlite3.Error:
                 self.catcher.error_message('E014')
             except (TypeError, ValueError):
-                wx.MessageBox('Вводимые значения должны быть целыми числами!\nПервое значение не должно быть больше или равно второму значению!',
-                              'Ошибка значения', wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.MESSAGE'],
+                              APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.CAPTION'], wx.OK | wx.ICON_ERROR)
 
     def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher, open_code: str = None):
-        wx.Frame.__init__(self, None, title='Генератор простых значений', size=(700, 325),
-                          style= wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
+                          style=wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
         self.SetMaxSize((700, 400))
@@ -268,7 +275,7 @@ class SimpleGenerator(wx.Frame):
         self.output_sizer = wx.BoxSizer(wx.VERTICAL)
         self.output_panel.SetSizer(self.output_sizer)
 
-        output_statictext = wx.StaticText(self.output_panel, label='Вывод:')
+        output_statictext = wx.StaticText(self.output_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.OUTPUT'])
         self.output_sizer.Add(output_statictext, 0, wx.ALL, 5)
 
         self.output_textctrl = wx.TextCtrl(self.output_panel, style=wx.TE_MULTILINE)
@@ -285,17 +292,18 @@ class SimpleGenerator(wx.Frame):
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
 
-        items_count_statictext = wx.StaticText(self.buttons_panel, label='Кол-во итераций:')
+        items_count_statictext = wx.StaticText(self.buttons_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.ITER_COUNT'])
         self.buttons_sizer.Add(items_count_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
 
         self.items_count_textctrl = wx.TextCtrl(self.buttons_panel)
         self.items_count_textctrl.SetValue('1')
-        self.buttons_sizer.Add(self.items_count_textctrl, 0, wx.ALIGN_CENTER_VERTICAL)
+        self.buttons_sizer.Add(self.items_count_textctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 120)
 
-        self.cancel_button = wx.Button(self.buttons_panel, label='Отмена', size=(75, -1))
+        self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'], size=(75, -1))
+        self.cancel_button.Bind(wx.EVT_BUTTON, lambda x: self.Destroy())
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
-        self.generate_button = wx.Button(self.buttons_panel, label='Генерация', size=(75, -1))
+        self.generate_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.GENERATE'], size=(75, -1))
         self.generate_button.Bind(wx.EVT_BUTTON, self.start_generate)
         self.buttons_sizer.Add(self.generate_button, 0, wx.ALL, 5)
 

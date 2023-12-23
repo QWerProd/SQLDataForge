@@ -68,7 +68,7 @@ class CheckboxPoint(SimpleEntry):
         self.checkbox = wx.CheckBox(self, style=wx.ALIGN_RIGHT)
         self.checkbox.Bind(wx.EVT_CHECKBOX, self.change_param)
         self.checkbox.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
-        self.sizer.Add(self.checkbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.sizer.Add(self.checkbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
 
         self.Layout()
 
@@ -83,28 +83,31 @@ class CheckboxPoint(SimpleEntry):
 
 
 class SelectorBox(SimpleEntry):
-    def __init__(self, parent: wx.Panel, title: str, choices: list):
-        super().__init__(parent, title, choices=list(map(lambda x: x.split('&'), choices)), sizer_mode=wx.HORIZONTAL)
-        label_choices = [item[1] for item in self.choices]
+
+    label_choices = list
+
+    def __init__(self, parent: wx.Panel, title: str, choices: list, label_choices: list):
+        super().__init__(parent, title, choices=choices, sizer_mode=wx.HORIZONTAL)
+        self.label_choices = label_choices
 
         statictext = wx.StaticText(self, label=self.title)
         self.sizer.Add(statictext, 1, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.choicesbox = wx.Choice(self, choices=label_choices, size=(100, -1))
+        self.choicesbox = wx.Choice(self, choices=label_choices, size=(125, -1))
         self.choicesbox.Bind(wx.EVT_CHOICE, self.change_param)
         self.choicesbox.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.choicesbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.sizer.Add(self.choicesbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
 
         self.Layout()
 
-    def change_param(self, event): self.param = self.choices[self.choicesbox.GetSelection()][0]
+    def change_param(self, event): self.param = self.choices[self.choicesbox.GetSelection()]
 
     def set_value(self, value):
         """Принимает имя поля"""
         for i in range(len(self.choices)):
-            if value == self.choices[i][0]:
+            if value == self.choices[i]:
                 self.choicesbox.SetSelection(i)
-                self.param = self.choices[i][0]
+                self.param = self.choices[i]
 
 
 class HEXEnter(SimpleEntry):
@@ -114,7 +117,7 @@ class HEXEnter(SimpleEntry):
         statictext = wx.StaticText(self, label=self.title, size=(-1, -1))
         self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.hex_textctrl = wx.TextCtrl(self, size=(85, -1))
+        self.hex_textctrl = wx.TextCtrl(self, size=(110, -1))
         self.hex_textctrl.Bind(wx.EVT_TEXT, self.change_param)
         self.sizer.Add(self.hex_textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
@@ -166,7 +169,7 @@ class SpinNumber(SimpleEntry):
         statictext = wx.StaticText(self, label=title)
         self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.spinctrl = wx.SpinCtrl(self, min=int(self.choices[0]), max=int(self.choices[1]), size=(100, -1))
+        self.spinctrl = wx.SpinCtrl(self, min=int(self.choices[0]), max=int(self.choices[1]), size=(125, -1))
         self.spinctrl.Bind(wx.EVT_SPINCTRL, self.change_param)
         self.sizer.Add(self.spinctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
 
@@ -183,7 +186,7 @@ class CodeRedactor(SimpleEntry):
     def __init__(self, parent: wx.Panel, title: str = None):
         super().__init__(parent, title, sizer_mode=wx.HORIZONTAL)
 
-        self.styledtextctrl = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 150))
+        self.styledtextctrl = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 125))
         self.styledtextctrl.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
                                          wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
                                                  family=wx.FONTFAMILY_TELETYPE,
@@ -268,9 +271,9 @@ class MaskedTextEntry(SimpleEntry):
         statictext = wx.StaticText(self, label=self.title)
         self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.textctrl = wx.TextCtrl(self)
+        self.textctrl = wx.TextCtrl(self, size=(125, -1))
         self.textctrl.Bind(wx.EVT_TEXT, self.change_param)
-        self.sizer.Add(self.textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+        self.sizer.Add(self.textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
 
         self.Layout()
 

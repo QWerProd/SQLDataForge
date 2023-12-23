@@ -4,6 +4,7 @@ import sqlite3
 
 from data_controller import DataController as DC
 from conn_frames.new_conn import NewConnection
+from app.app_parameters import APP_TEXT_LABELS
 
 
 class ConnectionViewer(wx.Frame):
@@ -52,7 +53,7 @@ class ConnectionViewer(wx.Frame):
             self.db_field_name_textctrl.SetValue(self.db_info[1])
         self.db_path_textctrl.SetValue(self.db_info[2])
         if self.db_info[3] is None or self.db_info[3] == '':
-            self.db_desc_textctrl.SetHint('Описание отсутствует...')
+            self.db_desc_textctrl.SetHint(APP_TEXT_LABELS['CONNECTION_VIEWER.DB_DESC.HINT'])
         else:
             self.db_desc_textctrl.SetValue(self.db_info[3])
 
@@ -60,9 +61,9 @@ class ConnectionViewer(wx.Frame):
         self.databases = DC.GetDatabases(False)
         self.treectrl_databases.DeleteAllItems()
         root = self.treectrl_databases.AddRoot('')
-        self.local_root = self.treectrl_databases.AppendItem(root, 'локальные пБД')
+        self.local_root = self.treectrl_databases.AppendItem(root, APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB'])
         self.treectrl_databases.SetItemImage(self.local_root, self.closed_root)
-        self.global_root = self.treectrl_databases.AppendItem(root, 'внешние пБД')
+        self.global_root = self.treectrl_databases.AppendItem(root, APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.GLOBAL_UDB'])
         self.treectrl_databases.SetItemImage(self.global_root, self.closed_root)
         self.set_databases()
 
@@ -85,11 +86,13 @@ class ConnectionViewer(wx.Frame):
         item = self.treectrl_databases.GetSelection()
         root_item = self.treectrl_databases.GetItemParent(item)
         root_text = self.treectrl_databases.GetItemText(root_item)
-        if root_text == 'локальные пБД':
-            return wx.MessageBox('Вы не можете удалить пБД из локального репозитория', 'Ошибка удаления',
+        if root_text == APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB']:
+            return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.MESSAGE'],
+                                 APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
                                  wx.OK | wx.ICON_WARNING)
         elif len(self.databases) <= 1:
-            return wx.MessageBox('Должна остаться хотя бы одна пБД!', 'Ошибка удаления',
+            return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_SINGLE_CONNECTION.MESSAGE'],
+                                 APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
                                  wx.OK | wx.ICON_WARNING)
 
         database = self.treectrl_databases.GetItemText(item)
@@ -104,7 +107,8 @@ class ConnectionViewer(wx.Frame):
             self.refresh()
         except sqlite3.Error as e:
             self.connect.rollback()
-            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка удаления')
+            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname,
+                          APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'])
         finally:
             cursor.close()
 
@@ -133,17 +137,20 @@ class ConnectionViewer(wx.Frame):
                                    description = "{db_desc}"
                                WHERE id = {int(rowid)};""")
             self.connect.commit()
-            wx.MessageBox(f'пБД {dbname} успешно изменена!', 'Успешное изменение', wx.OK | wx.ICON_INFORMATION)
+            wx.MessageBox(f'{dbname}:\n' + APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.MESSAGE'],
+                          APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.CAPTION'], wx.OK | wx.ICON_INFORMATION)
+
         except sqlite3.Error as e:
             self.connect.rollback()
-            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, 'Ошибка сохранения')
+            wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.ERROR_SAVE_CHANGES.CAPTION'])
         finally:
             cursor.close()
 
     def close(self, event):
         if self.db_name_textctrl.IsEnabled():
-            result = wx.MessageBox('Несохраненные данные будут удалены!',
-                                   'Вы уверены?', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            result = wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.CLOSE_ATTENTION.MESSAGE'],
+                                   APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.CLOSE_ATTENTION.CAPTION'],
+                                   wx.OK | wx.CANCEL | wx.ICON_WARNING)
             if result == wx.OK:
                 self.Destroy()
             else:
@@ -152,7 +159,7 @@ class ConnectionViewer(wx.Frame):
             self.Destroy()
 
     def __init__(self, conn: sqlite3.Connection):
-        wx.Frame.__init__(self, None, title="Доступные пБД", size=(500, 550),
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['CONNECTION_VIEWER.TITLE'], size=(500, 550),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 550))
         self.SetMaxSize((500, 550))
@@ -183,9 +190,9 @@ class ConnectionViewer(wx.Frame):
         self.treectrl_databases.AssignImageList(self.image_items)
 
         root = self.treectrl_databases.AddRoot('')
-        self.local_root = self.treectrl_databases.AppendItem(root, 'локальные пБД')
+        self.local_root = self.treectrl_databases.AppendItem(root, APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB'])
         self.treectrl_databases.SetItemImage(self.local_root, self.closed_root)
-        self.global_root = self.treectrl_databases.AppendItem(root, 'внешние пБД')
+        self.global_root = self.treectrl_databases.AppendItem(root, APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.GLOBAL_UDB'])
         self.treectrl_databases.SetItemImage(self.global_root, self.closed_root)
 
         self.set_databases()
@@ -226,7 +233,7 @@ class ConnectionViewer(wx.Frame):
         # ------------
 
         info_panel = wx.Panel(self.main_panel)
-        info_staticbox = wx.StaticBox(info_panel, label='Сведения о пБД')
+        info_staticbox = wx.StaticBox(info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_INFO'])
         info_staticsizer = wx.StaticBoxSizer(info_staticbox, wx.VERTICAL)
         info_panel.SetSizer(info_staticsizer)
 
@@ -238,12 +245,14 @@ class ConnectionViewer(wx.Frame):
 
         self.db_name_textctrl = wx.TextCtrl(self.main_info_panel)
         self.db_name_textctrl.Disable()
-        self.main_info_sizer.AddMany([(wx.StaticText(self.main_info_panel, label='Имя:', size=(50, -1)), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
+        self.main_info_sizer.AddMany([(wx.StaticText(self.main_info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_NAME'],
+                                                     size=(50, -1)), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
                                       (self.db_name_textctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
 
         self.db_field_name_textctrl = wx.TextCtrl(self.main_info_panel)
         self.db_field_name_textctrl.Disable()
-        self.main_info_sizer.AddMany([(wx.StaticText(self.main_info_panel, label='Псевдоним:'), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
+        self.main_info_sizer.AddMany([(wx.StaticText(self.main_info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_ALIAS']),
+                                       0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
                                       (self.db_field_name_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
 
         info_staticsizer.Add(self.main_info_panel, 0, wx.ALL | wx.EXPAND)
@@ -256,7 +265,8 @@ class ConnectionViewer(wx.Frame):
 
         self.db_path_textctrl = wx.TextCtrl(self.path_panel)
         self.db_path_textctrl.Disable()
-        self.path_sizer.AddMany([(wx.StaticText(self.path_panel, label='Путь:', size=(50, -1)), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
+        self.path_sizer.AddMany([(wx.StaticText(self.path_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_PATH'],
+                                                size=(50, -1)), 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
                                  (self.db_path_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
 
         info_staticsizer.Add(self.path_panel, 0, wx.ALL | wx.EXPAND)
@@ -269,7 +279,8 @@ class ConnectionViewer(wx.Frame):
 
         self.db_desc_textctrl = wx.TextCtrl(self.desc_panel, style=wx.TE_MULTILINE)
         self.db_desc_textctrl.Disable()
-        self.desc_sizer.AddMany([(wx.StaticText(self.desc_panel, label='Описание:'), 0, wx.TOP | wx.LEFT, 5),
+        self.desc_sizer.AddMany([(wx.StaticText(self.desc_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_DESC']),
+                                  0, wx.TOP | wx.LEFT, 5),
                                  (self.db_desc_textctrl, 1, wx.ALL | wx.EXPAND, 5)])
 
         info_staticsizer.Add(self.desc_panel, 1, wx.ALL | wx.EXPAND)
@@ -282,12 +293,12 @@ class ConnectionViewer(wx.Frame):
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
 
-        self.close_button = wx.Button(self.buttons_panel, label='Закрыть', size=(75, -1))
+        self.close_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CLOSE'], size=(75, -1))
         self.close_button.Bind(wx.EVT_BUTTON, self.close)
         self.close_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.close_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.close_button, 0, wx.ALL, 5)
 
-        self.save_button = wx.Button(self.buttons_panel, label='Сохранить', size=(75, -1))
+        self.save_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.SAVE'], size=(75, -1))
         self.save_button.Disable()
         self.save_button.Bind(wx.EVT_BUTTON, self.save_changes)
         self.buttons_sizer.Add(self.save_button, 0, wx.ALL, 5)

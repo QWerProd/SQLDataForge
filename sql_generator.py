@@ -80,22 +80,23 @@ class SQLGenerator:
         list_of_dbs = []
         connects = []
         datadict = {}
-        temp = []
-        for table_item in self.tables:
-            temp.append(table_item.split(':')[0])
-            list_of_dbs = list(set(temp))
 
         if self.is_simple_mode:
-            db_name = DC.GetDBFromTables([list_of_dbs[0], ])[0]
+            db_name = DC.GetDBFromTables([self.tables[0], ])[0]
             simp_conn = sqlite3.connect('data/' + db_name)
             curs = simp_conn.cursor()
 
             data = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, column_type
                                     FROM t_cases_info
-                                    WHERE table_name = "{list_of_dbs[0]}"
-                                    AND   column_name = "{list_of_dbs[1]}";""").fetchone()
+                                    WHERE table_name = "{self.tables[0]}"
+                                    AND   column_name = "{self.tables[1]}";""").fetchone()
             self.cols.append(data)
         else:
+            temp = []
+            for table_item in self.tables:
+                temp.append(table_item.split(':')[0])
+                list_of_dbs = list(set(temp))
+
             app_curs = self.app_conn.cursor()
 
             query = ('SELECT path FROM t_databases ' +
@@ -147,7 +148,8 @@ class SQLGenerator:
             cursor = loc_conn.cursor()
 
             # Getting maximum value of rows
-            max_val = cursor.execute(f"SELECT COUNT(*) FROM {table[1]};").fetchone()[0]
+            if table[3] == 'RSet':
+                max_val = cursor.execute(f"SELECT COUNT(*) FROM {table[1]};").fetchone()[0]
 
             # Creating list of columns
             # self.column_names.append(table[1])

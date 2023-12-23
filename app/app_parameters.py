@@ -1,4 +1,11 @@
-from data_controller import DataController as DC
+import sqlite3
+
+import wx
+
+from app.error_catcher import ErrorCatcher
+
+catcher = ErrorCatcher('en')
+app_conn = sqlite3.connect('app/app.db')
 
 APP_PARAMETERS = {
     'IS_CATCH_CLOSING_APP': str,
@@ -16,8 +23,34 @@ APP_PARAMETERS = {
     'KEY_SETTINGS': str,
     'KEY_CREATE_UDB_WIZARD': str,
     'KEY_UDB_VIEWER': str,
-    'FORMAT_DATE': str
+    'FORMAT_DATE': str,
+    'APP_LANGUAGE': str
 }
 
+APP_LOCALES = {
+    'ru': wx.LANGUAGE_RUSSIAN,
+    'en': wx.LANGUAGE_ENGLISH
+}
+
+APP_TEXT_LABELS = dict()
+
+# Установка параметров
+curs = app_conn.cursor()
 for param in APP_PARAMETERS.keys():
-    APP_PARAMETERS[param] = DC.ParamChanger(param)
+
+    param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
+    APP_PARAMETERS[param] = param_name[0]
+
+
+# Установка словаря с текстом для labels
+try:
+    text_labels = curs.execute(f"""SELECT label, text
+                                   FROM t_lang_text
+                                   WHERE lang = '{APP_PARAMETERS['APP_LANGUAGE']}';""").fetchall()
+    for text_row in text_labels:
+        APP_TEXT_LABELS[text_row[0]] = text_row[1]
+except sqlite3.Error as e:
+    catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+finally:
+    curs.close()
+    app_conn.close()
