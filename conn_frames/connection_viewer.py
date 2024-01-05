@@ -8,7 +8,6 @@ from app.app_parameters import APP_TEXT_LABELS
 
 
 class ConnectionViewer(wx.Frame):
-    connect = sqlite3.Connection
     databases = list
     db_info = list
 
@@ -78,7 +77,7 @@ class ConnectionViewer(wx.Frame):
         self.save_button.Unbind(wx.EVT_ENTER_WINDOW)
 
     def new_connection(self, event):
-        new_conn = NewConnection(self.connect)
+        new_conn = NewConnection()
         new_conn.Show()
         new_conn.SetFocus()
 
@@ -97,25 +96,26 @@ class ConnectionViewer(wx.Frame):
 
         database = self.treectrl_databases.GetItemText(item)
 
-        cursor = sqlite3.Cursor
+        app_conn = sqlite3.connect('../app/app.db')
+        cursor = app_conn.cursor()
         try:
-            cursor = self.connect.cursor()
             cursor.execute(f"""DELETE FROM t_databases
                                WHERE dbname = "{database}";""")
-            self.connect.commit()
+            app_conn.commit()
 
             self.refresh()
         except sqlite3.Error as e:
-            self.connect.rollback()
+            app_conn.rollback()
             wx.MessageBox(str(e) + '\n' + e.sqlite_errorname,
                           APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'])
         finally:
             cursor.close()
+            app_conn.close()
 
     def save_changes(self, event):
-        cursor = sqlite3.Cursor
+        app_conn = sqlite3.connect('../app/app.db')
+        cursor = app_conn.cursor()
         try:
-            cursor = self.connect.cursor()
             rowid = cursor.execute(f"""SELECT id FROM t_databases 
                                        WHERE path = '{self.db_info[2]}' AND dbname = '{self.db_info[0]}';""").fetchone()[0]
 
@@ -136,15 +136,16 @@ class ConnectionViewer(wx.Frame):
                                    field_name = "{db_field_name}",
                                    description = "{db_desc}"
                                WHERE id = {int(rowid)};""")
-            self.connect.commit()
+            app_conn.commit()
             wx.MessageBox(f'{dbname}:\n' + APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.MESSAGE'],
                           APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.CAPTION'], wx.OK | wx.ICON_INFORMATION)
 
         except sqlite3.Error as e:
-            self.connect.rollback()
+            app_conn.rollback()
             wx.MessageBox(str(e) + '\n' + e.sqlite_errorname, APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.ERROR_SAVE_CHANGES.CAPTION'])
         finally:
             cursor.close()
+            app_conn.close()
 
     def close(self, event):
         if self.db_name_textctrl.IsEnabled():
@@ -158,7 +159,7 @@ class ConnectionViewer(wx.Frame):
         else:
             self.Destroy()
 
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['CONNECTION_VIEWER.TITLE'], size=(500, 550),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 550))
@@ -166,7 +167,6 @@ class ConnectionViewer(wx.Frame):
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
 
-        self.connect = conn
         self.databases = DC.GetDatabases(False)
 
         self.main_panel = wx.Panel(self)
@@ -201,6 +201,7 @@ class ConnectionViewer(wx.Frame):
 
         # -------------------------------
 
+        # TODO: Переделать под toolbar
         buttons_panel = wx.Panel(div_hor_panel)
         buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         buttons_panel.SetSizer(buttons_sizer)

@@ -24,7 +24,8 @@ APP_PARAMETERS = {
     'KEY_CREATE_UDB_WIZARD': str,
     'KEY_UDB_VIEWER': str,
     'FORMAT_DATE': str,
-    'APP_LANGUAGE': str
+    'APP_LANGUAGE': str,
+    'KEY_RECOVERY': str
 }
 
 APP_LOCALES = {
@@ -36,11 +37,16 @@ APP_TEXT_LABELS = dict()
 
 # Установка параметров
 curs = app_conn.cursor()
-for param in APP_PARAMETERS.keys():
+try:
+    for param in APP_PARAMETERS.keys():
 
-    param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
-    APP_PARAMETERS[param] = param_name[0]
-
+        param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
+        APP_PARAMETERS[param] = param_name[0]
+except sqlite3.OperationalError as e:
+    #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+    exit(14)
+except TypeError:
+    pass
 
 # Установка словаря с текстом для labels
 try:
@@ -51,6 +57,7 @@ try:
         APP_TEXT_LABELS[text_row[0]] = text_row[1]
 except sqlite3.Error as e:
     catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+    exit(14)
 finally:
     curs.close()
     app_conn.close()

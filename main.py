@@ -5,6 +5,7 @@ import sqlite3
 import subprocess
 import sys
 
+from app.recovery import Recovery
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
@@ -16,8 +17,6 @@ from single_generator import SimpleGenerator
 from app.settings import Settings
 from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES
 
-
-app_conn = sqlite3.connect('app/app.db')
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
 # Глобальный лист добавленных столбцов
@@ -404,6 +403,8 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(self.query_status, 0)
                 else:
                     # Генерация
+                    app_conn = sqlite3.connect('app/app.db')
+                    cursor = app_conn.cursor()
                     start_build_time = datetime.now()
                     builder = SQLGenerator(app_conn, rows_count, added_items, colnames, table_info, indexes_info)
                     query = ''
@@ -416,6 +417,12 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(self.query_status, 0)
                     generate_time = datetime.now() - start_generate_time
 
+                    # Запись запроса в лог
+                    cursor = app_conn.cursor()
+                    cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
+                                       VALUES ('{query}', '{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}');""")
+                    app_conn.commit()
+
                     # Подсчет времени работы
                     build_time = round(build_time.total_seconds(), 4)
                     generate_time = round(generate_time.total_seconds(), 2)
@@ -427,6 +434,8 @@ class MainFrame(wx.Frame):
                 self.statusbar.SetStatusText(self.query_status, 0)
             finally:
                 self.SetCursor(wx.NullCursor)
+                cursor.close()
+                app_conn.close()
 
     def save_script(self, event=None):
         sql = self.textctrl_sql.GetValue()
@@ -503,36 +512,42 @@ class MainFrame(wx.Frame):
         for key, value in self.all_tables.items():
             temp_items = []
             root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, key)
-            self.treectrl_databases.SetItemImage(root, self.database_image)
-            for full_item in value:
-                item = full_item.split(':')[3]
-                child = self.treectrl_databases.AppendItem(root, item)
-                self.treectrl_databases.SetItemImage(child, self.table_image)
-                temp_items.append(child)
-            self.tree_items[root] = temp_items
+            if len(value) > 0:
+                self.treectrl_databases.SetItemImage(root, self.database_image)
+                for full_item in value:
+                    item = full_item.split(':')[3]
+                    child = self.treectrl_databases.AppendItem(root, item)
+                    self.treectrl_databases.SetItemImage(child, self.table_image)
+                    temp_items.append(child)
+                self.tree_items[root] = temp_items
+            else:
+                self.treectrl_databases.SetItemImage(root, )
+
 
     def delete_index(self, item):
         index_items.remove(item)
         item.Hide()
         self.indexes_scrolledwindow.Layout()
 
+    # Открывашки для других окон
+    ############################
     def open_new_connection(self, event):
-        new_conn = NewConnection(app_conn)
+        new_conn = NewConnection()
         new_conn.Show()
         new_conn.SetFocus()
 
     def open_connection_viewer(self, event):
-        conn_viewer = ConnectionViewer(app_conn)
+        conn_viewer = ConnectionViewer()
         conn_viewer.Show()
         conn_viewer.SetFocus()
 
     def open_newudb_master(self, event):
-        create_master = UDBCreateMaster(app_conn, catcher)
+        create_master = UDBCreateMaster(catcher)
         create_master.Show()
         create_master.SetFocus()
 
     def open_settings_frame(self, event):
-        with Settings(self, app_conn) as sett:
+        with Settings(self) as sett:
             res = sett.ShowModal()
             if res > 0:
                 self.update_stc_style()
@@ -546,10 +561,17 @@ class MainFrame(wx.Frame):
         for simpgen_menuitem in self.simpgens_menuitems:
             if menuitem in simpgen_menuitem:
                 item_code = simpgen_menuitem[1]
-                simple_generator = SimpleGenerator(app_conn, catcher, item_code)
+                simple_generator = SimpleGenerator(catcher, item_code)
                 simple_generator.Show()
                 simple_generator.SetFocus()
                 break
+
+    def open_recovery(self, event):
+        recovery = Recovery(catcher)
+        recovery.Show()
+        recovery.SetFocus()
+
+    ############################
 
     def close_app(self, event):
         if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True':
@@ -748,6 +770,12 @@ class MainFrame(wx.Frame):
         # Инструменты
         # --------------
         self.tools_menu = wx.Menu()
+        recovery_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.RECOVERY'] + '\t' + APP_PARAMETERS['KEY_RECOVERY'])
+        recovery_menuitem.SetBitmap(wx.Bitmap('img/16x16/database.png'))
+        self.Bind(wx.EVT_MENU, self.open_recovery, recovery_menuitem)
+        self.tools_menu.Append(recovery_menuitem)
+        self.tools_menu.AppendSeparator()
         settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS['KEY_SETTINGS'])
         settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
@@ -782,6 +810,7 @@ class MainFrame(wx.Frame):
 
         self.toolbar.Realize()
 
+        # TODO: Добавить splitterwindow для дерева БД и основной панели
         # Рабочий контейнер
         # ---
         data_panel = wx.Panel(main_panel)
@@ -795,11 +824,13 @@ class MainFrame(wx.Frame):
         self.all_tables = DataController.GetTablesFromDB()
         self.image_items = wx.ImageList(16, 16)
         self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.invalid_db_image = self.image_items.Add(wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.table_image = self.image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_items)
         self.set_tree_items()
         self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
 
+        # TODO: Для notebook и stc - splitterwindow
         # Контейнер работы с кейсами
         # ----
         table_panel = wx.Panel(data_panel)

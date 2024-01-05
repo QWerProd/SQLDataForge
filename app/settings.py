@@ -219,18 +219,21 @@ class Settings(wx.Dialog):
                 APP_PARAMETERS[entry_name] = entry_value
                 changed_params.append(entry_name)
         self.changed_params.clear()
-        ret_code = int(curs.execute(f"""SELECT MAX(p.update_layout)
-                                    FROM t_params p
-                                    WHERE p.param_name IN ('{"','".join(changed_params)}');""").fetchone()[0])
+        try:
+            ret_code = int(curs.execute(f"""SELECT MAX(p.update_layout)
+                                        FROM t_params p
+                                        WHERE p.param_name IN ('{"','".join(changed_params)}');""").fetchone()[0])
+        except TypeError:
+            ret_code = 0
         curs.close()
         return ret_code
 
-    def __init__(self, parent: wx.Frame, app_conn: sqlite3.Connection):
+    def __init__(self, parent: wx.Frame):
         super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500),
                          style=wx.CAPTION | wx.CLOSE_BOX)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
-        self.app_conn = app_conn
+        self.app_conn = sqlite3.connect('app/app.db')
         self.sett_items = {}
         self.changed_params = {}
         self.changed_params_journal = {}

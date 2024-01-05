@@ -8,7 +8,6 @@ from app.app_parameters import APP_TEXT_LABELS
 
 class UDBCreateMaster(wx.Frame):
 
-    app_conn = sqlite3.Connection
     catcher = ErrorCatcher
 
     is_adding_enabled = False
@@ -99,12 +98,14 @@ class UDBCreateMaster(wx.Frame):
             connect.commit()
 
             if 'db_alias' in self.dict_db:
-                app_curs = self.app_conn.cursor()
+                app_conn = sqlite3.connect('../app/app.db')
+                app_curs = app_conn.cursor()
                 app_curs.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
                                      VALUES (\"{self.dict_db['db_name']}\", \"{self.dict_db['db_path']}\", 
                                              \"{self.dict_db['db_alias']}\", \"{self.dict_db['db_desc']}\");""")
-                self.app_conn.commit()
+                app_conn.commit()
                 app_curs.close()
+                app_conn.close()
 
             wx.MessageBox(APP_TEXT_LABELS['NEW_UDB_WIZARD.FINISH.SUCCESS_MESSAGE.MESSAGE'] + self.db_path + "\\" + self.db_name,
                           APP_TEXT_LABELS['NEW_UDB_WIZARD.FINISH.SUCCESS_MESSAGE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
@@ -160,7 +161,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_name_textctrl.SetFocus()
             self.db_name_sizer.Add(self.db_name_textctrl, 1, wx.ALIGN_CENTER_VERTICAL, wx.BOTTOM | wx.EXPAND, 10)
 
-            self.data_sizer.Add(self.db_name_panel, 0, wx.EXPAND | wx.ALL, 20)
+            self.data_sizer.Add(self.db_name_panel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
             # ---------------------------------------------
 
             self.db_path_panel = wx.Panel(self)
@@ -171,14 +172,14 @@ class UDBCreateMaster(wx.Frame):
             self.db_path_sizer.Add(db_path_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             self.db_path_textctrl = wx.TextCtrl(self.db_path_panel, size=(-1, 22))
-            self.db_path_sizer.Add(self.db_path_textctrl, 1, wx.ALIGN_CENTER_VERTICAL, wx.BOTTOM | wx.EXPAND, 10)
+            self.db_path_sizer.Add(self.db_path_textctrl, 1, wx.ALIGN_CENTER_VERTICAL)
 
             self.explore_path_button = wx.Button(self.db_path_panel, label='...', size=(25, 24), style=wx.NO_BORDER)
             self.explore_path_button.Bind(wx.EVT_BUTTON, self.explore_path)
             self.explore_path_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.explore_path_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             self.db_path_sizer.Add(self.explore_path_button, 0, wx.ALIGN_CENTER_VERTICAL, 10)
 
-            self.data_sizer.Add(self.db_path_panel, 0, wx.EXPAND | wx.LEFT | wx.BOTTOM | wx.RIGHT, 20)
+            self.data_sizer.Add(self.db_path_panel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 20)
             # ---------------------------------------------
 
             self.Layout()
@@ -221,7 +222,7 @@ class UDBCreateMaster(wx.Frame):
 
             header_statictext = wx.StaticText(self,
                                               label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.TITLE'])
-            header_statictext.Wrap(header_statictext.GetSize()[0])
+            #header_statictext.Wrap(header_statictext.GetSize()[0])
             self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
             # ------------------------------
 
@@ -229,7 +230,7 @@ class UDBCreateMaster(wx.Frame):
             self.div_hor_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.div_hor_panel.SetSizer(self.div_hor_sizer)
 
-            self.adding_enabled_checkbox = wx.CheckBox(self.div_hor_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE'] + ':')
+            self.adding_enabled_checkbox = wx.CheckBox(self.div_hor_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE'])
             self.adding_enabled_checkbox.SetFocus()
             self.adding_enabled_checkbox.Bind(wx.EVT_CHECKBOX, self.adding_enable)
             self.adding_enabled_checkbox.Bind(wx.EVT_ENTER_WINDOW,
@@ -261,7 +262,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_desc_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_desc_panel.SetSizer(self.db_desc_sizer)
 
-            db_desc_statictext = wx.StaticText(self.db_desc_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC'], size=(80, -1))
+            db_desc_statictext = wx.StaticText(self.db_desc_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC'] + ':', size=(80, -1))
             self.db_desc_sizer.Add(db_desc_statictext, 0, wx.ALIGN_CENTER_VERTICAL)
 
             self.db_desc_textctrl = wx.TextCtrl(self.db_desc_panel, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL, size=(-1, 75))
@@ -270,7 +271,7 @@ class UDBCreateMaster(wx.Frame):
             self.div_vert_sizer.Add(self.db_desc_panel, 0, wx.EXPAND | wx.RIGHT, 10)
             self.db_desc_panel.Hide()
 
-            self.div_hor_sizer.Add(self.div_vert_panel, 1, wx.LEFT, 100)
+            self.div_hor_sizer.Add(self.div_vert_panel, 1, wx.LEFT, 75)
             # ------------------------------
 
             self.data_sizer.Add(self.div_hor_panel, 0, wx.EXPAND)
@@ -309,14 +310,13 @@ class UDBCreateMaster(wx.Frame):
 
             self.Layout()
 
-    def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher):
-        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(600, 350),
+    def __init__(self, catcher: ErrorCatcher):
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(500, 300),
                           style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.CAPTION)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
-        self.SetMinSize((600, 350))
-        self.SetMaxSize((600, 350))
+        self.SetMinSize((500, 300))
+        self.SetMaxSize((500, 300))
 
-        self.app_conn = app_conn
         self.catcher = catcher
 
         self.small_header_font = wx.Font(10, wx.SWISS, wx.NORMAL, wx.BOLD)
@@ -395,8 +395,6 @@ class UDBCreateMaster(wx.Frame):
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
 
-        self.buttons_sizer.Add(320, 0, 0)
-
         self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'])
         self.cancel_button.Bind(wx.EVT_BUTTON, self.cancel)
         self.cancel_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.cancel_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -412,5 +410,5 @@ class UDBCreateMaster(wx.Frame):
         self.next_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.next_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.next_button, 0, wx.ALL, 5)
 
-        self.main_sizer.Add(self.buttons_panel, 0, wx.EXPAND | wx.TOP | wx.BOTTOM, 5)
+        self.main_sizer.Add(self.buttons_panel, 0, wx.TOP | wx.BOTTOM | wx.ALIGN_RIGHT, 5)
         # ---------------

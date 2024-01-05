@@ -9,8 +9,6 @@ catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
 class NewConnection(wx.Frame):
 
-    app_conn = sqlite3.Connection
-
     db_name = ''
     db_path = ''
     db_desc = ''
@@ -88,27 +86,29 @@ class NewConnection(wx.Frame):
                 return
 
         else:
+            app_conn = sqlite3.connect('../app/app.db')
+            cursor = app_conn.cursor()
             try:
-                cursor = self.app_conn.cursor()
                 cursor.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
                                    VALUES ("{self.db_name}", "{self.db_path}", "{self.db_name if field_name == '' else field_name}", "{self.db_desc}");""")
-                self.app_conn.commit()
-                cursor.close()
+                app_conn.commit()
+
                 wx.MessageBox(self.db_name + ':\n' + APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE'],
                               APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
             except sqlite3.Error as e:
-                self.app_conn.rollback()
-                return catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+                app_conn.rollback()
+                catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+                exit(14)
+            finally:
+                cursor.close()
 
-    def __init__(self, app_conn: sqlite3.Connection):
+    def __init__(self):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_CONN.TITLE'], size=(500, 300),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 300))
         self.SetMaxSize((500, 300))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
-
-        self.app_conn = app_conn
 
         self.main_panel = wx.Panel(self)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)

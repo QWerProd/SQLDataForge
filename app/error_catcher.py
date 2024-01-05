@@ -1,19 +1,32 @@
+import datetime
 import tkinter.messagebox as tkm
 import sqlite3
+import os.path
 
 
 class ErrorCatcher:
     """Класс предназначен для обработки пользовательских ошибок"""
-    app_conn = sqlite3.Connection
     lang = str
+    db_path = str
 
     def __init__(self, lang_mode: str):
-        self.app_conn = sqlite3.connect('app/app.db')
         self.lang = lang_mode
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(BASE_DIR, 'app.db')
+
+        # Создание таблицы логов if not exists
+        with sqlite3.connect(self.db_path) as app_conn:
+            curs = app_conn.cursor()
+            curs.execute('CREATE TABLE IF NOT EXISTS "t_error_log" ('
+                         '"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
+                         '"error_code"	TEXT NOT NULL, '
+                         '"date_catched"	TEXT NOT NULL);')
+            app_conn.commit()
 
     def error_message(self, code, addon=''):
         """Возврашает сообщение об ошибке по коду"""
-        cursor = self.app_conn.cursor()
+        app_conn = sqlite3.connect(self.db_path)
+        cursor = app_conn.cursor()
         err_message = cursor.execute(f"SELECT lt.text, lt2.text "
                                      f"FROM t_err_codes ec,"
                                      f"     t_lang_text lt,"
@@ -23,12 +36,25 @@ class ErrorCatcher:
                                      f"AND   lt2.lang = '{self.lang}' "
                                      f"AND   ec.title = lt.label "
                                      f"AND   ec.message = lt2.label").fetchone()
+        cursor.close()
+        app_conn.close()
+
         if err_message is None:
-            tkm.showerror('Error', 'Необработанная ошибка!')
-            return "UnhandledError"
+            tkm.showerror('Error', 'Unhangled error!')
+            self.put_log("E-1")
+            return "E-1"
         else:
             message = code + ': ' + err_message[1]
             if addon != '':
                 message += '\n' + addon
             tkm.showerror(err_message[0], message)
-            return err_message[1]
+            self.put_log(code)
+            return code
+
+    def put_log(self, code):
+        with sqlite3.connect(self.db_path) as app_conn:
+            cursor = app_conn.cursor()
+            cursor.execute(f"""INSERT INTO t_error_log(error_code, date_catched)
+                               VALUES ('{code}', '{datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S.%f')}');""")
+            app_conn.commit()
+            cursor.close()

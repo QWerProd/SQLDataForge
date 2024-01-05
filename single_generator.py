@@ -184,9 +184,9 @@ class SimpleGenerator(wx.Frame):
                 ret = val
             return ret
         else:
+            conn = sqlite3.connect('app/app.db')
+            curs = conn.cursor()
             try:
-                conn = sqlite3.connect('app/app.db')
-                curs = conn.cursor()
                 exec_code = curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[0]
 
                 values = []
@@ -209,23 +209,24 @@ class SimpleGenerator(wx.Frame):
                     temp = eval(exec_code)
                     ret.append(str(temp))
 
-                curs.close()
-                conn.close()
-
                 return ret
             except sqlite3.Error:
                 self.catcher.error_message('E014')
+                exit(14)
             except (TypeError, ValueError):
                 wx.MessageBox(APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.MESSAGE'],
                               APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.CAPTION'], wx.OK | wx.ICON_ERROR)
+            finally:
+                curs.close()
+                conn.close()
 
-    def __init__(self, app_conn: sqlite3.Connection, catcher: ErrorCatcher, open_code: str = None):
+    def __init__(self, catcher: ErrorCatcher, open_code: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
         self.SetMaxSize((700, 400))
-        self.app_conn = app_conn
+        self.app_conn = sqlite3.connect('app/app.db')
         self.open_code = open_code
         self.catcher = catcher
 
