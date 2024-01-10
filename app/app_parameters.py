@@ -25,7 +25,9 @@ APP_PARAMETERS = {
     'KEY_UDB_VIEWER': str,
     'FORMAT_DATE': str,
     'APP_LANGUAGE': str,
-    'KEY_RECOVERY': str
+    'KEY_RECOVERY': str,
+    'KEY_LOGVIEWER': str,
+    'KEY_SAVE_AS': str
 }
 
 APP_LOCALES = {

@@ -269,13 +269,13 @@ class SQLGenerator:
 
         # Создание таблицы
         if is_table:
-            full_query += self.CreateTable() + '\n\n'
+            full_query += self.CreateTable() + '\n'
 
         # Создание индексов
         indexes = []
         for index in self.indexes:
             indexes.append(self.CreateIndex(index))
-        full_query += '\n'.join(indexes) + '\n\n'
+        full_query += '\n'.join(indexes) + '\n'
 
         # Сборка значений
         full_query += self.queryrow1 + '\nVALUES '

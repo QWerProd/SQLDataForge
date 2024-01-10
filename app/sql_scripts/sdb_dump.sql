@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "t_params" (
 	"param_value"	TEXT,
 	"param_type"	TEXT NOT NULL DEFAULT 'SYSTEM',
 	"param_label"	TEXT DEFAULT NULL,
-	"update_layout"	INTEGER DEFAULT NULL);
+	"update_layout"	INTEGER DEFAULT 0);
 /
 CREATE TABLE IF NOT EXISTS "t_err_codes" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -68,11 +68,7 @@ CREATE TABLE IF NOT EXISTS "t_execution_log" (
 	"query_text"	TEXT NOT NULL,
 	"date_execute"	TEXT NOT NULL);
 /
-INSERT INTO t_databases (dbname,"path",field_name,description,is_valid) VALUES
-	 ('Person.db','data','Person','Данные любого человека','Y'),
-	 ('Legal_person.db','data','legal_person','Юридические данные человека','Y');
-/
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('MAIN.MAIN_MENU.FILE.GENERATE','ru','Генерировать'),
 	 ('MAIN.MAIN_MENU.FILE.REFRESH','ru','Обновить'),
 	 ('MAIN.MAIN_MENU.FILE.CLEAR_ALL','ru','Очистить'),
@@ -125,7 +121,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE','ru','Добавить в SQLDataForge'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS','ru','Псевдоним');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC','ru','Описание'),
 	 ('NEW_UDB_WIZARD.THIRD_PAGE.INFO_TITLE','ru','Информация о файле'),
 	 ('NEW_UDB_WIZARD.THIRD_PAGE.INFO_ADDON','ru','Дополнительная информация'),
@@ -137,7 +133,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('MAIN.STATUSBAR.TIMER.GENERATE_TIME','ru','Сгенерировано за: '),
 	 ('MAIN.STATUSBAR.TIMER.ALL_TIME','ru',' с., всего: '),
 	 ('FILE_DIALOG.CAPTION_SAVE','ru','Сохранить как...'),
-	 ('FILE_DIALOG.WILDCARD_SQL','ru','Файл БД SQLite (*.db)|*.db'),
+	 ('FILE_DIALOG.WILDCARD_DB','ru','Файл БД SQLite (*.db)|*.db'),
 	 ('MAIN.MESSAGE_BOX.SAVE_SCRIPT.FILE','ru','Файл '),
 	 ('MAIN.MESSAGE_BOX.SAVE_SCRIPT.SAVED','ru',' сохранен в '),
 	 ('MAIN.STATUSBAR.STATUS.SAVED','ru','Сохранено'),
@@ -179,7 +175,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.CAPTION','ru','Подтвердите добавление пБД'),
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE','ru','пБД успешно добавлена!');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION','ru','Успешное добавление'),
 	 ('NEW_CONN.TITLE','ru','Новое подключение'),
 	 ('NEW_CONN.DB_NAME','ru','Имя пБД:'),
@@ -232,7 +228,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','ru','Русский:Английский'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','ru','Простой:Жирный');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('SETTINGS.TITLE','ru','Настройки'),
 	 ('BUTTON.OK','ru','ОК'),
 	 ('MAIN.MAIN_MENU.FILE.GENERATE','en','Generate'),
@@ -285,7 +281,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 Fill in all the fields if necessary.'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE','en','Add in SQLDataForge');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS','en','Alias'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC','en','Description'),
 	 ('NEW_UDB_WIZARD.THIRD_PAGE.INFO_TITLE','en','Information about file'),
@@ -299,7 +295,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('MAIN.STATUSBAR.TIMER.GENERATE_TIME','en','Generated for:'),
 	 ('MAIN.STATUSBAR.TIMER.ALL_TIME','en',' s., in total:'),
 	 ('FILE_DIALOG.CAPTION_SAVE','en','Save as...'),
-	 ('FILE_DIALOG.WILDCARD_SQL','en','File DB SQLite (*.db)|*.db'),
+	 ('FILE_DIALOG.WILDCARD_DB','en','File DB SQLite (*.db)|*.db'),
 	 ('MAIN.MESSAGE_BOX.SAVE_SCRIPT.FILE','en','File'),
 	 ('MAIN.MESSAGE_BOX.SAVE_SCRIPT.SAVED','en',' saved in '),
 	 ('MAIN.STATUSBAR.STATUS.SAVED','en','Saved'),
@@ -339,7 +335,7 @@ The unsaved request will be deleted forever!'),
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.MESSAGE','en','You are trying to add uDB''s without testing the connection!
 To continue working, confirm the addition!');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.CAPTION','en','Confirm the addition of uDB''s'),
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE','en','uDB has been successfully added!'),
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION','en','Successful addition'),
@@ -392,7 +388,7 @@ The first value must not be greater than or equal to the second value!'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_CREATE_UDB_WIZARD','en','Open wizard for creating uDB'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_UDB_VIEWER','en','Open the uDB viewer');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','en','Russian:English'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','en','Normal:Bold'),
 	 ('SETTINGS.TITLE','en','Settings'),
@@ -444,7 +440,7 @@ INSERT INTO t_lang_text (label,lang,"text") VALUES
 	 ('E003.MESSAGE','en','Enter at least one table!'),
 	 ('E004.MESSAGE','en','Enter the name of the table to which the data will be entered!');
 /
-INSERT INTO t_lang_text (label,lang,"text") VALUES
+INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E005.MESSAGE','en','Specify how many rows of data will be generated!'),
 	 ('E006.MESSAGE','en','Check the value specified for the number of rows to be generated!'),
 	 ('E010.MESSAGE','en','Check the completeness of the uDB source data table! Most likely, there is no data available.'),
@@ -479,7 +475,33 @@ Restart now?'),
 	 ('RECOVERY.HEADER2','en','This module corrects the causes of errors'),
 	 ('RECOVERY.ACTIONS','en','Specify the required action:'),
 	 ('BUTTON.DO','en','GO'),
-	 ('MAIN.MAIN_MENU.TOOLS.RECOVERY','en','Recovery');
+	 ('MAIN.MAIN_MENU.TOOLS.RECOVERY','en','Recovery'),
+	 ('MAIN.MAIN_MENU.TOOLS.LOGVIEWER','ru','Просмотр логов'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER','ru','Просмотреть логи'),
+	 ('LOGVIEWER.ERROR_LOG','ru','Ошибки'),
+	 ('LOGVIEWER.EXECUTION_LOG','ru','SQL-запросы'),
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CODE','ru','Код ошибки'),
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CAPTION','ru','Описание ошибки'),
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CATCHED','ru','Выброс ошибки'),
+	 ('MAIN.MAIN_MENU.INFO','ru','Справка'),
+	 ('MAIN.MAIN_MENU.INFO.ABOUT_APP','ru','О программе...'),
+	 ('BUTTON.SAVE_AS','ru','Сохранить как...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS','ru','Сохранить в новом файле'),
+	 ('FILE_DIALOG.WILDCARD_SQL','ru','Файл SQL (*.sql)|*.sql'),
+	 ('FILE_DIALOG.WILDCARD_SQL','en','SQL script (*.sql)|*.sql'),
+	 ('MAIN.MAIN_MENU.TOOLS.LOGVIEWER','en','Log viewer'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER','en','View the log table'),
+	 ('LOGVIEWER.ERROR_LOG','en','Errors'),
+	 ('LOGVIEWER.EXECUTION_LOG','en','SQL-scripts');
+/
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CODE','en','Error code'),
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CAPTION','en','Error desc'),
+	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CATCHED','en','Error handled'),
+	 ('MAIN.MAIN_MENU.INFO','en','Help'),
+	 ('MAIN.MAIN_MENU.INFO.ABOUT_APP','en','About the program...'),
+	 ('BUTTON.SAVE_AS','en','Save as...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS','en','Save in new file');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -502,9 +524,9 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
 	 ('IS_CATCH_CLOSING_APP','False','SYSTEM',NULL,0),
 	 ('STC_COLOUR_WORD','#9200F2','SYSTEM',NULL,1),
-	 ('STC_COLOUR_COMMENT','#009900','SYSTEM',NULL,1),
+	 ('STC_COLOUR_COMMENT','#009','SYSTEM',NULL,1),
 	 ('STC_COLOUR_NUMBER','#1017FF','SYSTEM',NULL,1),
-	 ('STC_COLOUR_STRING','#56A639','SYSTEM',NULL,1),
+	 ('STC_COLOUR_STRING','#56A222','SYSTEM',NULL,1),
 	 ('STC_FONT_SIZE','10','SYSTEM',NULL,1),
 	 ('STC_FONT_BOLD','400','SYSTEM',NULL,1),
 	 ('KEY_EXECUTE','F9','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE',0),
@@ -517,7 +539,9 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_UDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_UDB_VIEWER',0),
 	 ('FORMAT_DATE','%d-%m-%Y','SYSTEM',NULL,0),
 	 ('APP_LANGUAGE','ru','SYSTEM',NULL,2),
-	 ('KEY_RECOVERY','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY',0);
+	 ('KEY_RECOVERY','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY',0),
+	 ('KEY_LOGVIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER',0),
+	 ('KEY_SAVE_AS','Ctrl+Shift+S','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS',0);
 /
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),

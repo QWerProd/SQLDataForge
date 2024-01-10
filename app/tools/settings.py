@@ -3,7 +3,7 @@ import sqlite3
 import wx.stc
 import wx.lib.scrolledpanel
 
-from app.settings_entries import *
+from app.tools.settings_entries import *
 from app.app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
 
 

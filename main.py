@@ -4,8 +4,9 @@ import wx.lib.scrolledpanel
 import sqlite3
 import subprocess
 import sys
+import webbrowser
 
-from app.recovery import Recovery
+from app.tools.recovery import Recovery
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
@@ -14,7 +15,8 @@ from conn_frames.connection_viewer import ConnectionViewer
 from conn_frames.new_conn import NewConnection
 from conn_frames.new_udb_wizard import UDBCreateMaster
 from single_generator import SimpleGenerator
-from app.settings import Settings
+from app.tools.settings import Settings
+from app.tools.logviewer import Logviewer
 from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
@@ -51,6 +53,8 @@ class MainFrame(wx.Frame):
     # Параметры состояния
     is_generated = False
     is_saved = False
+    file_path = ''
+    file_name = ''
     query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
 
     # Ключевые слова для лексера wx.stc.StyledTextCtrl
@@ -403,67 +407,75 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(self.query_status, 0)
                 else:
                     # Генерация
-                    app_conn = sqlite3.connect('app/app.db')
-                    cursor = app_conn.cursor()
-                    start_build_time = datetime.now()
-                    builder = SQLGenerator(app_conn, rows_count, added_items, colnames, table_info, indexes_info)
-                    query = ''
-                    query += builder.BuildQuery(self.is_create_table)
-                    build_time = datetime.now() - start_build_time
-                    self.textctrl_sql.SetValue(query)
-                    self.is_generated = True
-                    self.is_saved = False
-                    self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
-                    self.statusbar.SetStatusText(self.query_status, 0)
-                    generate_time = datetime.now() - start_generate_time
+                    with sqlite3.connect('app/app.db') as app_conn:
+                        cursor = app_conn.cursor()
+                        start_build_time = datetime.now()
+                        builder = SQLGenerator(app_conn, rows_count, added_items, colnames, table_info, indexes_info)
+                        query = ''
+                        query += builder.BuildQuery(self.is_create_table)
+                        build_time = datetime.now() - start_build_time
+                        self.textctrl_sql.SetValue(query)
+                        self.is_generated = True
+                        self.is_saved = False
+                        self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
+                        self.statusbar.SetStatusText(self.query_status, 0)
+                        generate_time = datetime.now() - start_generate_time
 
-                    # Запись запроса в лог
-                    cursor = app_conn.cursor()
-                    cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
-                                       VALUES ('{query}', '{datetime.now().strftime('%d-%m-%Y %H:%M:%S')}');""")
-                    app_conn.commit()
+                        # Запись запроса в лог
+                        cursor = app_conn.cursor()
+                        cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
+                                           VALUES (?, ?);""", (query, datetime.now().strftime('%d-%m-%Y %H:%M:%S.%f')))
+                        app_conn.commit()
 
                     # Подсчет времени работы
                     build_time = round(build_time.total_seconds(), 4)
                     generate_time = round(generate_time.total_seconds(), 2)
                     self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
                                                  + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(generate_time) + " с.", 2)
-                    self.SetCursor(wx.NullCursor)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
             finally:
                 self.SetCursor(wx.NullCursor)
                 cursor.close()
-                app_conn.close()
 
-    def save_script(self, event=None):
+    def save_script(self, file_path: str = None):
         sql = self.textctrl_sql.GetValue()
         if sql == "":
             self.query_status = catcher.error_message('E001')
             self.statusbar.SetStatusText(self.query_status, 0)
         else:
-            with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_SAVE'],
-                               wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
-                               style=wx.FD_SAVE) as file_dialog:
-                if file_dialog.ShowModal() == wx.ID_CANCEL:
-                    return
+            if file_path is None or file_path == '':
+                with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_SAVE'],
+                                   wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
+                                   style=wx.FD_SAVE) as file_dialog:
+                    if file_dialog.ShowModal() == wx.ID_CANCEL:
+                        return
 
-                file_path = file_dialog.GetPath()
-                file_name = file_dialog.GetName()
+                    file_path = file_dialog.GetPath()
+                    file_name = file_dialog.GetFilename()
 
-                if not file_path.endswith('.sql'):
-                    file_name += '.sql'
-                    file_path += '.sql'
+                    if not file_path.endswith('.sql'):
+                        file_name += '.sql'
+                        file_path += '.sql'
+                    self.file_name = file_name
+                    self.file_path = file_path
 
-                with open(file_path, mode='w', encoding="utf-8") as reader:
-                    reader.write(sql)
-                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.FILE'] + file_name +
-                              APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.SAVED'] + file_path,
-                              APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'], wx.ICON_INFORMATION | wx.OK, self)
+            with open(self.file_path, mode='w', encoding="utf-8") as reader:
+                reader.write(sql)
+            wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.FILE'] + self.file_name +
+                          APP_TEXT_LABELS['MAIN.MESSAGE_BOX.SAVE_SCRIPT.SAVED'] + self.file_path,
+                          APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'], wx.ICON_INFORMATION | wx.OK, self)
             self.is_saved = True
-            self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'] + ' - ' + file_name
+            self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'] + ' - ' + self.file_name
             self.statusbar.SetStatusText(self.query_status, 0)
+            self.SetTitle('SDForge - ' + self.file_name)
+
+    def save(self, event):
+        self.save_script(self.file_path)
+
+    def save_as(self, event):
+        self.save_script()
 
     def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
@@ -521,8 +533,8 @@ class MainFrame(wx.Frame):
                     temp_items.append(child)
                 self.tree_items[root] = temp_items
             else:
-                self.treectrl_databases.SetItemImage(root, )
-
+                pass
+                # self.treectrl_databases.SetItemImage(root, )
 
     def delete_index(self, item):
         index_items.remove(item)
@@ -570,6 +582,16 @@ class MainFrame(wx.Frame):
         recovery = Recovery(catcher)
         recovery.Show()
         recovery.SetFocus()
+
+    def open_logviewer(self, event):
+        logviewer = Logviewer(catcher)
+        logviewer.Show()
+        logviewer.SetFocus()
+
+    def open_app_info(self, event):
+        about_app = AboutApp()
+        about_app.Show()
+        about_app.SetFocus()
 
     ############################
 
@@ -621,14 +643,11 @@ class MainFrame(wx.Frame):
         stc_redactor.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
         stc_redactor.SetMarginWidth(1, 45)
 
-    def update_text_labels(self):
-        pass
         ###############################################################
 
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SDForge v1.4", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SDForge", size=(800, 600))
         self.SetMinSize((800, 600))
-        self.Center()
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
@@ -697,7 +716,7 @@ class MainFrame(wx.Frame):
         self.menubar = wx.MenuBar()
 
         # Файл
-        # --------------
+        # ----------
         self.file_menu = wx.Menu()
         generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.GENERATE'] + ' \t' + APP_PARAMETERS['KEY_EXECUTE'])
@@ -722,11 +741,16 @@ class MainFrame(wx.Frame):
         savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['BUTTON.SAVE'] + '\t' + APP_PARAMETERS['KEY_SAVE_SQL'])
         savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
-        self.Bind(wx.EVT_MENU, self.save_script, savefile_menuitem)
+        self.Bind(wx.EVT_MENU, self.save, savefile_menuitem)
         self.file_menu.Append(savefile_menuitem)
+        savefile_as_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                           APP_TEXT_LABELS['BUTTON.SAVE_AS'] + '\t' + APP_PARAMETERS['KEY_SAVE_AS'])
+        savefile_as_menuitem.SetBitmap(wx.Bitmap('img/16x16/save as.png'))
+        self.Bind(wx.EVT_MENU, self.save_as, savefile_as_menuitem)
+        self.file_menu.Append(savefile_as_menuitem)
 
         # Подключения
-        # --------------
+        # ----------
         self.connect_menu = wx.Menu()
         add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                            APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.ADD_UDB'] + '\t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
@@ -749,7 +773,7 @@ class MainFrame(wx.Frame):
         self.connect_menu.Append(view_connects_menuitem)
 
         # Генератор
-        # --------------
+        # ----------
         generator_menu = wx.Menu()
         self.gens = DataController.BuildDictOfGens()
         self.simpgens_menuitems = []
@@ -768,13 +792,18 @@ class MainFrame(wx.Frame):
                 self.simpgens_menuitems.append([gen_menuitem, item[0]])
 
         # Инструменты
-        # --------------
+        # ----------
         self.tools_menu = wx.Menu()
         recovery_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.RECOVERY'] + '\t' + APP_PARAMETERS['KEY_RECOVERY'])
         recovery_menuitem.SetBitmap(wx.Bitmap('img/16x16/database.png'))
         self.Bind(wx.EVT_MENU, self.open_recovery, recovery_menuitem)
         self.tools_menu.Append(recovery_menuitem)
+        logviewer_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
+                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.LOGVIEWER'] + '\t' + APP_PARAMETERS['KEY_LOGVIEWER'])
+        logviewer_menuitem.SetBitmap(wx.Bitmap('img/16x16/history.png'))
+        self.Bind(wx.EVT_MENU, self.open_logviewer, logviewer_menuitem)
+        self.tools_menu.Append(logviewer_menuitem)
         self.tools_menu.AppendSeparator()
         settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS['KEY_SETTINGS'])
@@ -782,11 +811,21 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
         self.tools_menu.Append(settings_menuitem)
 
+        # Справка
+        # ----------
+        self.info_menu = wx.Menu()
+        about_app = wx.MenuItem(self.info_menu, wx.ID_ANY,
+                                APP_TEXT_LABELS['MAIN.MAIN_MENU.INFO.ABOUT_APP'])
+        about_app.SetBitmap(wx.Bitmap('img/16x16/home.png'))
+        self.Bind(wx.EVT_MENU, self.open_app_info, about_app)
+        self.info_menu.Append(about_app)
+
         # Формирование меню
         self.menubar.Append(self.file_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE'])
         self.menubar.Append(self.connect_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS'])
         self.menubar.Append(generator_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR'])
         self.menubar.Append(self.tools_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS'])
+        self.menubar.Append(self.info_menu, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.INFO'])
 
         # Установка
         self.SetMenuBar(self.menubar)
@@ -806,21 +845,20 @@ class MainFrame(wx.Frame):
         self.toolbar.AddSeparator()
         self.toolbar.AddTool(4, "Сохранить", wx.Bitmap("img/16x16/save.png"),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.SAVE_SQL'])
-        self.Bind(wx.EVT_TOOL, self.save_script, id=4)
+        self.Bind(wx.EVT_TOOL, self.save, id=4)
+        self.toolbar.AddTool(5, "Сохранить как", wx.Bitmap("img/16x16/save as.png"),
+                             shortHelp=APP_TEXT_LABELS['BUTTON.SAVE_AS'])
+        self.Bind(wx.EVT_TOOL, self.save_as, id=5)
 
         self.toolbar.Realize()
 
-        # TODO: Добавить splitterwindow для дерева БД и основной панели
         # Рабочий контейнер
-        # ---
-        data_panel = wx.Panel(main_panel)
-        data_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
-        data_panel.SetSizer(data_boxsizer)
+        # ----------
+        data_panel = wx.SplitterWindow(main_panel, style=wx.SP_LIVE_UPDATE)
 
         # Дерево баз данных
         self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1), style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
         self.treectrl_databases_root = self.treectrl_databases.AddRoot('')
-        data_boxsizer.Add(self.treectrl_databases, 0, wx.LEFT | wx.EXPAND)
         self.all_tables = DataController.GetTablesFromDB()
         self.image_items = wx.ImageList(16, 16)
         self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
@@ -830,25 +868,22 @@ class MainFrame(wx.Frame):
         self.set_tree_items()
         self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
 
-        # TODO: Для notebook и stc - splitterwindow
         # Контейнер работы с кейсами
-        # ----
-        table_panel = wx.Panel(data_panel)
-        table_boxsizer = wx.BoxSizer(wx.VERTICAL)
-        table_panel.SetSizer(table_boxsizer)
+        # ----------
+        table_panel = wx.SplitterWindow(data_panel, style=wx.SP_LIVE_UPDATE, size=(1000, -1))
 
         # Notebook настроек
-        # -----
+        # --------------------
         notebook_settings = wx.Notebook(table_panel, size=(-1, 350))
 
         # Главная
-        # ------
+        # ------------------------------
         main_page_panel = wx.Panel(notebook_settings)
         main_page_boxsizer = wx.BoxSizer(wx.VERTICAL)
         main_page_panel.SetSizer(main_page_boxsizer)
 
         # Контейнер "Головной"
-        # -------
+        # ----------------------------------------
         header_panel = wx.Panel(main_page_panel, size=(-1, 35))
         header_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_boxsizer)
@@ -864,17 +899,17 @@ class MainFrame(wx.Frame):
 
         self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
         header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALL, 5)
-        # -------
+        # ----------------------------------------
         main_page_boxsizer.Add(header_panel, 0, wx.EXPAND, 5)
         main_page_boxsizer.Add(wx.StaticLine(main_page_panel), 0, wx.EXPAND | wx.BOTTOM, 5)
-        # -------
+        # ----------------------------------------
 
-        # -------
+        # ----------------------------------------
         self.table_columns_panel = wx.Panel(main_page_panel, size=(-1, -1))
         self.table_columns_sizer = wx.BoxSizer(wx.VERTICAL)
         self.table_columns_panel.SetSizer(self.table_columns_sizer)
 
-        # --------
+        # ----------------------------------------
         table_columns_statictext_panel = wx.Panel(self.table_columns_panel)
         tcs_sizer = wx.BoxSizer(wx.HORIZONTAL)
         table_columns_statictext_panel.SetSizer(tcs_sizer)
@@ -884,30 +919,29 @@ class MainFrame(wx.Frame):
         statictext_column_type = wx.StaticText(table_columns_statictext_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_TYPE'], size=(150, -1))
         tcs_sizer.Add(statictext_column_type, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
         tcs_sizer.Add(wx.StaticText(table_columns_statictext_panel, label='', size=(200, -1)), 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        # --------
+        # ----------------------------------------
         self.table_columns_sizer.Add(table_columns_statictext_panel, 0, wx.ALL)
-        # --------
+        # ----------------------------------------
 
-        # --------
         self.table_items_panel = wx.Panel(self.table_columns_panel)
         self.table_items_sizer = wx.BoxSizer(wx.VERTICAL)
         self.table_items_panel.SetSizer(self.table_items_sizer)
 
         self.empty_item = self.ColumnItem(self.table_items_panel, "0",  is_empty=True)
         self.table_items_sizer.Add(self.empty_item, 0, wx.ALL, 5)
-        # --------
+        # ----------------------------------------
         self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL)
 
-        # -------
+        # ----------------------------------------
         main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL)
-        # -------
+        # ----------------------------------------
 
-        # ------
+        # ------------------------------
         notebook_settings.AddPage(main_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE'])
-        # ------
+        # ------------------------------
 
         # Таблица 
-        # ------
+        # ------------------------------
         table_page_panel = wx.Panel(notebook_settings)
         table_page_boxsizer = wx.BoxSizer(wx.VERTICAL)
         table_page_panel.SetSizer(table_page_boxsizer)
@@ -920,7 +954,7 @@ class MainFrame(wx.Frame):
 
         table_page_boxsizer.Add(wx.StaticLine(table_page_panel), 0, wx.EXPAND | wx.ALL, 0)
 
-        # -------
+        # ----------------------------------------
         id_column_panel = wx.Panel(table_page_panel)
         id_column_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         id_column_panel.SetSizer(id_column_boxsizer)
@@ -942,14 +976,14 @@ class MainFrame(wx.Frame):
         self.textctrl_increment_start.Hide()
 
         table_page_boxsizer.Add(id_column_panel, 0, wx.TOP | wx.EXPAND, 5)
-        # -------
+        # ----------------------------------------
 
-        # ------
+        # ------------------------------
         notebook_settings.AddPage(table_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE'])
-        # ------
+        # ------------------------------
 
         # Индексы
-        # ------
+        # ------------------------------
         self.indexes_page_panel = wx.Panel(notebook_settings)
         self.indexes_page_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_page_panel.SetSizer(self.indexes_page_sizer)
@@ -965,33 +999,32 @@ class MainFrame(wx.Frame):
         self.indexes_page_sizer.Add(wx.StaticLine(self.indexes_page_panel), 0,
                                     wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 0)
 
-        # -------
+        # ----------------------------------------
 
         self.indexes_scrolledwindow = wx.lib.scrolledpanel.ScrolledPanel(self.indexes_page_panel, size=(-1, 1000))
         self.indexes_scrolledwindow.SetupScrolling()
         self.indexes_scrolledwindow.SetAutoLayout(1)
         self.indexes_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_scrolledwindow.SetSizer(self.indexes_sizer)
-        # -------
+        # ----------------------------------------
         self.indexes_page_sizer.Add(self.indexes_scrolledwindow, 0, wx.EXPAND)
-        # ------
+        # ------------------------------
         notebook_settings.AddPage(self.indexes_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE'])
-        # -----
-        table_boxsizer.Add(notebook_settings, 0, wx.TOP | wx.EXPAND)
-        # -----
+        # --------------------
 
         # Редактор кода
-        self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE, size=(-1, 300))
+        self.textctrl_sql = wx.stc.StyledTextCtrl(table_panel, style=wx.TE_MULTILINE)
         stc_redactors.append(self.textctrl_sql)
         # Установка стилей
         self.stc_reset_style(self.textctrl_sql)
-        table_boxsizer.Add(self.textctrl_sql, 1, wx.BOTTOM | wx.LEFT | wx.EXPAND)
-        # ----
-        data_boxsizer.Add(table_panel, 1, wx.BOTTOM | wx.RIGHT | wx.EXPAND)
-        # ----
-        # ---
+        # -------------------
+        table_panel.SplitHorizontally(notebook_settings, self.textctrl_sql)
+        table_panel.SetMinimumPaneSize(100)
+        # -------------------
+        data_panel.SplitVertically(self.treectrl_databases, table_panel, 150)
+        data_panel.SetMinimumPaneSize(150)
         main_boxsizer.Add(data_panel, 1, wx.BOTTOM | wx.EXPAND)
-        # ---
+        # ----------
 
         self.statusbar = self.CreateStatusBar(1, wx.STB_ELLIPSIZE_END)
         self.statusbar.SetFieldsCount(3)
@@ -999,6 +1032,56 @@ class MainFrame(wx.Frame):
 
         main_panel.Layout()
         main_panel.Show()
+
+
+class AboutApp(wx.Frame):
+
+    def __init__(self):
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['MAIN.MAIN_MENU.INFO.ABOUT_APP'], size=(350, 250),
+                          style=wx.CAPTION | wx.CLOSE_BOX)
+        self.SetMinSize((350, 250))
+        self.SetMaxSize((350, 250))
+        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+
+        self.panel = wx.Panel(self)
+        self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.panel.SetSizer(self.sizer)
+
+        # ----------
+
+        self.info_panel = wx.Panel(self.panel)
+        self.info_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.info_panel.SetSizer(self.info_sizer)
+
+        info_image = wx.Image('img/SDForge.png', wx.BITMAP_TYPE_PNG)
+        info_image.Rescale(200, 90, wx.IMAGE_QUALITY_BOX_AVERAGE)
+        image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
+        self.info_sizer.Add(image_bitmap, 0)
+
+        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.0, 2024'), 0, wx.TOP, 10),
+                                 (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
+                                 (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
+
+        self.sizer.Add(self.info_panel, 0, wx.ALL, 20)
+        # ----------
+
+        self.buttons_panel = wx.Panel(self.panel)
+        self.buttons_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.buttons_panel.SetSizer(self.buttons_sizer)
+
+        self.ok_button = wx.Button(self.buttons_panel, label='OK', size=(75, -1))
+        self.ok_button.Bind(wx.EVT_BUTTON, lambda x: self.Destroy())
+        self.ok_button.SetFocus()
+        self.buttons_sizer.Add(self.ok_button, 0, wx.BOTTOM, 5)
+
+        self.github_button = wx.Button(self.buttons_panel, label='GitHub', size=(75, -1))
+        self.github_button.Bind(wx.EVT_BUTTON, lambda x: webbrowser.open('https://github.com/QWerProd/SQLDataForge'))
+        self.buttons_sizer.Add(self.github_button, 0, wx.BOTTOM, 5)
+
+        self.sizer.Add(self.buttons_panel, 0, wx.TOP | wx.RIGHT, 20)
+        # ----------
+
+        self.Layout()
 
 
 if __name__ == '__main__':

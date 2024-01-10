@@ -222,7 +222,7 @@ class SimpleGenerator(wx.Frame):
 
     def __init__(self, catcher: ErrorCatcher, open_code: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
-                          style=wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
+                          style=wx.CAPTION | wx.CLOSE_BOX)
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
         self.SetMaxSize((700, 400))
