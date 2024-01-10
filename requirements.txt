@@ -1,5 +1,5 @@
-numpy==1.25.2
-Pillow==10.0.0
-pynput==1.7.6
+numpy==1.26.0
+Pillow==10.0.1
+Pypubsub==4.0.3
 six==1.16.0
 wxPython==4.2.1
