@@ -59,7 +59,7 @@ class MainFrame(wx.Frame):
 
     # Ключевые слова для лексера wx.stc.StyledTextCtrl
     sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
-                    " if exists index on is")
+                    " if exists index on is unique")
 
     # Переменная отвечает за изменение индекса обращения к столбцам
     id_added = 0
@@ -67,32 +67,43 @@ class MainFrame(wx.Frame):
     # ---------------------------------------------------
 
     class ColumnItem(wx.Panel):
-        rownum = ""
         colname = ""
         coltype = ""
         colcode = ""
-        id_colname = ""
-        id_coltype = ""
+        im_empty = bool
 
-        def __init__(self, parent: wx.Panel, rid: str, column_name="", column_type="", column_code="", is_empty=False):
+        def on_colname_changed(self, event):
+            # Получаем необходимые значения
+            new_colname = self.textctrl_colname.GetValue()
+            item_id = int(self.textctrl_colname.GetId() / 10)
+
+            # Производим замену имени столбца на новое
+            added_item_code[item_id] = new_colname
+
+            # Обновляем значения списков у Индексов
+            for item in index_items:
+                item.update_choices(added_item_code)
+
+        def activating_checkboxes(self, is_table=False):
+            if not self.im_empty:
+                self.not_null_checkbox.Enable(is_table)
+                self.unique_checkbox.Enable(is_table)
+
+        def get_column_name(self) -> str: return self.textctrl_colname.GetValue()
+
+        def get_column_type(self) -> str: return self.textctrl_coltype.GetValue()
+
+        def get_value_not_null(self) -> bool: return self.not_null_checkbox.GetValue()
+
+        def get_value_unique(self) -> bool: return self.unique_checkbox.GetValue()
+
+        def __init__(self, parent: wx.Panel, column_name: str = "", column_type: str = "", column_code: str = "",
+                     is_empty: bool = False):
             super().__init__(parent)
             self.colname = column_name
             self.coltype = column_type
             self.colcode = column_code
-            self.id_colname = rid + "0"
-            self.id_coltype = rid + "1"
-
-            def on_colname_changed(event):
-                # Получаем необходимые значения
-                new_colname = textctrl_colname.GetValue()
-                item_id = int(textctrl_colname.GetId() / 10)
-
-                # Производим замену имени столбца на новое
-                added_item_code[item_id] = new_colname
-
-                # Обновляем значения списков у Индексов
-                for item in index_items:
-                    item.update_choices(added_item_code)
+            self.im_empty = is_empty
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.SetSizer(sizer)
@@ -105,17 +116,25 @@ class MainFrame(wx.Frame):
                 ])
                 return
 
-            textctrl_colname = wx.TextCtrl(self, int(self.id_colname), size=(150, -1))
-            textctrl_colname.SetValue(self.colname)
-            textctrl_colname.Bind(wx.EVT_TEXT, on_colname_changed)
-            sizer.Add(textctrl_colname, 0, wx.RIGHT, 5)
+            self.textctrl_colname = wx.TextCtrl(self, size=(150, -1))
+            self.textctrl_colname.SetValue(self.colname)
+            self.textctrl_colname.Bind(wx.EVT_TEXT, self.on_colname_changed)
+            sizer.Add(self.textctrl_colname, 0, wx.RIGHT, 5)
 
-            textctrl_coltype = wx.TextCtrl(self, int(self.id_coltype), size=(150, -1), style=wx.TE_READONLY)
-            textctrl_coltype.SetValue(self.coltype)
-            sizer.Add(textctrl_coltype, 0, wx.RIGHT, 5)
+            self.textctrl_coltype = wx.TextCtrl(self, size=(150, -1), style=wx.TE_READONLY)
+            self.textctrl_coltype.SetValue(self.coltype)
+            sizer.Add(self.textctrl_coltype, 0, wx.RIGHT, 5)
 
-            statictext_colcode = wx.StaticText(self, label=self.colcode, size=(150, -1))
-            sizer.Add(statictext_colcode, 0, wx.ALIGN_CENTER_VERTICAL, 5)
+            statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
+            sizer.Add(statictext_colcode, 0, wx. LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.not_null_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
+            self.not_null_checkbox.Enable(False)
+            sizer.Add(self.not_null_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40)
+
+            self.unique_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
+            self.unique_checkbox.Enable(False)
+            sizer.Add(self.unique_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
 
     # ---------------------------------------------------
 
@@ -194,13 +213,17 @@ class MainFrame(wx.Frame):
             self.textctrl_index_name = wx.TextCtrl(first_panel, size=(125, -1))
             self.textctrl_index_name.SetValue(self.index_name)
             self.textctrl_index_name.Bind(wx.EVT_TEXT, self.index_name_changed)
-            first_sizer.AddMany([(wx.StaticText(first_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_NAME'], size=(75, -1)),
+            first_sizer.AddMany([(wx.StaticText(first_panel,
+                                                label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_NAME'],
+                                                size=(75, -1)),
                                   0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                                  (self.textctrl_index_name, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
 
             self.combobox_index_columns = wx.ComboBox(first_panel, choices=added_item_code, size=(225, -1))
             self.combobox_index_columns.Bind(wx.EVT_COMBOBOX, self.column_selected)
-            first_sizer.AddMany([(wx.StaticText(first_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_COLUMNS'], size=(55, -1)),
+            first_sizer.AddMany([(wx.StaticText(first_panel,
+                                                label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.INDEX_COLUMNS'],
+                                                size=(55, -1)),
                                   0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5),
                                  (self.combobox_index_columns, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
             # ---------------------------------
@@ -213,10 +236,12 @@ class MainFrame(wx.Frame):
 
             self.checkbox_unique = wx.CheckBox(second_panel, label="UNIQUE", size=(75, -1))
             self.checkbox_unique.Bind(wx.EVT_CHECKBOX, self.is_unique_enabled)
-            self.checkbox_unique.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.checkbox_unique.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+            self.checkbox_unique.Bind(wx.EVT_ENTER_WINDOW,
+                                      lambda x: self.checkbox_unique.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
             second_sizer.Add(self.checkbox_unique, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
 
-            self.button_delete = wx.Button(second_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'],
+            self.button_delete = wx.Button(second_panel,
+                                           label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'],
                                            style=wx.NO_BORDER, size=(81, -1))
             self.button_delete.SetBitmapLabel(wx.Bitmap('img/16x16/minus.png', wx.BITMAP_TYPE_PNG))
             self.button_delete.SetBackgroundColour(wx.Colour(255, 225, 225))
@@ -303,18 +328,20 @@ class MainFrame(wx.Frame):
         items = []
 
         if self.is_id_column:
-            self.column_items.append([self.ColumnItem(self.table_items_panel, '0', 'id', 'INTEGER'),
-                                      '00', '01'])
-            items.append((self.column_items[0][0], 0, wx.ALL, 0))
+            id_column_item = self.ColumnItem(self.table_items_panel, 'id', 'INTEGER')
+            self.column_items.append(id_column_item)
+            items.append((self.column_items[0], 0, wx.ALL, 0))
             self.id_added = 1
 
-        for i in range(0, len(self.textctrl_column_names)):
-            self.column_items.append([self.ColumnItem(self.table_items_panel, str(i + self.id_added), self.textctrl_column_names[i],
-                                                      self.textctrl_column_types[i], added_item_text[i]),
-                                      str(i + self.id_added) + "0", str(i + self.id_added) + "1"])
-            items.append((self.column_items[i + self.id_added][0], 0, wx.ALL, 0))
-        self.column_items.append(self.ColumnItem(self.table_items_panel, "-1", is_empty=True))
-        items.append((self.column_items[len(self.column_items) - 1], 0, wx.ALL, 0))
+        for i in range(len(self.textctrl_column_names)):
+            colitem = self.ColumnItem(self.table_items_panel, self.textctrl_column_names[i],
+                                      'TEXT', added_item_text[i])   # Параметр захардкоден до
+            colitem.activating_checkboxes(self.is_create_table)                # следующего обновления sql_generator
+            self.column_items.append(colitem)
+            items.append((self.column_items[i + self.id_added], 0, wx.ALL, 0))
+        empty_item = self.ColumnItem(self.table_items_panel, is_empty=True)
+        self.column_items.append(empty_item)
+        items.append((empty_item, 0, wx.ALL, 0))
 
         # Обновляем значения списков у Индексов
         for item in index_items:
@@ -385,21 +412,18 @@ class MainFrame(wx.Frame):
                     return
 
                 # Получение значений имен столбцов
-                colnames = []
+                colinfo = []
                 for i in range(len(added_items)):
-                    old_coltype = added_items[i].split(':')[3]
-
-                    new_colname = added_item_code[i + self.id_added]
-                    textctrl_coltype = self.table_items_panel.FindWindowById(int(self.column_items[i + self.id_added][2]))
-                    new_coltype = textctrl_coltype.GetValue()
-
-                    colnames.append(new_colname)
-                    added_items[i] = added_items[i].replace(old_coltype, new_coltype)
+                    coldict = {'column_name': self.column_items[i].get_column_name(),
+                               'column_type': self.column_items[i].get_column_type(),
+                               'column_not_null': self.column_items[i].get_value_not_null(),
+                               'column_unique': self.column_items[i].get_value_unique()}
+                    colinfo.append(coldict)
 
                 # Проверка имен столбцов на уникальность
                 temp_cols = []
-                for col in colnames:
-                    temp_cols.append(col)
+                for col in colinfo:
+                    temp_cols.append(col['column_name'])
                 visited = set()
                 dup = [x for x in temp_cols if x in visited or (visited.add(x) or False)]
                 if len(dup) > 0:
@@ -410,7 +434,7 @@ class MainFrame(wx.Frame):
                     with sqlite3.connect('app/app.db') as app_conn:
                         cursor = app_conn.cursor()
                         start_build_time = datetime.now()
-                        builder = SQLGenerator(app_conn, rows_count, added_items, colnames, table_info, indexes_info)
+                        builder = SQLGenerator(app_conn, rows_count, added_items, colinfo, table_info, indexes_info)
                         query = ''
                         query += builder.BuildQuery(self.is_create_table)
                         build_time = datetime.now() - start_build_time
@@ -431,7 +455,8 @@ class MainFrame(wx.Frame):
                     build_time = round(build_time.total_seconds(), 4)
                     generate_time = round(generate_time.total_seconds(), 2)
                     self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
-                                                 + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(generate_time) + " с.", 2)
+                                                 + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
+                        generate_time) + " с.", 2)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
@@ -527,7 +552,7 @@ class MainFrame(wx.Frame):
             if len(value) > 0:
                 self.treectrl_databases.SetItemImage(root, self.database_image)
                 for full_item in value:
-                    item = full_item.split(':')[3]
+                    item = full_item.split(':')[2]
                     child = self.treectrl_databases.AppendItem(root, item)
                     self.treectrl_databases.SetItemImage(child, self.table_image)
                     temp_items.append(child)
@@ -669,6 +694,8 @@ class MainFrame(wx.Frame):
                 self.id_column_checkbox.SetValue(False)
             self.table_columns_regulate()
             table_page_panel.Layout()
+            for colitem in self.column_items:
+                colitem.activating_checkboxes(self.is_create_table)
 
         def is_id_enabled(event):
             self.is_id_column = self.id_column_checkbox.GetValue()
@@ -719,19 +746,22 @@ class MainFrame(wx.Frame):
         # ----------
         self.file_menu = wx.Menu()
         generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
-                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.GENERATE'] + ' \t' + APP_PARAMETERS['KEY_EXECUTE'])
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.GENERATE'] + ' \t' + APP_PARAMETERS[
+                                            'KEY_EXECUTE'])
         generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         self.file_menu.Append(generate_menuitem)
 
         refresh_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
-                                       APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.REFRESH'] + '\t' + APP_PARAMETERS['KEY_REFRESH'])
+                                       APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.REFRESH'] + '\t' + APP_PARAMETERS[
+                                           'KEY_REFRESH'])
         refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
         self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
         self.file_menu.Append(refresh_menuitem)
 
         clear_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
-                                     APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.CLEAR_ALL'] + '\t' + APP_PARAMETERS['KEY_CLEAR_ALL'])
+                                     APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.CLEAR_ALL'] + '\t' + APP_PARAMETERS[
+                                         'KEY_CLEAR_ALL'])
         clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
         self.file_menu.Append(clear_menuitem)
@@ -753,13 +783,15 @@ class MainFrame(wx.Frame):
         # ----------
         self.connect_menu = wx.Menu()
         add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
-                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.ADD_UDB'] + '\t' + APP_PARAMETERS['KEY_NEW_INSTANCE'])
+                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.ADD_UDB'] + '\t' +
+                                           APP_PARAMETERS['KEY_NEW_INSTANCE'])
         add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         self.connect_menu.Append(add_connect_menuitem)
 
         create_udb_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
-                                          APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.CREATE_UDB'] + '\t' + APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
+                                          APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.CREATE_UDB'] + '\t' +
+                                          APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
         create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         self.connect_menu.Append(create_udb_menuitem)
@@ -767,7 +799,8 @@ class MainFrame(wx.Frame):
         self.connect_menu.AppendSeparator()
 
         view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
-                                             APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.UDB_VIEWER'] + '\t' + APP_PARAMETERS['KEY_UDB_VIEWER'])
+                                             APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.UDB_VIEWER'] + '\t' +
+                                             APP_PARAMETERS['KEY_UDB_VIEWER'])
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         self.connect_menu.Append(view_connects_menuitem)
@@ -780,7 +813,8 @@ class MainFrame(wx.Frame):
         for database, gen in self.gens.items():
             database_menuitem = wx.Menu()
             if database == 'simple':
-                generator_menu.AppendSubMenu(database_menuitem, '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
+                generator_menu.AppendSubMenu(database_menuitem,
+                                             '&' + APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
                 generator_menu.AppendSeparator()
             else:
                 generator_menu.AppendSubMenu(database_menuitem, f'&{database}')
@@ -795,18 +829,21 @@ class MainFrame(wx.Frame):
         # ----------
         self.tools_menu = wx.Menu()
         recovery_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
-                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.RECOVERY'] + '\t' + APP_PARAMETERS['KEY_RECOVERY'])
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.RECOVERY'] + '\t' + APP_PARAMETERS[
+                                            'KEY_RECOVERY'])
         recovery_menuitem.SetBitmap(wx.Bitmap('img/16x16/database.png'))
         self.Bind(wx.EVT_MENU, self.open_recovery, recovery_menuitem)
         self.tools_menu.Append(recovery_menuitem)
         logviewer_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
-                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.LOGVIEWER'] + '\t' + APP_PARAMETERS['KEY_LOGVIEWER'])
+                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.LOGVIEWER'] + '\t' + APP_PARAMETERS[
+                                             'KEY_LOGVIEWER'])
         logviewer_menuitem.SetBitmap(wx.Bitmap('img/16x16/history.png'))
         self.Bind(wx.EVT_MENU, self.open_logviewer, logviewer_menuitem)
         self.tools_menu.Append(logviewer_menuitem)
         self.tools_menu.AppendSeparator()
         settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
-                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS['KEY_SETTINGS'])
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS[
+                                            'KEY_SETTINGS'])
         settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
         self.tools_menu.Append(settings_menuitem)
@@ -857,12 +894,15 @@ class MainFrame(wx.Frame):
         data_panel = wx.SplitterWindow(main_panel, style=wx.SP_LIVE_UPDATE)
 
         # Дерево баз данных
-        self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1), style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
+        self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1),
+                                              style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
         self.treectrl_databases_root = self.treectrl_databases.AddRoot('')
         self.all_tables = DataController.GetTablesFromDB()
         self.image_items = wx.ImageList(16, 16)
-        self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.invalid_db_image = self.image_items.Add(wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.database_image = self.image_items.Add(
+            wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.invalid_db_image = self.image_items.Add(
+            wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.table_image = self.image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_items)
         self.set_tree_items()
@@ -888,13 +928,15 @@ class MainFrame(wx.Frame):
         header_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_boxsizer)
 
-        statictext_table_name = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
+        statictext_table_name = wx.StaticText(header_panel,
+                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
         header_boxsizer.Add(statictext_table_name, 0, wx.LEFT | wx.CENTER | wx.ALL, 5)
 
         self.textctrl_table_name = wx.TextCtrl(header_panel, size=(-1, -1))
         header_boxsizer.Add(self.textctrl_table_name, 1, wx.CENTER | wx.EXPAND | wx.ALL, 5)
 
-        statictext_rows_count = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.ROW_COUNT'])
+        statictext_rows_count = wx.StaticText(header_panel,
+                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.ROW_COUNT'])
         header_boxsizer.Add(statictext_rows_count, 0, wx.CENTER | wx.RIGHT | wx.ALL, 5)
 
         self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
@@ -914,20 +956,34 @@ class MainFrame(wx.Frame):
         tcs_sizer = wx.BoxSizer(wx.HORIZONTAL)
         table_columns_statictext_panel.SetSizer(tcs_sizer)
 
-        statictext_column_name = wx.StaticText(table_columns_statictext_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_NAME'], size=(150, -1))
-        tcs_sizer.Add(statictext_column_name, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
-        statictext_column_type = wx.StaticText(table_columns_statictext_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_TYPE'], size=(150, -1))
-        tcs_sizer.Add(statictext_column_type, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
-        tcs_sizer.Add(wx.StaticText(table_columns_statictext_panel, label='', size=(200, -1)), 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        tcs_sizer.AddMany([(wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_NAME'],
+                                          size=(150, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_TYPE'],
+                                          size=(150, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL'],
+                                          size=(200, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL'],
+                                          size=(75, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE'],
+                                          size=(75, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)])
         # ----------------------------------------
-        self.table_columns_sizer.Add(table_columns_statictext_panel, 0, wx.ALL)
+        self.table_columns_sizer.Add(table_columns_statictext_panel, 0, wx.BOTTOM, 10)
         # ----------------------------------------
 
         self.table_items_panel = wx.Panel(self.table_columns_panel)
         self.table_items_sizer = wx.BoxSizer(wx.VERTICAL)
         self.table_items_panel.SetSizer(self.table_items_sizer)
 
-        self.empty_item = self.ColumnItem(self.table_items_panel, "0",  is_empty=True)
+        self.empty_item = self.ColumnItem(self.table_items_panel, is_empty=True)
         self.table_items_sizer.Add(self.empty_item, 0, wx.ALL, 5)
         # ----------------------------------------
         self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL)
@@ -946,7 +1002,8 @@ class MainFrame(wx.Frame):
         table_page_boxsizer = wx.BoxSizer(wx.VERTICAL)
         table_page_panel.SetSizer(table_page_boxsizer)
 
-        self.add_table_checkbox = wx.CheckBox(table_page_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.CREATE_TABLE'])
+        self.add_table_checkbox = wx.CheckBox(table_page_panel,
+                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.CREATE_TABLE'])
         table_page_boxsizer.Add(self.add_table_checkbox, 0, wx.ALL, 5)
         self.add_table_checkbox.Bind(wx.EVT_CHECKBOX, is_table_enabled)
         self.add_table_checkbox.Bind(wx.EVT_ENTER_WINDOW,
@@ -959,14 +1016,16 @@ class MainFrame(wx.Frame):
         id_column_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         id_column_panel.SetSizer(id_column_boxsizer)
 
-        self.id_column_checkbox = wx.CheckBox(id_column_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.ADD_ID'])
+        self.id_column_checkbox = wx.CheckBox(id_column_panel,
+                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.ADD_ID'])
         id_column_boxsizer.Add(self.id_column_checkbox, 0, wx.TOP | wx.LEFT | wx.RIGHT, 5)
         self.id_column_checkbox.Bind(wx.EVT_CHECKBOX, is_id_enabled)
         self.id_column_checkbox.Bind(wx.EVT_ENTER_WINDOW,
                                      lambda x: self.id_column_checkbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.id_column_checkbox.Hide()
 
-        self.statictext_increment_start = wx.StaticText(id_column_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.TABLE_PAGE.INIT_VALUE_ID'])
+        self.statictext_increment_start = wx.StaticText(id_column_panel, label=APP_TEXT_LABELS[
+            'MAIN.MAIN_PANEL.TABLE_PAGE.INIT_VALUE_ID'])
         id_column_boxsizer.Add(self.statictext_increment_start, 0, wx.TOP | wx.RIGHT | wx.LEFT, 5)
         self.statictext_increment_start.Hide()
 
@@ -988,7 +1047,9 @@ class MainFrame(wx.Frame):
         self.indexes_page_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_page_panel.SetSizer(self.indexes_page_sizer)
 
-        self.button_new_index = wx.Button(self.indexes_page_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.NEW_INDEX'], style=wx.NO_BORDER)
+        self.button_new_index = wx.Button(self.indexes_page_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.NEW_INDEX'],
+                                          style=wx.NO_BORDER)
         self.button_new_index.SetBitmapLabel(wx.Bitmap("img/16x16/plus.png", wx.BITMAP_TYPE_PNG))
         self.button_new_index.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.button_new_index.Bind(wx.EVT_ENTER_WINDOW,
@@ -1042,6 +1103,7 @@ class AboutApp(wx.Frame):
         self.SetMinSize((350, 250))
         self.SetMaxSize((350, 250))
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetBackgroundColour((255, 255, 255))
 
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1058,7 +1120,7 @@ class AboutApp(wx.Frame):
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
 
-        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.0, 2024'), 0, wx.TOP, 10),
+        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.1, 2024'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
 

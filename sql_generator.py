@@ -17,20 +17,20 @@ class SQLGenerator:
     table_name = ""
     new_table_info = {}
     rows_count = 0
-    tables = []
+    added_items = []
     cols = []
-    column_names = []
+    columns_info = []
     indexes = []
 
-    def __init__(self, app_conn: sqlite3.Connection, rows_count: int, tables: list, column_names: list,
+    def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
                  table_info: dict = None, indexes: list = None) -> None:
         self.app_conn = app_conn
 
         self.rows_count = rows_count
         self.queryrow2.clear()
         self.cols.clear()
-        self.column_names = column_names
-        self.tables = tables
+        self.columns_info = columns_info
+        self.added_items = added_items
         self.is_simple_mode = True
 
         if table_info is not None:
@@ -45,18 +45,19 @@ class SQLGenerator:
         col_names = []
         if self.new_table_info['is_id_create']:
             col_names.append('id')
-        for columns in self.column_names:
-            col_names.append(columns)
+        for columns in self.columns_info:
+            col_names.append(columns['column_name'])
         res = ', '.join(col_names)
         self.queryrow1 += '(' + res + ')'
 
     def CreateTable(self) -> str:
-        query_createtable = f'CREATE TABLE {self.table_name}(\n    '
+        query_createtable = f'CREATE TABLE IF NOT EXISTS {self.table_name} (\n    '
         items = []
         if self.new_table_info['is_id_create']:
             items.append(f'id INTEGER NOT NULL\n')
-        for i in range(len(self.cols)):
-            items.append(f'{self.column_names[i]} {self.cols[i][4]}\n')
+        for colinfo in self.columns_info:
+            items.append(f"{colinfo['column_name']} {colinfo['column_type']} "
+                         f"{'NOT NULL' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
         query_createtable += '   ,'.join(items)
         if self.new_table_info['is_id_create']:
             query_createtable += '    PRIMARY KEY("id")\n'
@@ -82,18 +83,18 @@ class SQLGenerator:
         datadict = {}
 
         if self.is_simple_mode:
-            db_name = DC.GetDBFromTables([self.tables[0], ])[0]
+            db_name = DC.GetDBFromTables([self.added_items[0], ])[0]
             simp_conn = sqlite3.connect('data/' + db_name)
             curs = simp_conn.cursor()
 
             data = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, column_type
                                     FROM t_cases_info
-                                    WHERE table_name = "{self.tables[0]}"
-                                    AND   column_name = "{self.tables[1]}";""").fetchone()
+                                    WHERE table_name = "{self.added_items[0]}"
+                                    AND   column_name = "{self.added_items[1]}";""").fetchone()
             self.cols.append(data)
         else:
             temp = []
-            for table_item in self.tables:
+            for table_item in self.added_items:
                 temp.append(table_item.split(':')[0])
                 list_of_dbs = list(set(temp))
 
@@ -123,7 +124,7 @@ class SQLGenerator:
                 cursor = conn.cursor()
                 temp_cols = []
 
-                for colnames in self.tables:
+                for colnames in self.added_items:
                     temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2]])
 
                 for item in temp_cols:
@@ -269,13 +270,13 @@ class SQLGenerator:
 
         # Создание таблицы
         if is_table:
-            full_query += self.CreateTable() + '\n'
+            full_query += self.CreateTable() + '\n\n'
 
         # Создание индексов
         indexes = []
         for index in self.indexes:
             indexes.append(self.CreateIndex(index))
-        full_query += '\n'.join(indexes) + '\n'
+        full_query += '\n'.join(indexes) + '\n\n'
 
         # Сборка значений
         full_query += self.queryrow1 + '\nVALUES '

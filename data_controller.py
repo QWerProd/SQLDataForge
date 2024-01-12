@@ -62,8 +62,8 @@ class DataController:
     def GetTablesFromDB() -> dict:
         """Возвращает словарь с именами таблиц базы данных из специальной таблицы t_cases_info.
         {'Person.db':
-        ['t_person_man_names:last_name:TEXT:Фамилия (М)',
-        't_person_man_names:first_name:TEXT:Имя (М)', ...],
+        ['t_person_man_names:last_name:Фамилия (М)',
+        't_person_man_names:first_name:Имя (М)', ...],
         ...}"""
         with sqlite3.connect(db_path) as app_conn:
             all_tables = {}
@@ -81,11 +81,11 @@ class DataController:
                 try:
                     conn = sqlite3.connect(path + '\\' + database)
                     cursor = conn.cursor()
-                    tables = cursor.execute(f"""SELECT table_name, column_name, column_type, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
+                    tables = cursor.execute(f"""SELECT table_name, column_name, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
 
                     list_tables = []
                     for item in tables:
-                        list_tables.append(f"{item[0]}:{item[1]}:{item[2]}:{item[3]}")
+                        list_tables.append(f"{item[0]}:{item[1]}:{item[2]}")
 
                     all_tables[database] = list_tables
                 except sqlite3.Error:
@@ -160,7 +160,7 @@ class DataController:
             gens[database] = []
             for items in values:
                 gen_key = ':'.join(items.split(':')[0:2])
-                gens[database].append((gen_key, items.split(':')[3]))
+                gens[database].append((gen_key, items.split(':')[2]))
 
         return gens
 

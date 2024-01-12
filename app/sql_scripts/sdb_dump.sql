@@ -492,7 +492,13 @@ Restart now?'),
 	 ('MAIN.MAIN_MENU.TOOLS.LOGVIEWER','en','Log viewer'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER','en','View the log table'),
 	 ('LOGVIEWER.ERROR_LOG','en','Errors'),
-	 ('LOGVIEWER.EXECUTION_LOG','en','SQL-scripts');
+	 ('LOGVIEWER.EXECUTION_LOG','en','SQL-scripts'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL','ru','Псевдоним столбца'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL','ru','Не пустой'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE','ru','Уникальный'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL','en','Column alias'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL','en','NOT NULL'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE','en','UNIQUE');
 /
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CODE','en','Error code'),
