@@ -12,7 +12,7 @@ import datetime
 class SQLGenerator:
     app_conn = sqlite3.Connection
     is_simple_mode = bool
-    queryrow1 = "INSERT INTO "
+    queryrow1 = ""
     queryrow2 = []
     table_name = ""
     new_table_info = {}
@@ -41,7 +41,7 @@ class SQLGenerator:
         self.indexes = indexes
 
     def CreateHeader(self):
-        self.queryrow1 += self.table_name
+        self.queryrow1 += 'INSERT INTO ' + self.table_name
         col_names = []
         if self.new_table_info['is_id_create']:
             col_names.append('id')
@@ -57,7 +57,7 @@ class SQLGenerator:
             items.append(f'id INTEGER NOT NULL\n')
         for colinfo in self.columns_info:
             items.append(f"{colinfo['column_name']} {colinfo['column_type']} "
-                         f"{'NOT NULL' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
+                         f"{'NOT NULL ' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
         query_createtable += '   ,'.join(items)
         if self.new_table_info['is_id_create']:
             query_createtable += '    PRIMARY KEY("id")\n'
@@ -273,10 +273,11 @@ class SQLGenerator:
             full_query += self.CreateTable() + '\n\n'
 
         # Создание индексов
-        indexes = []
-        for index in self.indexes:
-            indexes.append(self.CreateIndex(index))
-        full_query += '\n'.join(indexes) + '\n\n'
+        if len(self.indexes) > 0:
+            indexes = []
+            for index in self.indexes:
+                indexes.append(self.CreateIndex(index))
+            full_query += '\n'.join(indexes) + '\n\n'
 
         # Сборка значений
         full_query += self.queryrow1 + '\nVALUES '
