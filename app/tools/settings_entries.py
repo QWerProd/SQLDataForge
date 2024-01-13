@@ -193,11 +193,8 @@ class CodeRedactor(SimpleEntry):
                                                  style=wx.FONTSTYLE_NORMAL,
                                                  weight=int(APP_PARAMETERS['STC_FONT_BOLD'])))
         self.styledtextctrl.StyleClearAll()
-        # Подсветка синтаксиса
-        sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
-                        " if exists index on is update set")
         self.styledtextctrl.SetLexer(wx.stc.STC_LEX_SQL)
-        self.styledtextctrl.SetKeyWords(0, sql_keywords)
+        self.styledtextctrl.SetKeyWords(0, APP_PARAMETERS['SQL_KEYWORDS'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])

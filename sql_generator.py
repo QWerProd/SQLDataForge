@@ -200,7 +200,7 @@ class SQLGenerator:
                     datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(gen_date))
                 elif table[3] == 'RChain':
                     # Получение имен столбцов таблицы
-                    data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = "{table[1]}";""").fetchone()[0]
+                    data = cursor.execute(f"""SELECT sql FROM sqlite_master WHERE tbl_name = '{table[1]}';""").fetchone()[0]
                     pattern = r'"([^"]+)"'
                     column_names = re.findall(pattern, data)
 

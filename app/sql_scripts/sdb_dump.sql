@@ -507,7 +507,17 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('MAIN.MAIN_MENU.INFO','en','Help'),
 	 ('MAIN.MAIN_MENU.INFO.ABOUT_APP','en','About the program...'),
 	 ('BUTTON.SAVE_AS','en','Save as...'),
-	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS','en','Save in new file');
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS','en','Save in new file'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL','ru','Псевдоним столбца'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL','ru','Не пустой'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE','ru','Уникальный'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL','en','Column alias'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL','en','NOT NULL'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE','en','UNIQUE'),
+	 ('BUTTON.COPY','ru','Копировать'),
+	 ('BUTTON.WRAP','ru','Обертка'),
+	 ('BUTTON.COPY','en','Copy'),
+	 ('BUTTON.WRAP','en','Wrap');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),

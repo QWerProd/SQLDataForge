@@ -1,5 +1,6 @@
 import sqlite3
 import wx
+import wx.stc
 
 from data_controller import DataController
 from app.error_catcher import ErrorCatcher
@@ -11,7 +12,6 @@ import random
 
 
 class SimpleGenerator(wx.Frame):
-
     app_conn = sqlite3.Connection
     catcher = ErrorCatcher
 
@@ -82,7 +82,9 @@ class SimpleGenerator(wx.Frame):
             self.row_count = self.curs.execute(f"""SELECT COUNT(\"{self.column_info.split(':')[1]}\")
                                                    FROM \"{self.column_info.split(':')[0]}\";""").fetchone()[0]
 
-            header_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['SINGLE_GENERATOR.SELECT_DB.SELECT_COUNT'] + str(self.row_count))
+            header_statictext = wx.StaticText(self,
+                                              label=APP_TEXT_LABELS['SINGLE_GENERATOR.SELECT_DB.SELECT_COUNT'] + str(
+                                                  self.row_count))
             self.sizer.Add(header_statictext, 0, wx.ALL, 5)
 
             self.select_listctrl = wx.ListBox(self, choices=self.db_data)
@@ -94,7 +96,8 @@ class SimpleGenerator(wx.Frame):
         root = self.items_treectrl.AddRoot('')
         for key, value in self.gens.items():
             if key == 'simple':
-                second_root = self.items_treectrl.AppendItem(root, APP_TEXT_LABELS['MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
+                second_root = self.items_treectrl.AppendItem(root, APP_TEXT_LABELS[
+                    'MAIN.MAIN_MENU.GENERATOR.SIMPLE_GENERATORS'])
             else:
                 second_root = self.items_treectrl.AppendItem(root, key)
             for item in value:
@@ -134,7 +137,8 @@ class SimpleGenerator(wx.Frame):
             entry_item.Hide()
             # Но пока ничего такого не будет :)
             label = entry_item.get_column_name()
-            data_field_prod = wx.StaticText(self.data_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.GO_GENERATE'] + f' \n"{label}"!')
+            data_field_prod = wx.StaticText(self.data_panel,
+                                            label=APP_TEXT_LABELS['SINGLE_GENERATOR.GO_GENERATE'] + f' \n"{label}"!')
             self.data_sizer.Add(data_field_prod, 1, wx.ALL, 50)
             self.curr_data_fields.append(entry_item)
             self.data_panel.Layout()
@@ -187,7 +191,9 @@ class SimpleGenerator(wx.Frame):
             conn = sqlite3.connect('app/app.db')
             curs = conn.cursor()
             try:
-                exec_code = curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[0]
+                exec_code = \
+                    curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[
+                        0]
 
                 values = []
                 for item in self.curr_data_fields:
@@ -215,10 +221,25 @@ class SimpleGenerator(wx.Frame):
                 exit(14)
             except (TypeError, ValueError):
                 wx.MessageBox(APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.MESSAGE'],
-                              APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.CAPTION'], wx.OK | wx.ICON_ERROR)
+                              APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.CAPTION'],
+                              wx.OK | wx.ICON_ERROR)
             finally:
                 curs.close()
                 conn.close()
+
+    def open_wrapper_frame(self, event):
+        wrapper_frame = WrappingFrame(self, self.items)
+        wrapper_frame.Show()
+        wrapper_frame.SetFocus()
+
+    def on_output_changed(self, event):
+        text = self.output_textctrl.GetValue()
+        if text != '':
+            self.items = text.split('\n')
+            if len(self.items) > 0:
+                self.wrap_button.Enable()
+            else:
+                self.wrap_button.Disable()
 
     def __init__(self, catcher: ErrorCatcher, open_code: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
@@ -280,6 +301,7 @@ class SimpleGenerator(wx.Frame):
         self.output_sizer.Add(output_statictext, 0, wx.ALL, 5)
 
         self.output_textctrl = wx.TextCtrl(self.output_panel, style=wx.TE_MULTILINE)
+        self.output_textctrl.Bind(wx.EVT_TEXT, self.on_output_changed)
         self.output_sizer.Add(self.output_textctrl, 1, wx.LEFT | wx.RIGHT | wx.EXPAND | wx.BOTTOM, 10)
 
         # ---------------------------------------------
@@ -289,26 +311,47 @@ class SimpleGenerator(wx.Frame):
         self.field_sizer.Add(self.data_splitter, 2, wx.EXPAND)
         # ------------------------------
 
-        self.buttons_panel = wx.Panel(self.field_panel, style=wx.BORDER_STATIC)
+        div_footer_panel = wx.Panel(self.field_panel, style=wx.BORDER_STATIC)
+        div_footer_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        div_footer_panel.SetSizer(div_footer_sizer)
+
+        # ---------------------------------------------
+
+        self.rowcount_panel = wx.Panel(div_footer_panel)
+        self.rowcount_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.rowcount_panel.SetSizer(self.rowcount_sizer)
+
+        items_count_statictext = wx.StaticText(self.rowcount_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.ITER_COUNT'])
+        self.rowcount_sizer.Add(items_count_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+
+        self.items_count_textctrl = wx.TextCtrl(self.rowcount_panel)
+        self.items_count_textctrl.SetValue('1')
+        self.rowcount_sizer.Add(self.items_count_textctrl, 1, wx.EXPAND | wx.RIGHT, 20)
+
+        div_footer_sizer.Add(self.rowcount_panel, 1, wx.ALL | wx.EXPAND, 5)
+        # ---------------------------------------------
+
+        self.buttons_panel = wx.Panel(div_footer_panel)
         self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons_panel.SetSizer(self.buttons_sizer)
-
-        items_count_statictext = wx.StaticText(self.buttons_panel, label=APP_TEXT_LABELS['SINGLE_GENERATOR.ITER_COUNT'])
-        self.buttons_sizer.Add(items_count_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
-
-        self.items_count_textctrl = wx.TextCtrl(self.buttons_panel)
-        self.items_count_textctrl.SetValue('1')
-        self.buttons_sizer.Add(self.items_count_textctrl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 120)
 
         self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'], size=(75, -1))
         self.cancel_button.Bind(wx.EVT_BUTTON, lambda x: self.Destroy())
         self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
 
+        self.wrap_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.WRAP'], size=(75, -1))
+        self.wrap_button.Bind(wx.EVT_BUTTON, self.open_wrapper_frame)
+        self.wrap_button.Disable()
+        self.buttons_sizer.Add(self.wrap_button, 0, wx.ALL, 5)
+
         self.generate_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.GENERATE'], size=(75, -1))
         self.generate_button.Bind(wx.EVT_BUTTON, self.start_generate)
         self.buttons_sizer.Add(self.generate_button, 0, wx.ALL, 5)
 
-        self.field_sizer.Add(self.buttons_panel, 0, wx.ALIGN_RIGHT)
+        div_footer_sizer.Add(self.buttons_panel, 0)
+        # ---------------------------------------------
+
+        self.field_sizer.Add(div_footer_panel, 0, wx.EXPAND)
         # ------------------------------
 
         self.splitter.SplitVertically(self.items_treectrl, self.field_panel, 175)
@@ -316,3 +359,88 @@ class SimpleGenerator(wx.Frame):
         header_label = self.load_frame(open_code)
         self.header_statictext.SetLabel(header_label)
         # ---------------
+
+
+class WrappingFrame(wx.Dialog):
+
+    items = list
+    query = str
+
+    def wrap(self):
+        self.query = 'INSERT INTO table_name(column_name)\nVALUES ('
+        for item in self.items:
+            if isinstance(item, str):
+                self.query += f"'{item}'\n       ,"
+            else:
+                self.query += f"{item}\n       ,"
+        self.query = self.query.rstrip('\n       ,')
+        self.query += ');'
+
+    def copy(self, event):
+        self.query = self.stc_redactor.GetValue()
+        dataobj = wx.TextDataObject()
+        dataobj.SetText(self.query)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(dataobj)
+            wx.TheClipboard.Flush()
+            wx.TheClipboard.Close()
+            self.Destroy()
+        else:
+            wx.MessageBox('Unable to open the clipboard!', 'Error', wx.ICON_ERROR)
+
+    def __init__(self, parent: wx.Frame, items: list):
+        super().__init__(parent, title=APP_TEXT_LABELS['BUTTON.WRAP'], size=(600, 400),
+                         style=wx.CAPTION | wx.CLOSE_BOX)
+        self.SetMinSize((400, 300))
+        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+
+        self.items = items
+        self.wrap()
+
+        self.panel = wx.Panel(self)
+        self.sizer = wx.BoxSizer(wx.VERTICAL)
+        self.panel.SetSizer(self.sizer)
+
+        self.stc_redactor = wx.stc.StyledTextCtrl(self.panel)
+        self.stc_redactor.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
+                                       wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
+                                               family=wx.FONTFAMILY_TELETYPE,
+                                               style=wx.FONTSTYLE_NORMAL,
+                                               weight=int(APP_PARAMETERS['STC_FONT_BOLD'])))
+        self.stc_redactor.StyleClearAll()
+        # Подсветка синтаксиса
+        self.stc_redactor.SetLexer(wx.stc.STC_LEX_SQL)
+        self.stc_redactor.SetKeyWords(0,
+                                      APP_PARAMETERS['SQL_KEYWORDS'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_NUMBER, APP_PARAMETERS['STC_COLOUR_NUMBER'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, APP_PARAMETERS['STC_COLOUR_STRING'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_STRING'])
+        self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD, APP_PARAMETERS['STC_COLOUR_WORD'])
+        # Боковое поле
+        self.stc_redactor.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
+        self.stc_redactor.SetMarginWidth(1, 45)
+        self.stc_redactor.SetValue(self.query)
+        self.sizer.Add(self.stc_redactor, 1, wx.EXPAND | wx.ALL, 5)
+        self.sizer.Add(wx.StaticLine(self.panel, style=wx.LI_HORIZONTAL), 0, wx.EXPAND)
+
+        # ----------
+
+        self.buttons_panel = wx.Panel(self.panel)
+        self.buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.buttons_panel.SetSizer(self.buttons_sizer)
+
+        self.cancel_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.CANCEL'], size=(75, -1))
+        self.cancel_button.Bind(wx.EVT_BUTTON, lambda x: self.Destroy())
+        self.buttons_sizer.Add(self.cancel_button, 0, wx.ALL, 5)
+
+        self.copy_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.COPY'], size=(75, -1))
+        self.copy_button.Bind(wx.EVT_BUTTON, self.copy)
+        self.buttons_sizer.Add(self.copy_button, 0, wx.ALL, 5)
+
+        self.sizer.Add(self.buttons_panel, 0, wx.ALIGN_RIGHT)
+
+        self.Layout()
+        # ----------

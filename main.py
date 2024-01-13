@@ -57,10 +57,6 @@ class MainFrame(wx.Frame):
     file_name = ''
     query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
 
-    # Ключевые слова для лексера wx.stc.StyledTextCtrl
-    sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
-                    " if exists index on is unique")
-
     # Переменная отвечает за изменение индекса обращения к столбцам
     id_added = 0
 
@@ -656,7 +652,7 @@ class MainFrame(wx.Frame):
         stc_redactor.StyleClearAll()
         # Подсветка синтаксиса
         stc_redactor.SetLexer(wx.stc.STC_LEX_SQL)
-        stc_redactor.SetKeyWords(0, MainFrame.sql_keywords)
+        stc_redactor.SetKeyWords(0, APP_PARAMETERS['SQL_KEYWORDS'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
@@ -886,6 +882,13 @@ class MainFrame(wx.Frame):
         self.toolbar.AddTool(5, "Сохранить как", wx.Bitmap("img/16x16/save as.png"),
                              shortHelp=APP_TEXT_LABELS['BUTTON.SAVE_AS'])
         self.Bind(wx.EVT_TOOL, self.save_as, id=5)
+        self.toolbar.AddSeparator()
+        self.toolbar.AddTool(6, "Просмотр логов", wx.Bitmap("img/16x16/history.png"),
+                             shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER'])
+        self.Bind(wx.EVT_TOOL, self.open_logviewer, id=6)
+        self.toolbar.AddTool(7, "Настройки", wx.Bitmap("img/16x16/options.png"),
+                             shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SETTINGS'])
+        self.Bind(wx.EVT_TOOL, self.open_settings_frame, id=7)
 
         self.toolbar.Realize()
 
@@ -914,7 +917,7 @@ class MainFrame(wx.Frame):
 
         # Notebook настроек
         # --------------------
-        notebook_settings = wx.Notebook(table_panel, size=(-1, 350))
+        notebook_settings = wx.Notebook(table_panel, size=(-1, 200))
 
         # Главная
         # ------------------------------
@@ -947,7 +950,9 @@ class MainFrame(wx.Frame):
         # ----------------------------------------
 
         # ----------------------------------------
-        self.table_columns_panel = wx.Panel(main_page_panel, size=(-1, -1))
+        self.table_columns_panel = wx.lib.scrolledpanel.ScrolledPanel(main_page_panel, size=(-1, -1))
+        self.table_columns_panel.SetupScrolling()
+        self.table_columns_panel.SetAutoLayout(0)
         self.table_columns_sizer = wx.BoxSizer(wx.VERTICAL)
         self.table_columns_panel.SetSizer(self.table_columns_sizer)
 
@@ -989,7 +994,7 @@ class MainFrame(wx.Frame):
         self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL)
 
         # ----------------------------------------
-        main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL)
+        main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL | wx.EXPAND)
         # ----------------------------------------
 
         # ------------------------------
@@ -1067,7 +1072,7 @@ class MainFrame(wx.Frame):
         self.indexes_scrolledwindow.SetAutoLayout(1)
         self.indexes_sizer = wx.BoxSizer(wx.VERTICAL)
         self.indexes_scrolledwindow.SetSizer(self.indexes_sizer)
-        # ----------------------------------------
+
         self.indexes_page_sizer.Add(self.indexes_scrolledwindow, 0, wx.EXPAND)
         # ------------------------------
         notebook_settings.AddPage(self.indexes_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE'])

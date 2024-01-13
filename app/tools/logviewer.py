@@ -72,9 +72,6 @@ class Logviewer(wx.Frame):
         self.executionlog_panel.SetSizer(self.executionlog_sizer)
 
         self.stc_redactor = StyledTextCtrl(self.executionlog_panel)
-        # Ключевые слова для лексера wx.stc.StyledTextCtrl
-        sql_keywords = ("insert into values create table as text number primary key integer not null where and or like"
-                        " if exists index on is")
         # Настройки шрифта
         self.stc_redactor.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
                                        wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
@@ -84,7 +81,7 @@ class Logviewer(wx.Frame):
         self.stc_redactor.StyleClearAll()
         # Подсветка синтаксиса
         self.stc_redactor.SetLexer(wx.stc.STC_LEX_SQL)
-        self.stc_redactor.SetKeyWords(0, sql_keywords)
+        self.stc_redactor.SetKeyWords(0, APP_PARAMETERS['SQL_KEYWORDS'])
         self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         self.stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
