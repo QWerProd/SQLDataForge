@@ -16,7 +16,8 @@ class SimpleGenerator(wx.Frame):
     catcher = ErrorCatcher
 
     gens = DataController.BuildDictOfGens()
-    items = []
+    items = []  # Массив с кодами генераторов
+    data_items = []
     curr_data_fields = []
 
     open_code = str
@@ -228,15 +229,15 @@ class SimpleGenerator(wx.Frame):
                 conn.close()
 
     def open_wrapper_frame(self, event):
-        wrapper_frame = WrappingFrame(self, self.items)
+        wrapper_frame = WrappingFrame(self, self.data_items)
         wrapper_frame.Show()
         wrapper_frame.SetFocus()
 
     def on_output_changed(self, event):
         text = self.output_textctrl.GetValue()
         if text != '':
-            self.items = text.split('\n')
-            if len(self.items) > 0:
+            self.data_items = text.split('\n')
+            if len(self.data_items) > 0:
                 self.wrap_button.Enable()
             else:
                 self.wrap_button.Disable()
@@ -363,12 +364,12 @@ class SimpleGenerator(wx.Frame):
 
 class WrappingFrame(wx.Dialog):
 
-    items = list
+    data_items = list
     query = str
 
     def wrap(self):
         self.query = 'INSERT INTO table_name(column_name)\nVALUES ('
-        for item in self.items:
+        for item in self.data_items:
             if isinstance(item, str):
                 self.query += f"'{item}'\n       ,"
             else:
@@ -388,13 +389,13 @@ class WrappingFrame(wx.Dialog):
         else:
             wx.MessageBox('Unable to open the clipboard!', 'Error', wx.ICON_ERROR)
 
-    def __init__(self, parent: wx.Frame, items: list):
+    def __init__(self, parent: wx.Frame, data_items: list):
         super().__init__(parent, title=APP_TEXT_LABELS['BUTTON.WRAP'], size=(600, 400),
                          style=wx.CAPTION | wx.CLOSE_BOX)
         self.SetMinSize((400, 300))
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
 
-        self.items = items
+        self.data_items = data_items
         self.wrap()
 
         self.panel = wx.Panel(self)

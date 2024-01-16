@@ -39,8 +39,8 @@ class DataController:
             return db_count
 
     @staticmethod
-    def GetDatabases(short=True) -> dict:
-        """Возвращает словарь пБД с путем к файлу из сБД.
+    def GetDatabases(short=True) -> list:
+        """Возвращает список пБД с информацией из сБД.
         {'Person.db': 'data'}"""
         with sqlite3.connect(db_path) as app_conn:
             databases = []
@@ -51,7 +51,7 @@ class DataController:
                 for dbname in dblist:
                     databases.append(dbname[0])
             else:
-                dblist = app_curs.execute("SELECT dbname, field_name, path, description FROM t_databases").fetchall()
+                dblist = app_curs.execute("SELECT dbname, field_name, path, description, is_valid FROM t_databases").fetchall()
                 for dbitem in dblist:
                     databases.append(dbitem)
 
@@ -76,20 +76,26 @@ class DataController:
                 pass
 
             for database, path in databases.items():
-                conn = sqlite3.Connection
-                cursor = sqlite3.Cursor
+                conn = sqlite3.connect(path)
+                cursor = conn.cursor()
                 try:
-                    conn = sqlite3.connect(path + '\\' + database)
-                    cursor = conn.cursor()
-                    tables = cursor.execute(f"""SELECT table_name, column_name, column_code FROM t_cases_info ORDER BY posid;""").fetchall()
+                    tables = cursor.execute(f"""SELECT table_name, column_name, column_code
+                                                FROM t_cases_info
+                                                ORDER BY posid;""").fetchall()
 
                     list_tables = []
                     for item in tables:
                         list_tables.append(f"{item[0]}:{item[1]}:{item[2]}")
 
                     all_tables[database] = list_tables
-                except sqlite3.Error:
-                    all_tables[database] = []
+                except sqlite3.Error as e:
+                    if e.args[0] == 'no such table: t_cases_info':
+                        app_curs = app_conn.cursor()
+                        app_curs.execute(f"UPDATE t_databases "
+                                         f"SET is_valid = 'N' "
+                                         f"WHERE dbname = '{database}';")
+                        app_conn.commit()
+                        all_tables[database] = []
                 finally:
                     cursor.close()
                     conn.close()

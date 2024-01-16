@@ -554,8 +554,7 @@ class MainFrame(wx.Frame):
                     temp_items.append(child)
                 self.tree_items[root] = temp_items
             else:
-                pass
-                # self.treectrl_databases.SetItemImage(root, )
+                self.treectrl_databases.SetItemImage(root, self.invalid_db_image)
 
     def delete_index(self, item):
         index_items.remove(item)

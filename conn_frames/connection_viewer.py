@@ -15,10 +15,12 @@ class ConnectionViewer(wx.Frame):
         for database in self.databases:
             if database[2].startswith('data') or database[2].endswith('SQLDataForge/data'):
                 item = self.treectrl_databases.AppendItem(self.local_root, database[0])
-                self.treectrl_databases.SetItemImage(item, self.database_image)
             else:
                 item = self.treectrl_databases.AppendItem(self.global_root, database[0])
+            if database[4] == 'Y':
                 self.treectrl_databases.SetItemImage(item, self.database_image)
+            else:
+                self.treectrl_databases.SetItemImage(item, self.invalid_db_image)
 
     def opening(self, event):
         item = event.GetItem()
@@ -40,6 +42,7 @@ class ConnectionViewer(wx.Frame):
         # Разблокируем текстовые поля и кнопки
         self.db_name_textctrl.Enable()
         self.db_field_name_textctrl.Enable()
+        self.db_valid_textctrl.Enable()
         self.db_desc_textctrl.Enable()
         self.save_button.Enable()
         self.save_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.save_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -50,6 +53,11 @@ class ConnectionViewer(wx.Frame):
             self.db_field_name_textctrl.SetHint(self.db_info[0])
         else:
             self.db_field_name_textctrl.SetValue(self.db_info[1])
+        self.db_valid_textctrl.SetValue(self.db_info[4])
+        if self.db_info[4] == 'Y':
+            self.db_valid_textctrl.SetBackgroundColour(wx.Colour(144, 249, 173))
+        else:
+            self.db_valid_textctrl.SetBackgroundColour(wx.Colour(250, 145, 145))
         self.db_path_textctrl.SetValue(self.db_info[2])
         if self.db_info[3] is None or self.db_info[3] == '':
             self.db_desc_textctrl.SetHint(APP_TEXT_LABELS['CONNECTION_VIEWER.DB_DESC.HINT'])
@@ -70,6 +78,8 @@ class ConnectionViewer(wx.Frame):
         self.db_name_textctrl.Disable()
         self.db_field_name_textctrl.Clear()
         self.db_field_name_textctrl.Disable()
+        self.db_valid_textctrl.Clear()
+        self.db_valid_textctrl.Disable()
         self.db_path_textctrl.Clear()
         self.db_desc_textctrl.Clear()
         self.db_desc_textctrl.Disable()
@@ -187,6 +197,7 @@ class ConnectionViewer(wx.Frame):
         self.closed_root = self.image_items.Add(wx.Image('img/16x16/book 1.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.opened_root = self.image_items.Add(wx.Image('img/16x16/book.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.invalid_db_image = self.image_items.Add(wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_items)
 
         root = self.treectrl_databases.AddRoot('')
@@ -221,7 +232,7 @@ class ConnectionViewer(wx.Frame):
         buttons_sizer.Add(self.add_database_button, 0, wx.BOTTOM, 5)
 
         self.delete_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
-                                                      bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/delete database.png')))
+                                                      bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/database delete.png')))
         self.delete_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.delete_database_button.Bind(wx.EVT_BUTTON, self.drop_connection)
         self.delete_database_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.delete_database_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -255,6 +266,9 @@ class ConnectionViewer(wx.Frame):
         self.main_info_sizer.AddMany([(wx.StaticText(self.main_info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_ALIAS']),
                                        0, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5),
                                       (self.db_field_name_textctrl, 1, wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)])
+        self.db_valid_textctrl = wx.TextCtrl(self.main_info_panel, size=(25, -1), style=wx.TE_READONLY)
+        self.db_valid_textctrl.Disable()
+        self.main_info_sizer.Add(self.db_valid_textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         info_staticsizer.Add(self.main_info_panel, 0, wx.ALL | wx.EXPAND)
         info_staticsizer.Add(wx.StaticLine(info_staticbox), 0, wx.EXPAND | wx.ALL, 5)
