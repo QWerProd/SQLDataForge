@@ -7,8 +7,9 @@ from app.app_parameters import APP_PARAMETERS
 
 class SimpleEntry(wx.Panel):
 
-    def __init__(self, parent: wx.Panel, title: str, choices: list = None, sizer_mode: int = wx.VERTICAL):
-        super().__init__(parent)
+    def __init__(self, parent: wx.Panel, title: str, choices: list = None, sizer_mode: int = wx.VERTICAL, size: list = None):
+        pan_size = size if size is not None else (-1, 28)
+        super().__init__(parent, size=pan_size)
         self.title = title
         self.choices = choices
         self.param = None

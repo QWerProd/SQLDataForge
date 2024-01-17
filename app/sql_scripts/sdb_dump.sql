@@ -517,7 +517,9 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('BUTTON.COPY','ru','Копировать'),
 	 ('BUTTON.WRAP','ru','Обертка'),
 	 ('BUTTON.COPY','en','Copy'),
-	 ('BUTTON.WRAP','en','Wrap');
+	 ('BUTTON.WRAP','en','Wrap'),
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING','ru','Использовать псевдонимы пБД'),
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING','en','Use the aliases of uDBs');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -557,7 +559,8 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('APP_LANGUAGE','ru','SYSTEM',NULL,2),
 	 ('KEY_RECOVERY','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY',0),
 	 ('KEY_LOGVIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER',0),
-	 ('KEY_SAVE_AS','Ctrl+Shift+S','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS',0);
+	 ('KEY_SAVE_AS','Ctrl+Shift+S','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS',0),
+	 ('IS_ALIAS_UDB_USING','False','SYSTEM',NULL,2);
 /
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
@@ -582,7 +585,8 @@ INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_l
 	 (NULL,6,1,'TableSystemColumns','APP.SETTINGS.SYSTEM.HOTKEYS.TABLE_TITLE','SELECT p.param_name, lt.text, p.param_value FROM t_params p, t_lang_text lt WHERE p.param_type = ''HOTKEY'' AND p.param_label = lt.label AND lt.lang = ''$0'';',NULL,'Y'),
 	 (NULL,5,1,'HeaderGroup','APP.SETTINGS.SYSTEM.GENERAL.APP_SETTINGS',NULL,NULL,'Y'),
 	 (17,5,4,'MaskedTextEntry','APP.SETTINGS.SYSTEM.GENERAL.FORMAT_DATE',NULL,NULL,'Y'),
-	 (18,5,2,'SelectorBox','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE','ru:en','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','Y');
+	 (18,5,2,'SelectorBox','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE','ru:en','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','Y'),
+	 (22,5,4,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING',NULL,NULL,'Y');
 /
 INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES
 	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','simple','random.randint($1, $2)','Y'),

@@ -29,7 +29,8 @@ APP_PARAMETERS = {
     'KEY_LOGVIEWER': str,
     'KEY_SAVE_AS': str,
     'SQL_KEYWORDS': "insert into values create table as text number primary key integer not null where and or like"
-                    " if exists index on is unique"
+                    " if exists index on is unique update set",
+    'IS_ALIAS_UDB_USING': str
 }
 
 APP_LOCALES = {

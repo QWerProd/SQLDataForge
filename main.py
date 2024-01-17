@@ -35,6 +35,7 @@ stc_redactors = []
 
 class MainFrame(wx.Frame):
     tree_items = {}
+    databases = ()
     all_tables = {}
 
     # Переменные "Простого генератора"
@@ -536,15 +537,24 @@ class MainFrame(wx.Frame):
                 self.statusbar.SetStatusText(self.query_status, 0)
                 self.statusbar.SetStatusText("", 2)
 
-    def refresh(self, event):
+    def refresh(self, event=None):
         self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
         self.all_tables = DataController.GetTablesFromDB()
+        self.databases = DataController.GetDatabases(False)
         self.set_tree_items()
 
     def set_tree_items(self):
         for key, value in self.all_tables.items():
             temp_items = []
-            root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, key)
+            udb_name_label = ''
+            if APP_PARAMETERS['IS_ALIAS_UDB_USING'] == 'True':
+                for db_info in self.databases:
+                    if db_info[0] == key:
+                        udb_name_label = db_info[1]
+                        break
+            else:
+                udb_name_label = key
+            root = self.treectrl_databases.AppendItem(self.treectrl_databases_root, udb_name_label)
             if len(value) > 0:
                 self.treectrl_databases.SetItemImage(root, self.database_image)
                 for full_item in value:
@@ -584,6 +594,8 @@ class MainFrame(wx.Frame):
             if res > 0:
                 self.update_stc_style()
             if res > 1:
+                self.refresh()
+            if res > 2:
                 self.relaunch_app()
                 self.Destroy()
 
@@ -726,6 +738,7 @@ class MainFrame(wx.Frame):
                           APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.MESSAGE2'] + str(result[1]),
                           APP_TEXT_LABELS['MAIN.MESSAGE_BOX.INIT.CAPTION'],
                           wx.OK | wx.ICON_INFORMATION | wx.CENTRE)
+        self.databases = DataController.GetDatabases(False)
         # -------------------------------
 
         # Главный контейнер

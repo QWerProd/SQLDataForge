@@ -185,14 +185,14 @@ class Settings(wx.Dialog):
 
     def apply(self, event):
         ret_code = self.change_settings()
-        if ret_code == 2:
+        if ret_code == 3:
             if self.restart_offer():
                 self.EndModal(ret_code)
         self.set_setting_page(menu_name=self.prev_page)
 
     def apply_close(self, event):
         ret_code = self.change_settings()
-        if ret_code == 2:
+        if ret_code == 3:
             if not self.restart_offer():
                 ret_code -= 1
         self.EndModal(ret_code)
@@ -229,8 +229,7 @@ class Settings(wx.Dialog):
         return ret_code
 
     def __init__(self, parent: wx.Frame):
-        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500),
-                         style=wx.CAPTION | wx.CLOSE_BOX)
+        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500))
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
         self.app_conn = sqlite3.connect('app/app.db')
@@ -247,7 +246,7 @@ class Settings(wx.Dialog):
 
         # ---------------
 
-        self.main_splitter = wx.SplitterWindow(self.panel, wx.SP_LIVE_UPDATE)
+        self.main_splitter = wx.SplitterWindow(self.panel, style=wx.SP_LIVE_UPDATE)
 
         # ------------------------------
 

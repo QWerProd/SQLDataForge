@@ -95,18 +95,21 @@ class ConnectionViewer(wx.Frame):
         item = self.treectrl_databases.GetSelection()
         root_item = self.treectrl_databases.GetItemParent(item)
         root_text = self.treectrl_databases.GetItemText(root_item)
-        if root_text == APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB']:
-            return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.MESSAGE'],
-                                 APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
-                                 wx.OK | wx.ICON_WARNING)
-        elif len(self.databases) <= 1:
-            return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_SINGLE_CONNECTION.MESSAGE'],
-                                 APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
-                                 wx.OK | wx.ICON_WARNING)
+        is_valid_text = self.db_valid_textctrl.GetValue()
+        if is_valid_text == 'Y':
+            if root_text == APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB']:
+                return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.MESSAGE'],
+                                     APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
+                                     wx.OK | wx.ICON_WARNING)
+            elif len(self.databases) <= 1:
+                return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_SINGLE_CONNECTION.MESSAGE'],
+                                     APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
+                                     wx.OK | wx.ICON_WARNING)
 
         database = self.treectrl_databases.GetItemText(item)
 
-        app_conn = sqlite3.connect('../app/app.db')
+        # Удаляем сведения о пБД
+        app_conn = sqlite3.connect('app/app.db')
         cursor = app_conn.cursor()
         try:
             cursor.execute(f"""DELETE FROM t_databases
@@ -122,8 +125,15 @@ class ConnectionViewer(wx.Frame):
             cursor.close()
             app_conn.close()
 
+        # Удаляем файл пБД, если она локальная
+        if root_text == APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB']:
+            try:
+                os.remove('data/' + database)
+            except:
+                pass
+
     def save_changes(self, event):
-        app_conn = sqlite3.connect('../app/app.db')
+        app_conn = sqlite3.connect('app/app.db')
         cursor = app_conn.cursor()
         try:
             rowid = cursor.execute(f"""SELECT id FROM t_databases 
@@ -212,7 +222,6 @@ class ConnectionViewer(wx.Frame):
 
         # -------------------------------
 
-        # TODO: Переделать под toolbar
         buttons_panel = wx.Panel(div_hor_panel)
         buttons_sizer = wx.BoxSizer(wx.VERTICAL)
         buttons_panel.SetSizer(buttons_sizer)

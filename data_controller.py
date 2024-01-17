@@ -41,7 +41,8 @@ class DataController:
     @staticmethod
     def GetDatabases(short=True) -> list:
         """Возвращает список пБД с информацией из сБД.
-        {'Person.db': 'data'}"""
+        (для short=True - ('<uDB_name', ...))
+        ('<uDB_name>', '<alias_name>', '<path/to/file>', '<description>', 'Y'/'N' - is_valid)"""
         with sqlite3.connect(db_path) as app_conn:
             databases = []
 
