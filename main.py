@@ -114,6 +114,7 @@ class MainFrame(wx.Frame):
                 u_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
                 u_checkbox.Disable()
                 sizer.AddMany([
+                    #(wx.TextCtrl(self, style=wx.TE_READONLY, size=(30, -1)), 0, wx.RIGHT, 15),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
@@ -122,6 +123,9 @@ class MainFrame(wx.Frame):
                 ])
 
                 return
+
+            # self.position_textctrl = wx.TextCtrl(self, size=(30, -1), style=wx.TE_RIGHT)
+            # sizer.Add(self.position_textctrl, 0, wx.RIGHT, 15)
 
             self.textctrl_colname = wx.TextCtrl(self, size=(150, -1))
             self.textctrl_colname.SetValue(self.colname)
@@ -535,32 +539,38 @@ class MainFrame(wx.Frame):
                                    wx.OK | wx.CANCEL | wx.ICON_QUESTION)
             result = dlg.ShowModal()
             dlg.Destroy()
-            if result == wx.ID_OK:
-                self.textctrl_table_name.Clear()
-                self.textctrl_rows_count.Clear()
-                self.textctrl_sql.ClearAll()
+            if result != wx.ID_OK:
+                return
 
-                added_items.clear()
+        self.textctrl_table_name.Clear()
+        self.textctrl_rows_count.Clear()
+        self.textctrl_sql.ClearAll()
 
-                for items in self.tree_items.values():
-                    for item in items:
-                        self.treectrl_databases.SetItemBold(item, False)
+        added_items.clear()
 
-                self.is_create_table = False
-                self.is_id_column = False
+        for items in self.tree_items.values():
+            for item in items:
+                self.treectrl_databases.SetItemBold(item, False)
 
-                self.id_column_checkbox.SetValue(False)
-                self.id_column_checkbox.Hide()
-                self.add_table_checkbox.SetValue(False)
-                self.textctrl_increment_start.SetValue('1')
-                self.textctrl_increment_start.Hide()
-                self.statictext_increment_start.Hide()
+        self.is_create_table = False
+        self.is_id_column = False
 
-                self.table_columns_regulate()
+        self.id_column_checkbox.SetValue(False)
+        self.id_column_checkbox.Hide()
+        self.add_table_checkbox.SetValue(False)
+        self.textctrl_increment_start.SetValue('1')
+        self.textctrl_increment_start.Hide()
+        self.statictext_increment_start.Hide()
 
-                self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
-                self.statusbar.SetStatusText(self.query_status, 0)
-                self.statusbar.SetStatusText("", 2)
+        # Удаление всех столбцов
+        for colitem in self.column_items:
+            colitem.Destroy()
+        self.table_items_panel.Layout()
+        self.column_items.clear()
+
+        self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
+        self.statusbar.SetStatusText(self.query_status, 0)
+        self.statusbar.SetStatusText("", 2)
 
     def refresh(self, event=None):
         self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
