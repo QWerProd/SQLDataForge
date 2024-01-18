@@ -43,8 +43,6 @@ class MainFrame(wx.Frame):
     simplegens_menuitem = []
 
     # Листы для страницы "Таблица"
-    textctrl_column_names = []
-    textctrl_column_types = []
     column_items = []
 
     # Параметры страницы "Таблица"
@@ -64,6 +62,8 @@ class MainFrame(wx.Frame):
     # ---------------------------------------------------
 
     class ColumnItem(wx.Panel):
+
+        column_info = ""
         colname = ""
         coltype = ""
         colcode = ""
@@ -94,23 +94,33 @@ class MainFrame(wx.Frame):
 
         def get_value_unique(self) -> bool: return self.unique_checkbox.GetValue()
 
-        def __init__(self, parent: wx.Panel, column_name: str = "", column_type: str = "", column_code: str = "",
-                     is_empty: bool = False):
+        def get_column_info(self) -> str: return self.column_info
+
+        def __init__(self, parent: wx.Panel, column_info: str = "", column_type: str = "", is_empty: bool = False):
             super().__init__(parent)
-            self.colname = column_name
-            self.coltype = column_type
-            self.colcode = column_code
+            self.column_info = column_info
+            if self.column_info != "":
+                self.colname = self.column_info.split(':')[2]
+                self.colcode = self.column_info.split(':')[3]
+            self.coltype = column_type                               # Хардкод до сл. обновления sql_generator
             self.im_empty = is_empty
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.SetSizer(sizer)
 
             if is_empty:
+                nn_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
+                nn_checkbox.Disable()
+                u_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
+                u_checkbox.Disable()
                 sizer.AddMany([
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
-                    (wx.StaticText(self, label=self.colcode, size=(150, -1)), 0, wx.ALIGN_CENTER_VERTICAL, 5)
+                    (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                    (nn_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35),
+                    (u_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
                 ])
+
                 return
 
             self.textctrl_colname = wx.TextCtrl(self, size=(150, -1))
@@ -123,11 +133,11 @@ class MainFrame(wx.Frame):
             sizer.Add(self.textctrl_coltype, 0, wx.RIGHT, 5)
 
             statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
-            sizer.Add(statictext_colcode, 0, wx. LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+            sizer.Add(statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
             self.not_null_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
             self.not_null_checkbox.Enable(False)
-            sizer.Add(self.not_null_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40)
+            sizer.Add(self.not_null_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
 
             self.unique_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
             self.unique_checkbox.Enable(False)
@@ -289,64 +299,82 @@ class MainFrame(wx.Frame):
                             add_act = key + ":" + item
                             break
 
+            # Удаление пустой строки
+            self.delete_column_item("")
+
             # Переопределение массивов элементов и выделения выбранных элементов в дереве
             if len(added_items) <= 0:
                 added_items.append(add_act)
-                added_item_text.append(activated)
-                added_item_code.append(add_act.split(':')[2])
+                self.append_column_item(add_act, 'TEXT')
                 self.treectrl_databases.SetItemBold(get_item, True)
-                self.textctrl_column_names.append(add_act.split(':')[2])
-                self.textctrl_column_types.append(add_act.split(':')[3])
             else:
                 is_removed = False
                 for item in added_items:
                     if activated in item:
                         added_items.remove(add_act)
-                        added_item_text.remove(activated)
-                        added_item_code.remove(add_act.split(':')[2])
+                        self.delete_column_item(add_act)
                         self.treectrl_databases.SetItemBold(get_item, False)
-                        self.textctrl_column_names.remove(add_act.split(':')[2])
-                        self.textctrl_column_types.remove(add_act.split(':')[3])
                         is_removed = True
                         break
                 if not is_removed:
                     added_items.append(add_act)
-                    added_item_text.append(activated)
-                    added_item_code.append(add_act.split(':')[2])
+                    self.append_column_item(add_act, 'TEXT')
                     self.treectrl_databases.SetItemBold(get_item, True)
-                    self.textctrl_column_names.append(add_act.split(':')[2])
-                    self.textctrl_column_types.append(add_act.split(':')[3])
-            self.table_columns_regulate()
 
-    def table_columns_regulate(self):
-        self.table_items_panel.DestroyChildren()
-        self.table_items_sizer.Clear(True)
-        self.column_items.clear()
-        items = []
+            # Добавление пустой строки
+            self.append_column_item("", "", True)
 
-        if self.is_id_column:
-            id_column_item = self.ColumnItem(self.table_items_panel, 'id', 'INTEGER')
-            self.column_items.append(id_column_item)
-            items.append((self.column_items[0], 0, wx.ALL, 0))
-            self.id_added = 1
-
-        for i in range(len(self.textctrl_column_names)):
-            colitem = self.ColumnItem(self.table_items_panel, self.textctrl_column_names[i],
-                                      'TEXT', added_item_text[i])   # Параметр захардкоден до
-            colitem.activating_checkboxes(self.is_create_table)                # следующего обновления sql_generator
-            self.column_items.append(colitem)
-            items.append((self.column_items[i + self.id_added], 0, wx.ALL, 0))
-        empty_item = self.ColumnItem(self.table_items_panel, is_empty=True)
-        self.column_items.append(empty_item)
-        items.append((empty_item, 0, wx.ALL, 0))
+    def append_column_item(self, column_item: str, column_type: str, is_empty: bool = False):
+        # Создаем столбец
+        colitem = MainFrame.ColumnItem(self.table_items_panel, column_item, column_type, is_empty)
+        colitem.activating_checkboxes(self.is_create_table)
+        self.column_items.append(colitem)
 
         # Обновляем значения списков у Индексов
-        for item in index_items:
-            item.update_choices(added_item_code)
+        if column_item != '':
+            added_item_code.append(column_item.split(':')[2])
+            for item in index_items:
+                item.update_choices(added_item_code)
 
-        self.table_items_sizer.AddMany(items)
+        # Добавляем элемент в рабочую зону
+        self.table_items_sizer.Add(colitem, 0, wx.LEFT, 5)
         self.table_items_panel.Layout()
-        self.table_columns_panel.Layout()
+
+    def insert_column_item(self, position: int, column_item: str, column_type: str, is_empty: bool = False):
+        # Обход по всем элементам после указанной позиции и их удаление
+        after_position_items = []
+        for i in range(position, len(self.column_items)):
+            colitem = self.column_items[position]
+            after_position_items.append(colitem)
+            self.column_items.remove(colitem)
+            self.table_items_sizer.Detach(colitem)
+        self.table_items_panel.Layout()
+
+        # Добавление столбца
+        self.append_column_item(column_item, column_type, is_empty)
+
+        # Восстановление удаленных столбцов
+        for deleted_colitem in after_position_items:
+            self.column_items.append(deleted_colitem)
+            self.table_items_sizer.Add(deleted_colitem, 0, wx.LEFT, 5)
+        self.table_items_panel.Layout()
+
+    def delete_column_item(self, column_item: str):
+        # Поиск необходимого элемента
+        curr_colitem = MainFrame.ColumnItem
+        for colitem in self.column_items:
+            if colitem.get_column_info() == column_item:
+                curr_colitem = colitem
+                break
+
+        # Удаление элемента и обновление панелей
+        self.column_items.remove(curr_colitem)
+        if column_item != "":
+            added_item_code.remove(column_item.split(':')[2])
+            for item in index_items:
+                item.update_choices(added_item_code)
+        curr_colitem.Destroy()
+        self.table_items_panel.Layout()
 
     def generate(self, event):
         self.SetCursor(wx.Cursor(wx.CURSOR_WAIT))
@@ -411,10 +439,10 @@ class MainFrame(wx.Frame):
                 # Получение значений имен столбцов
                 colinfo = []
                 for i in range(len(added_items)):
-                    coldict = {'column_name': self.column_items[i].get_column_name(),
-                               'column_type': self.column_items[i].get_column_type(),
-                               'column_not_null': self.column_items[i].get_value_not_null(),
-                               'column_unique': self.column_items[i].get_value_unique()}
+                    coldict = {'column_name': self.column_items[i + self.is_id_column].get_column_name(),
+                               'column_type': self.column_items[i + self.is_id_column].get_column_type(),
+                               'column_not_null': self.column_items[i + self.is_id_column].get_value_not_null(),
+                               'column_unique': self.column_items[i + self.is_id_column].get_value_unique()}
                     colinfo.append(coldict)
 
                 # Проверка имен столбцов на уникальность
@@ -513,9 +541,6 @@ class MainFrame(wx.Frame):
                 self.textctrl_sql.ClearAll()
 
                 added_items.clear()
-                added_item_text.clear()
-                self.textctrl_column_names.clear()
-                self.textctrl_column_types.clear()
 
                 for items in self.tree_items.values():
                     for item in items:
@@ -687,7 +712,7 @@ class MainFrame(wx.Frame):
         # Локаль приложения
         locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']], wx.LOCALE_LOAD_DEFAULT)
 
-        def is_table_enabled(event):
+        def is_table_enabled(event=None):
             self.is_create_table = self.add_table_checkbox.GetValue()
             self.is_id_column = False
 
@@ -695,28 +720,28 @@ class MainFrame(wx.Frame):
                 self.id_column_checkbox.Show()
             else:
                 self.id_column_checkbox.Hide()
-                self.statictext_increment_start.Hide()
-                self.textctrl_increment_start.Hide()
-                self.textctrl_increment_start.SetValue('1')
                 self.id_column_checkbox.SetValue(False)
-            self.table_columns_regulate()
+                is_id_enabled()
+            for colitem in self.column_items:
+                colitem.activating_checkboxes(self.is_create_table)
             table_page_panel.Layout()
             for colitem in self.column_items:
                 colitem.activating_checkboxes(self.is_create_table)
 
-        def is_id_enabled(event):
+        def is_id_enabled(event=None):
             self.is_id_column = self.id_column_checkbox.GetValue()
 
             if self.is_id_column:
                 added_item_code.insert(0, 'id')
+                self.insert_column_item(0, '::id:', 'INTEGER')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
             else:
                 added_item_code.remove('id')
+                self.delete_column_item('::id:')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')
-            self.table_columns_regulate()
             table_page_panel.Layout()
 
         def create_index(event):
@@ -1001,9 +1026,10 @@ class MainFrame(wx.Frame):
         self.table_items_panel.SetSizer(self.table_items_sizer)
 
         self.empty_item = self.ColumnItem(self.table_items_panel, is_empty=True)
-        self.table_items_sizer.Add(self.empty_item, 0, wx.ALL, 5)
+        self.column_items.append(self.empty_item)
+        self.table_items_sizer.Add(self.empty_item, 0, wx.LEFT, 5)
         # ----------------------------------------
-        self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL)
+        self.table_columns_sizer.Add(self.table_items_panel, 1, wx.ALL | wx.EXPAND)
 
         # ----------------------------------------
         main_page_boxsizer.Add(self.table_columns_panel, 1, wx.ALL | wx.EXPAND)

@@ -119,7 +119,7 @@ class SQLGenerator:
                     # self.column_names.append('id')
 
             for database in databases:
-                conn = sqlite3.connect(database[1] + '\\' + database[0])
+                conn = sqlite3.connect(database[1])
                 connects.append([conn, database[0]])
                 cursor = conn.cursor()
                 temp_cols = []
