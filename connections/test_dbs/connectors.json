@@ -1,0 +1,7 @@
+[
+  {
+    "connector-name": "SQLite",
+    "connection-type": "local_file",
+    "connector-logo": "img/connectors/SQlite.png"
+  }
+]

@@ -51,21 +51,18 @@ class SQLGenerator:
         self.queryrow1 += '(' + res + ')'
 
     def CreateTable(self) -> str:
-        query_createtable = f'CREATE TABLE IF NOT EXISTS {self.table_name} (\n    '
+        query_createtable = f'CREATE TABLE {self.table_name} (\n    '
         items = []
         if self.new_table_info['is_id_create']:
-            items.append(f'id INTEGER NOT NULL\n')
+            items.append(f'id INTEGER NOT NULL PRIMARY KEY\n')
         for colinfo in self.columns_info:
             items.append(f"{colinfo['column_name']} {colinfo['column_type']} "
                          f"{'NOT NULL ' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
-        query_createtable += '   ,'.join(items)
-        if self.new_table_info['is_id_create']:
-            query_createtable += '    PRIMARY KEY("id")\n'
-        query_createtable += ');'
+        query_createtable += '   ,'.join(items) + ');'
         return query_createtable
 
     def CreateIndex(self, index_info: dict) -> str:
-        index = (f"CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX IF NOT EXISTS {index_info['index_name']}\n"
+        index = (f"CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX {index_info['index_name']}\n"
                  f"ON {self.table_name}({','.join(index_info['columns'])})")
         if index_info['condition'] == '':
             index += ';'
@@ -73,6 +70,7 @@ class SQLGenerator:
             index += index_info['condition']
             if not index_info['condition'].endswith(';'):
                 index += ';'
+        index += '\n/'
 
         return index
 
@@ -104,8 +102,11 @@ class SQLGenerator:
                      'WHERE dbname IN ("' + '","'.join(list_of_dbs) + '")')
             path_of_dbs = app_curs.execute(query).fetchall()
             databases = []
-            for i in range(0, len(list_of_dbs)):
-                databases.append((list_of_dbs[i], path_of_dbs[i][0]))
+            for path in path_of_dbs:
+                for db in list_of_dbs:
+                    if db in path[0]:
+                        databases.append((db, path[0]))
+                        break
 
             id_column = False
             if self.new_table_info['is_id_create']:
@@ -270,14 +271,14 @@ class SQLGenerator:
 
         # Создание таблицы
         if is_table:
-            full_query += self.CreateTable() + '\n\n'
+            full_query += self.CreateTable() + '\n/\n'
 
         # Создание индексов
         if len(self.indexes) > 0:
             indexes = []
             for index in self.indexes:
                 indexes.append(self.CreateIndex(index))
-            full_query += '\n'.join(indexes) + '\n\n'
+            full_query += '\n'.join(indexes) + '\n'
 
         # Сборка значений
         full_query += self.queryrow1 + '\nVALUES '

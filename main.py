@@ -5,18 +5,21 @@ import sqlite3
 import subprocess
 import sys
 import webbrowser
+import json
 
 from app.tools.recovery import Recovery
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
 from app.error_catcher import ErrorCatcher
-from conn_frames.connection_viewer import ConnectionViewer
-from conn_frames.new_conn import NewConnection
-from conn_frames.new_udb_wizard import UDBCreateMaster
+from connections.udb_conn.connection_viewer import ConnectionViewer
+from connections.udb_conn.new_conn import NewConnection
+from connections.udb_conn.new_udb_wizard import UDBCreateMaster
 from single_generator import SimpleGenerator
 from app.tools.settings import Settings
 from app.tools.logviewer import Logviewer
+from connections.test_dbs.new_test_conn import NewTestConnection
+from connections.test_dbs.test_connector import TestConnector
 from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
@@ -38,6 +41,11 @@ class MainFrame(wx.Frame):
     databases = ()
     all_tables = {}
 
+    # Тестовые подключения
+    all_connections = []
+    connection = TestConnector
+    curr_conn_item = wx.TreeItemId
+
     # Переменные "Простого генератора"
     gens = {}
     simplegens_menuitem = []
@@ -52,6 +60,7 @@ class MainFrame(wx.Frame):
     # Параметры состояния
     is_generated = False
     is_saved = False
+    is_transaction = False
     file_path = ''
     file_name = ''
     query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
@@ -114,18 +123,13 @@ class MainFrame(wx.Frame):
                 u_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
                 u_checkbox.Disable()
                 sizer.AddMany([
-                    #(wx.TextCtrl(self, style=wx.TE_READONLY, size=(30, -1)), 0, wx.RIGHT, 15),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
                     (nn_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35),
                     (u_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
                 ])
-
                 return
-
-            # self.position_textctrl = wx.TextCtrl(self, size=(30, -1), style=wx.TE_RIGHT)
-            # sizer.Add(self.position_textctrl, 0, wx.RIGHT, 15)
 
             self.textctrl_colname = wx.TextCtrl(self, size=(150, -1))
             self.textctrl_colname.SetValue(self.colname)
@@ -282,9 +286,9 @@ class MainFrame(wx.Frame):
 
     # ---------------------------------------------------
 
-    def on_activated(self, evt):
+    def on_database_tree_activated(self, event):
         # Получение выбранного элемента и проверка, является ли он НЕ базой данных
-        get_item = evt.GetItem()
+        get_item = event.GetItem()
         activated = self.treectrl_databases.GetItemText(get_item)
         if activated.endswith('.db'):
             return
@@ -327,6 +331,92 @@ class MainFrame(wx.Frame):
 
             # Добавление пустой строки
             self.append_column_item("", "", True)
+
+    def on_connection_tree_activated(self, event):
+        get_item = event.GetItem()
+        if self.curr_conn_item == get_item:
+            self.connection.close()
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+            self.curr_conn_item = None
+            self.connection = None
+        else:
+            # Сбрасываем прошлое подключение
+            if self.connection is not None:
+                self.connection.close()
+                self.connection = None
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+
+            self.curr_conn_item = get_item
+            activated = self.treectrl_test_connections.GetItemText(self.curr_conn_item)
+
+            conn_data = {}
+            for conn_info in self.all_connections:
+                if conn_info['db-name'] == activated:
+                    conn_data = conn_info
+                    break
+
+            self.connection = TestConnector(conn_data)
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
+
+    def push_query(self, event):
+        if self.connection.check_connection():
+            query = self.textctrl_sql.GetValue()
+            if query == '':
+                return catcher.error_message('E001')
+            result, error_message = self.connection.execute_query(query)
+            if result != -1:
+                self.is_transaction = True
+                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
+                              APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
+                              wx.ICON_INFORMATION | wx.OK)
+            else:
+                catcher.error_message('E016', 'Error message: ' + error_message)
+        else:
+            catcher.error_message('E015')
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+
+    def commit_transaction(self, event):
+        if self.connection is None:
+            catcher.error_message('E019')
+        elif self.is_transaction:
+            if self.connection.check_connection():
+                result, count_query, transaction_time = self.connection.commit()
+                if result != -1:
+                    self.is_transaction = False
+                    wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
+                                                                                                          round(transaction_time, 2)),
+                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
+                                  wx.ICON_INFORMATION | wx.OK)
+                else:
+                    catcher.error_message('E017', 'Error message: ' + count_query)
+            else:
+                catcher.error_message('E015')
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+        else:
+            catcher.error_message('E020')
+
+    def rollback_transaction(self, event):
+        if self.connection is None:
+            catcher.error_message('E019')
+        elif self.is_transaction:
+            if self.connection.check_connection():
+                result, count_query, transaction_time = self.connection.rollback()
+                if result != -1:
+                    self.is_transaction = False
+                    wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
+                                                                                                          round(transaction_time, 2)),
+                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
+                                  wx.ICON_INFORMATION | wx.OK)
+                else:
+                    catcher.error_message('E018', 'Error message: ' + count_query)
+            else:
+                catcher.error_message('E015')
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+        else:
+            catcher.error_message('E020')
+
+    # Методы работы со столбцами
+    ############################
 
     def append_column_item(self, column_item: str, column_type: str, is_empty: bool = False):
         # Создаем столбец
@@ -567,6 +657,7 @@ class MainFrame(wx.Frame):
             colitem.Destroy()
         self.table_items_panel.Layout()
         self.column_items.clear()
+        self.append_column_item("", "", True)
 
         self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
         self.statusbar.SetStatusText(self.query_status, 0)
@@ -576,9 +667,10 @@ class MainFrame(wx.Frame):
         self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
         self.all_tables = DataController.GetTablesFromDB()
         self.databases = DataController.GetDatabases(False)
-        self.set_tree_items()
+        self.set_databases_tree_items()
+        self.set_conn_info()
 
-    def set_tree_items(self):
+    def set_databases_tree_items(self):
         for key, value in self.all_tables.items():
             temp_items = []
             udb_name_label = ''
@@ -601,6 +693,19 @@ class MainFrame(wx.Frame):
             else:
                 self.treectrl_databases.SetItemImage(root, self.invalid_db_image)
 
+    def set_conn_info(self):
+        json_data = []
+        with open('connections/test_dbs/test_conns.json') as json_file:
+            json_data = json.load(json_file)
+
+        self.all_connections = json_data
+
+    def set_connections_tree_items(self):
+        for conn_info in self.all_connections:
+            tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['db-name'])
+            if conn_info['connector-name'] == 'SQLite':
+                self.treectrl_test_connections.SetItemImage(tree_item, self.sqlite_image)
+
     def delete_index(self, item):
         index_items.remove(item)
         item.Hide()
@@ -609,9 +714,8 @@ class MainFrame(wx.Frame):
     # Открывашки для других окон
     ############################
     def open_new_connection(self, event):
-        new_conn = NewConnection()
-        new_conn.Show()
-        new_conn.SetFocus()
+        with NewConnection(self) as new_conn:
+            new_conn.ShowModal()
 
     def open_connection_viewer(self, event):
         conn_viewer = ConnectionViewer()
@@ -660,15 +764,20 @@ class MainFrame(wx.Frame):
         about_app.Show()
         about_app.SetFocus()
 
+    def open_new_test_conn(self, event):
+        with NewTestConnection(self) as new_test_conn:
+            result = new_test_conn.ShowModal()
+
     ############################
 
     def close_app(self, event):
-        if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True':
+        if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True' or self.is_transaction:
             result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.MESSAGE'],
-                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.MESSAGE'],
+                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.CAPTION'],
                                    wx.YES_NO | wx.NO_DEFAULT, self)
             if result == wx.YES:
                 self.Destroy()
+                self.connection.close()
                 exit()
             else:
                 return
@@ -718,6 +827,9 @@ class MainFrame(wx.Frame):
         self.Maximize()
         self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
+        self.connection = None
+
+        self.bold_font = wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         # Локаль приложения
         locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']], wx.LOCALE_LOAD_DEFAULT)
@@ -742,12 +854,10 @@ class MainFrame(wx.Frame):
             self.is_id_column = self.id_column_checkbox.GetValue()
 
             if self.is_id_column:
-                added_item_code.insert(0, 'id')
                 self.insert_column_item(0, '::id:', 'INTEGER')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
             else:
-                added_item_code.remove('id')
                 self.delete_column_item('::id:')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
@@ -822,6 +932,24 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.save_as, savefile_as_menuitem)
         self.file_menu.Append(savefile_as_menuitem)
 
+        self.file_menu.AppendSeparator()
+
+        execute_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                       APP_TEXT_LABELS['BUTTON.DO'] + '\t' + APP_PARAMETERS['KEY_EXECUTE_SQL'])
+        execute_menuitem.SetBitmap(wx.Bitmap('img/16x16/execute.png'))
+        self.Bind(wx.EVT_MENU, self.push_query, execute_menuitem)
+        self.file_menu.Append(execute_menuitem)
+        commit_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                      APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.COMMIT'] + '\t' + APP_PARAMETERS['KEY_COMMIT'])
+        commit_menuitem.SetBitmap(wx.Bitmap('img/16x16/commit.png'))
+        self.Bind(wx.EVT_MENU, self.commit_transaction, commit_menuitem)
+        self.file_menu.Append(commit_menuitem)
+        rollback_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.ROLLBACK'] + '\t' + APP_PARAMETERS['KEY_ROLLBACK'])
+        rollback_menuitem.SetBitmap(wx.Bitmap('img/16x16/rollback.png'))
+        self.Bind(wx.EVT_MENU, self.rollback_transaction, rollback_menuitem)
+        self.file_menu.Append(rollback_menuitem)
+
         # Подключения
         # ----------
         self.connect_menu = wx.Menu()
@@ -847,6 +975,15 @@ class MainFrame(wx.Frame):
         view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         self.connect_menu.Append(view_connects_menuitem)
+
+        self.connect_menu.AppendSeparator()
+
+        new_test_connection = wx.MenuItem(self.connect_menu, wx.ID_ANY,
+                                          APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN'] + '\t' +
+                                          APP_PARAMETERS['KEY_NEW_TEST_CONN'])
+        new_test_connection.SetBitmap(wx.Bitmap('img/16x16/key.png'))
+        self.Bind(wx.EVT_MENU, self.open_new_test_conn, new_test_connection)
+        self.connect_menu.Append(new_test_connection)
 
         # Генератор
         # ----------
@@ -930,6 +1067,19 @@ class MainFrame(wx.Frame):
                              shortHelp=APP_TEXT_LABELS['BUTTON.SAVE_AS'])
         self.Bind(wx.EVT_TOOL, self.save_as, id=5)
         self.toolbar.AddSeparator()
+        self.toolbar.AddTool(11, "Выполнить запрос", wx.Bitmap("img/16x16/execute.png"),
+                             shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL'])
+        self.Bind(wx.EVT_TOOL, self.push_query, id=11)
+        self.toolbar.AddTool(9, "Commit", wx.Bitmap("img/16x16/commit.png"),
+                             shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT'])
+        self.Bind(wx.EVT_TOOL, self.commit_transaction, id=9)
+        self.toolbar.AddTool(10, "Rollback", wx.Bitmap("img/16x16/rollback.png"),
+                             shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK'])
+        self.Bind(wx.EVT_TOOL, self.rollback_transaction, id=10)
+        self.toolbar.AddTool(8, "Тест", wx.Bitmap("img/16x16/key.png"),
+                             shortHelp=APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN'])
+        self.Bind(wx.EVT_TOOL, self.open_new_test_conn, id=8)
+        self.toolbar.AddSeparator()
         self.toolbar.AddTool(6, "Просмотр логов", wx.Bitmap("img/16x16/history.png"),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER'])
         self.Bind(wx.EVT_TOOL, self.open_logviewer, id=6)
@@ -943,20 +1093,71 @@ class MainFrame(wx.Frame):
         # ----------
         data_panel = wx.SplitterWindow(main_panel, style=wx.SP_LIVE_UPDATE)
 
+        # Боковой контейнер
+        # --------------------
+
+        side_panel = wx.Panel(data_panel, size=(200, -1))
+        side_sizer = wx.BoxSizer(wx.VERTICAL)
+        side_panel.SetSizer(side_sizer)
+
+        # ------------------------------
+
+        treectrl_splitterwindow = wx.SplitterWindow(side_panel, style=wx.SP_LIVE_UPDATE)
+
+        # ----------------------------------------
+
+        databases_panel = wx.Panel(treectrl_splitterwindow, style=wx.BORDER_STATIC)
+        databases_sizer = wx.BoxSizer(wx.VERTICAL)
+        databases_panel.SetSizer(databases_sizer)
+
+        databases_statictext = wx.StaticText(databases_panel, label=APP_TEXT_LABELS['MAIN.SIDE_PANEL.UDB'])
+        databases_statictext.SetFont(self.bold_font)
+        databases_sizer.Add(databases_statictext, 0, wx.EXPAND | wx.ALL, 5)
+
         # Дерево баз данных
-        self.treectrl_databases = wx.TreeCtrl(data_panel, size=(200, -1),
+        self.treectrl_databases = wx.TreeCtrl(databases_panel,
                                               style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
         self.treectrl_databases_root = self.treectrl_databases.AddRoot('')
         self.all_tables = DataController.GetTablesFromDB()
-        self.image_items = wx.ImageList(16, 16)
-        self.database_image = self.image_items.Add(
+        self.image_database_items = wx.ImageList(16, 16)
+        self.database_image = self.image_database_items.Add(
             wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.invalid_db_image = self.image_items.Add(
+        self.invalid_db_image = self.image_database_items.Add(
             wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.table_image = self.image_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.treectrl_databases.AssignImageList(self.image_items)
-        self.set_tree_items()
-        self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_activated, self.treectrl_databases)
+        self.table_image = self.image_database_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.treectrl_databases.AssignImageList(self.image_database_items)
+        self.set_databases_tree_items()
+        self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_database_tree_activated, self.treectrl_databases)
+        databases_sizer.Add(self.treectrl_databases, 2, wx.EXPAND)
+        # ----------------------------------------
+
+        connections_panel = wx.Panel(treectrl_splitterwindow, style=wx.BORDER_STATIC)
+        connections_sizer = wx.BoxSizer(wx.VERTICAL)
+        connections_panel.SetSizer(connections_sizer)
+
+        connections_statictext = wx.StaticText(connections_panel, label=APP_TEXT_LABELS['MAIN.SIDE_PANEL.TEST_CONN'])
+        connections_statictext.SetFont(self.bold_font)
+        connections_sizer.Add(connections_statictext, 0, wx.EXPAND | wx.ALL, 5)
+
+        # Дерево тестовых подключений
+        self.treectrl_test_connections = wx.TreeCtrl(connections_panel,
+                                                     style=wx.TR_HIDE_ROOT)
+        self.treectrl_test_connections_root = self.treectrl_test_connections.AddRoot('')
+        self.image_connection_items = wx.ImageList(16, 16)
+        self.sqlite_image = self.image_connection_items.Add(
+            wx.Image('img/16x16/SQLite.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.treectrl_test_connections.AssignImageList(self.image_connection_items)
+        self.set_conn_info()
+        self.set_connections_tree_items()
+        self.treectrl_test_connections.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_connection_tree_activated)
+        connections_sizer.Add(self.treectrl_test_connections, 1, wx.EXPAND)
+        # ----------------------------------------
+
+        treectrl_splitterwindow.SplitHorizontally(databases_panel, connections_panel, 400)
+        treectrl_splitterwindow.SetMinimumPaneSize(150)
+        # --------------------
+
+        side_sizer.Add(treectrl_splitterwindow, 1, wx.EXPAND)
 
         # Контейнер работы с кейсами
         # ----------
@@ -1135,7 +1336,7 @@ class MainFrame(wx.Frame):
         table_panel.SplitHorizontally(notebook_settings, self.textctrl_sql)
         table_panel.SetMinimumPaneSize(100)
         # -------------------
-        data_panel.SplitVertically(self.treectrl_databases, table_panel, 150)
+        data_panel.SplitVertically(side_panel, table_panel, 150)
         data_panel.SetMinimumPaneSize(150)
         main_boxsizer.Add(data_panel, 1, wx.BOTTOM | wx.EXPAND)
         # ----------

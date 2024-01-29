@@ -30,7 +30,11 @@ APP_PARAMETERS = {
     'KEY_SAVE_AS': str,
     'SQL_KEYWORDS': "insert into values create table as text number primary key integer not null where and or like"
                     " if exists index on is unique update set",
-    'IS_ALIAS_UDB_USING': str
+    'IS_ALIAS_UDB_USING': str,
+    'KEY_NEW_TEST_CONN': str,
+    'KEY_COMMIT': str,
+    'KEY_ROLLBACK': str,
+    'KEY_EXECUTE_SQL': str
 }
 
 APP_LOCALES = {
@@ -42,16 +46,16 @@ APP_TEXT_LABELS = dict()
 
 # Установка параметров
 curs = app_conn.cursor()
-try:
-    for param in APP_PARAMETERS.keys():
 
+for param in APP_PARAMETERS.keys():
+    try:
         param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
         APP_PARAMETERS[param] = param_name[0]
-except sqlite3.OperationalError as e:
-    #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
-    exit(14)
-except TypeError:
-    pass
+    except sqlite3.OperationalError as e:
+        #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+        exit(14)
+    except TypeError:
+        pass
 
 # Установка словаря с текстом для labels
 try:

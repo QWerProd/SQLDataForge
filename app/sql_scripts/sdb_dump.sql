@@ -519,7 +519,117 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('BUTTON.COPY','en','Copy'),
 	 ('BUTTON.WRAP','en','Wrap'),
 	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING','ru','Использовать псевдонимы пБД'),
-	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING','en','Use the aliases of uDBs');
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING','en','Use the aliases of uDBs'),
+	 ('TEST_DB_VIEWER.TITLE','ru','Подключения к тестовым БД'),
+	 ('NEW_TEST_CONN.TITLE','ru','Новое тестовое подключение'),
+	 ('NEW_TEST_CONN.HEADER','ru','Мастер тест-подключения'),
+	 ('NEW_TEST_CONN.HEADER2','ru','Данный мастер поможет создать подключение к тестовой БД
+для выполнения сгенерируемых запросов'),
+	 ('MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN','ru','Новое тестовое подключение...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.NEW_TEST_CONN','ru','Открыть мастер добавления нового тестового подключения'),
+	 ('NEW_TEST_CONN.CHOOSE_CONNECTOR.TITLE','ru','Выберите тип БД, к которой необходимо подключиться:'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.EMPTY_CONNECTOR.CAPTION','ru','Выберите тип'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.EMPTY_CONNECTOR.MESSAGE','ru','Не выбран тип тестовой БД!'),
+	 ('NEW_TEST_CONN.CONNECT_LOCAL.DB_INFO','ru','Сведения о БД'),
+	 ('NEW_TEST_CONN.CONNECT_LOCAL.DB_PATH','ru','Путь к БД:'),
+	 ('NEW_TEST_CONN.DRIVER','ru','Драйвер'),
+	 ('NEW_TEST_CONN.CONFIRM_CONN.DB_NAME','ru','Имя БД:'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.MESSAGE','ru','Введите путь к тестовой Базе Данных для подключения!'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.CAPTION','ru','Тестовая БД не указана'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.MESSAGE','ru','Подключение к данной БД уже выполнено!'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.CAPTION','ru','Уже подключено'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION','ru','Ошибка подключения'),
+	 ('E015.MESSAGE','ru','Подключение к тестовой БД было сброшено!'),
+	 ('MAIN.SIDE_PANEL.UDB','ru','Исходники данных'),
+	 ('MAIN.SIDE_PANEL.TEST_CONN','ru','Тестовые БД'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.MESSAGE','ru','Измените имя тестовой БД'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.CAPTION','ru','Ошибка именования БД'),
+	 ('E016.CAPTION','ru','Ошибка выполнения запроса'),
+	 ('E016.MESSAGE','ru','При выполнении запроса в тестовой БД произошла ошибка.
+Попробуйте еще раз или сообщите об инциденте:
+ds.qwerprog04@mail.ru'),
+	 ('E017.CAPTION','ru','Ошибка транзакции'),
+	 ('E017.MESSAGE','ru','При закрытии транзакции в тестовой БД произошла ошибка.
+Попробуйте еще раз или сообщите об инциденте:
+ds.qwerprog04@mail.ru'),
+	 ('MAIN.MAIN_MENU.FILE.COMMIT','ru','Транзакция'),
+	 ('MAIN.MAIN_MENU.FILE.ROLLBACK','ru','Откат'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT','ru','Подтверждение транзакции'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK','ru','Откат транзакции');
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('E018.CAPTION','ru','Ошибка отката транзакции'),
+	 ('E018.MESSAGE','ru','При откате транзакции в тестовой БД произошла ошибка.
+Попробуйте еще раз или сообщите об инциденте:
+ds.qwerprog04@mail.ru'),
+	 ('E019.CAPTION','ru','Нет подключения'),
+	 ('E019.MESSAGE','ru','Перед операцией выполните подключение к тестовой БД!'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL','ru','Выполнить запрос в тестовой БД'),
+	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION','ru','Успешное выполнение'),
+	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE','ru','Выполнено SQL-запросов: '),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE','ru','Выполнено запросов: {0}
+Время транзакции: {1} с.'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION','ru','Транзакция зафиксирована'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION','ru','Транзакция отменена'),
+	 ('E020.CAPTION','ru','Транзакция закрыта'),
+	 ('E020.MESSAGE','ru','Нет открытой транзакции с изменениями!'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.MESSAGE','ru','Операций откатано: {0}
+Время транзакции: {1} с.'),
+	 ('RECOVERY.CHOOSE_ACTION','en','Specify the required action:'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY','en','Open the Recovery module'),
+	 ('TEST_DB_VIEWER.TITLE','en','Connections to test databases'),
+	 ('NEW_TEST_CONN.TITLE','en','New test connection'),
+	 ('NEW_TEST_CONN.HEADER','en','Test Connection Wizard'),
+	 ('NEW_TEST_CONN.HEADER2','en','This wizard will help you create a connection to the test database
+to run the generated queries'),
+	 ('MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN','en','New test connection...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.NEW_TEST_CONN','en','Open the wizard for adding a new test connection'),
+	 ('NEW_TEST_CONN.CHOOSE_CONNECTOR.TITLE','en','Select the type of database you want to connect to:'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.EMPTY_CONNECTOR.CAPTION','en','Choose the type'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.EMPTY_CONNECTOR.MESSAGE','en','The test database type is not selected!'),
+	 ('NEW_TEST_CONN.CONNECT_LOCAL.DB_INFO','en','Information about database'),
+	 ('NEW_TEST_CONN.CONNECT_LOCAL.DB_PATH','en','Path to DB:'),
+	 ('NEW_TEST_CONN.DRIVER','en','Driver'),
+	 ('NEW_TEST_CONN.CONFIRM_CONN.DB_NAME','en','DB name:'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.MESSAGE','en','Enter the path to the test Database to connect!'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.CAPTION','en','The test database is not specified'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.MESSAGE','en','The connection to this database has already been completed!'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.CAPTION','en','Already connect'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION','en','Connection error'),
+	 ('E015.MESSAGE','en','The connection to the test database has been reset!'),
+	 ('MAIN.SIDE_PANEL.UDB','en','Data sources'),
+	 ('MAIN.SIDE_PANEL.TEST_CONN','en','Test databases'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.MESSAGE','en','Change the name of test database'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.CAPTION','en','Database naming error'),
+	 ('E016.CAPTION','en','Query executing error'),
+	 ('E016.MESSAGE','en','An error occurred while executing the query in the test database.
+Try again or report the incident:
+ds.qwerprog04@mail.ru'),
+	 ('E017.CAPTION','en','Transaction error'),
+	 ('E017.MESSAGE','en','An error occurred in the test database when closing the transaction.
+Try again or report the incident:
+ds.qwerprog04@mail.ru'),
+	 ('MAIN.MAIN_MENU.FILE.COMMIT','en','Commit'),
+	 ('MAIN.MAIN_MENU.FILE.ROLLBACK','en','Rollback'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT','en','Commit transaction'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK','en','Rollback transaction'),
+	 ('E018.CAPTION','en','Transaction rollback error'),
+	 ('E018.MESSAGE','en','An error occurred when rolling back a transaction in the test database.
+Try again or report the incident:
+ds.qwerprog04@mail.ru'),
+	 ('E019.CAPTION','en','Connection not exists'),
+	 ('E019.MESSAGE','en','Before the operation, connect to the test database!');
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL','en','Execute the query in test database'),
+	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION','en','Successful completion'),
+	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE','en','Queries completed:'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE','en','Queries completed: {0}
+Transaction time: {1} sec.'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION','en','Transaction commited'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION','en','Transaction rollbacked'),
+	 ('E020.CAPTION','en','Transaction closed'),
+	 ('E020.MESSAGE','en','There is no open transaction with changes!'),
+	 ('MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.MESSAGE','en','Queries canceled: {0}
+Transaction time: {1} sec.');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -536,7 +646,13 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E012','E012.CAPTION','E012.MESSAGE'),
 	 ('E013','E013.CAPTION','E013.MESSAGE'),
 	 ('E014','E014.CAPTION','E014.MESSAGE'),
-	 ('E015','E015.CAPTION','E015.MESSAGE');
+	 ('E015','E015.CAPTION','E015.MESSAGE'),
+	 ('E015','NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION','E015.MESSAGE'),
+	 ('E016','E016.CAPTION','E016.MESSAGE'),
+	 ('E017','E017.CAPTION','E017.MESSAGE'),
+	 ('E018','E018.CAPTION','E018.MESSAGE'),
+	 ('E019','E019.CAPTION','E019.MESSAGE'),
+	 ('E020','E020.CAPTION','E020.MESSAGE');
 /
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
@@ -560,7 +676,11 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_RECOVERY','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY',0),
 	 ('KEY_LOGVIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER',0),
 	 ('KEY_SAVE_AS','Ctrl+Shift+S','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS',0),
-	 ('IS_ALIAS_UDB_USING','False','SYSTEM',NULL,2);
+	 ('IS_ALIAS_UDB_USING','False','SYSTEM',NULL,2),
+	 ('KEY_NEW_TEST_CONN','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_NEW_TEST_CONN',0),
+	 ('KEY_COMMIT','Shift+Alt+C','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT',0),
+	 ('KEY_ROLLBACK','Shift+Alt+R','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK',0),
+	 ('KEY_EXECUTE_SQL','Shift+Alt+E','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL',0);
 /
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
