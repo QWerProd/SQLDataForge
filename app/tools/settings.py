@@ -1,10 +1,11 @@
 import sqlite3
+import os
 
 import wx.stc
 import wx.lib.scrolledpanel
 
 from app.tools.settings_entries import *
-from app.app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
+from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 
 
 class Settings(wx.Dialog):
@@ -230,9 +231,9 @@ class Settings(wx.Dialog):
 
     def __init__(self, parent: wx.Frame):
         super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
-        self.app_conn = sqlite3.connect('app/app.db')
+        self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         self.sett_items = {}
         self.changed_params = {}
         self.changed_params_journal = {}

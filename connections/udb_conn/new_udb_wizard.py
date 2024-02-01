@@ -1,9 +1,10 @@
 import wx
+import os
 import wx.adv
 import sqlite3
 
 from app.error_catcher import ErrorCatcher
-from app.app_parameters import APP_TEXT_LABELS
+from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
 
 
 class UDBCreateMaster(wx.Frame):
@@ -82,7 +83,7 @@ class UDBCreateMaster(wx.Frame):
         connect = sqlite3.Connection
         cursor = sqlite3.Cursor
         try:
-            connect = sqlite3.connect(self.db_path + '/' + self.db_name)
+            connect = sqlite3.connect(os.path.join(APPLICATION_PATH, self.db_path, self.db_name))
             cursor = connect.cursor()
             create_db = (f"CREATE TABLE \"t_cases_info\" (\n"
                          f"    \"id\"	INTEGER NOT NULL,\n"
@@ -99,7 +100,7 @@ class UDBCreateMaster(wx.Frame):
             connect.commit()
 
             if 'db_alias' in self.dict_db:
-                app_conn = sqlite3.connect('../../app/app.db')
+                app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
                 app_curs = app_conn.cursor()
                 app_curs.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
                                      VALUES (\"{self.dict_db['db_name']}\", \"{self.dict_db['db_path']}\", 
@@ -223,7 +224,6 @@ class UDBCreateMaster(wx.Frame):
 
             header_statictext = wx.StaticText(self,
                                               label=APP_TEXT_LABELS['NEW_UDB_WIZARD.SECOND_PAGE.TITLE'])
-            #header_statictext.Wrap(header_statictext.GetSize()[0])
             self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
             # ------------------------------
 
@@ -314,7 +314,7 @@ class UDBCreateMaster(wx.Frame):
     def __init__(self, catcher: ErrorCatcher):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(500, 300),
                           style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.CAPTION)
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.SetMinSize((500, 300))
         self.SetMaxSize((500, 300))
 
@@ -334,7 +334,7 @@ class UDBCreateMaster(wx.Frame):
         header_sizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_sizer)
 
-        header_image = wx.Image('img/32x32/case.png', wx.BITMAP_TYPE_PNG)
+        header_image = wx.Image(os.path.join(APPLICATION_PATH, 'img/32x32/case.png'), wx.BITMAP_TYPE_PNG)
         header_bitmap = wx.StaticBitmap(header_panel, bitmap=wx.BitmapFromImage(header_image))
         header_sizer.Add(header_bitmap, 0, wx.ALL, 10)
 

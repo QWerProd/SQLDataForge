@@ -1,8 +1,9 @@
 import wx
+import os
 import json
 import hashlib
 
-from app.app_parameters import APP_TEXT_LABELS
+from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
 
 
 class NewTestConnection(wx.Dialog):
@@ -17,7 +18,7 @@ class NewTestConnection(wx.Dialog):
         connectors = list
 
         def set_connectors(self):
-            with open('connections/test_dbs/connectors.json', 'r') as conn_data:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/connectors.json'), 'r') as conn_data:
                 data = json.load(conn_data)
 
             self.connectors = data
@@ -27,7 +28,7 @@ class NewTestConnection(wx.Dialog):
             imagelist = wx.ImageList(96, 96, True)
             imgs = []
             for connector in self.connectors:
-                img = wx.Image(connector['connector-logo'], wx.BITMAP_TYPE_PNG)
+                img = wx.Image(os.path.join(APPLICATION_PATH, connector['connector-logo']), wx.BITMAP_TYPE_PNG)
                 done_img = img.Scale(96, 96, wx.IMAGE_QUALITY_HIGH)
                 imgb = imagelist.Add(wx.BitmapFromImage(done_img))
                 imgs.append(imgb)
@@ -323,7 +324,7 @@ class NewTestConnection(wx.Dialog):
         json_list = []
         curr_test_conn = {}
         conn_data = self.page_final.get_conn_data()
-        with open('connections/test_dbs/test_conns.json') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
             try:
                 json_list = json.load(json_file)
             except json.decoder.JSONDecodeError:
@@ -353,7 +354,7 @@ class NewTestConnection(wx.Dialog):
                                      wx.ICON_WARNING, wx.OK)
 
         json_list.append(curr_test_conn)
-        with open('connections/test_dbs/test_conns.json', 'w') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
             json.dump(json_list, json_file)
         self.EndModal(0)
 
@@ -361,7 +362,7 @@ class NewTestConnection(wx.Dialog):
         super().__init__(parent, title=APP_TEXT_LABELS['NEW_TEST_CONN.TITLE'], size=(700, 500))
         self.SetMinSize((700, 500))
         self.SetMaxSize((700, 500))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.curr_page = 0
         self.connector = {}
         self.pages = []
@@ -380,7 +381,7 @@ class NewTestConnection(wx.Dialog):
         header_sizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_sizer)
 
-        header_image = wx.Image('img/32x32/key.png', wx.BITMAP_TYPE_PNG)
+        header_image = wx.Image(os.path.join(APPLICATION_PATH, 'img/32x32/key.png'), wx.BITMAP_TYPE_PNG)
         header_bitmap = wx.StaticBitmap(header_panel, bitmap=wx.BitmapFromImage(header_image))
         header_sizer.Add(header_bitmap, 0, wx.ALL, 10)
 

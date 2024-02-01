@@ -1,8 +1,9 @@
 import wx
+import os
 import sqlite3
 
 from app.error_catcher import ErrorCatcher
-from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS
+from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APPLICATION_PATH
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
@@ -86,7 +87,7 @@ class NewConnection(wx.Dialog):
                 return
 
         else:
-            app_conn = sqlite3.connect('../../app/app.db')
+            app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
             cursor = app_conn.cursor()
             try:
                 cursor.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
@@ -107,7 +108,7 @@ class NewConnection(wx.Dialog):
         self.SetMinSize((500, 300))
         self.SetMaxSize((500, 300))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
 
         self.main_panel = wx.Panel(self)
         self.main_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -121,7 +122,7 @@ class NewConnection(wx.Dialog):
 
         # ------------------------------
 
-        image = wx.Image('img/32x32/database  add.png', wx.BITMAP_TYPE_PNG)
+        image = wx.Image(os.path.join(APPLICATION_PATH, 'img/32x32/database  add.png'), wx.BITMAP_TYPE_PNG)
         res_img = image.Scale(image.GetWidth() * 2, image.GetHeight() * 2)
         img_bitmap = wx.StaticBitmap(div_hor_panel, bitmap=wx.BitmapFromImage(res_img))
         div_hor_sizer.Add(img_bitmap, 0, wx.LEFT | wx.TOP, 20)

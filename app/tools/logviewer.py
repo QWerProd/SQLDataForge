@@ -1,8 +1,9 @@
 import wx
+import os
 import sqlite3
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin, ColumnSorterMixin
 from wx.stc import StyledTextCtrl
-from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS
+from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APPLICATION_PATH
 from app.error_catcher import ErrorCatcher
 
 
@@ -10,7 +11,7 @@ class Logviewer(wx.Frame):
     catcher = ErrorCatcher
 
     def get_errorlog(self) -> list:
-        with sqlite3.connect('app/app.db') as app_conn:
+        with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
             cursor = app_conn.cursor()
             try:
                 log_data = cursor.execute(f"""SELECT el.error_code, lt.text, el.date_catched 
@@ -25,7 +26,7 @@ class Logviewer(wx.Frame):
         return log_data
 
     def get_execution_log(self) -> str:
-        with sqlite3.connect('app/app.db') as app_conn:
+        with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
             cursor = app_conn.cursor()
             try:
                 log_data = cursor.execute(f"""SELECT el.query_text, el.date_execute
@@ -46,7 +47,7 @@ class Logviewer(wx.Frame):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.LOGVIEWER'], size=(600, 450),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.MAXIMIZE_BOX | wx.MINIMIZE_BOX)
         self.SetMinSize((600, 450))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.catcher = catcher
 
         self.notebook = wx.Notebook(self, style=wx.NB_BOTTOM)

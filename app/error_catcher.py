@@ -1,7 +1,8 @@
 import datetime
 import tkinter.messagebox as tkm
 import sqlite3
-import os.path
+import os
+import sys
 
 
 class ErrorCatcher:
@@ -11,7 +12,10 @@ class ErrorCatcher:
 
     def __init__(self, lang_mode: str):
         self.lang = lang_mode
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        if getattr(sys, 'frozen', False):
+            BASE_DIR = os.path.join(sys._MEIPASS, 'app\\')
+        elif __file__:
+            BASE_DIR = os.path.dirname(__file__)
         self.db_path = os.path.join(BASE_DIR, 'app.db')
 
         # Создание таблицы логов if not exists

@@ -4,7 +4,7 @@ import sqlite3
 
 from data_controller import DataController as DC
 from connections.udb_conn.new_conn import NewConnection
-from app.app_parameters import APP_TEXT_LABELS
+from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
 
 
 class ConnectionViewer(wx.Frame):
@@ -108,7 +108,7 @@ class ConnectionViewer(wx.Frame):
         database = self.treectrl_databases.GetItemText(item)
 
         # Удаляем сведения о пБД
-        app_conn = sqlite3.connect('app/app.db')
+        app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         cursor = app_conn.cursor()
         try:
             cursor.execute(f"""DELETE FROM t_databases
@@ -132,7 +132,7 @@ class ConnectionViewer(wx.Frame):
                 pass
 
     def save_changes(self, event):
-        app_conn = sqlite3.connect('app/app.db')
+        app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         cursor = app_conn.cursor()
         try:
             rowid = cursor.execute(f"""SELECT id FROM t_databases 
@@ -184,7 +184,7 @@ class ConnectionViewer(wx.Frame):
         self.SetMinSize((500, 550))
         self.SetMaxSize((500, 550))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
 
         self.databases = DC.GetDatabases(False)
 
@@ -203,10 +203,10 @@ class ConnectionViewer(wx.Frame):
         div_hor_sizer.Add(self.treectrl_databases, 1, wx.LEFT | wx.EXPAND | wx.TOP, 5)
 
         self.image_items = wx.ImageList(16, 16)
-        self.closed_root = self.image_items.Add(wx.Image('img/16x16/book 1.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.opened_root = self.image_items.Add(wx.Image('img/16x16/book.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.database_image = self.image_items.Add(wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.invalid_db_image = self.image_items.Add(wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.closed_root = self.image_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/book 1.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.opened_root = self.image_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/book.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.database_image = self.image_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.invalid_db_image = self.image_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/delete database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_items)
 
         root = self.treectrl_databases.AddRoot('')
@@ -226,21 +226,21 @@ class ConnectionViewer(wx.Frame):
         buttons_panel.SetSizer(buttons_sizer)
 
         self.refresh_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
-                                              bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/update.png')))
+                                              bitmap=wx.BitmapBundle(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/update.png'))))
         self.refresh_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.refresh_button.Bind(wx.EVT_BUTTON, self.refresh)
         self.refresh_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.refresh_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.refresh_button, 0, wx.BOTTOM, 5)
 
         self.add_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
-                                                   bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/database  add.png')))
+                                                   bitmap=wx.BitmapBundle(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/database  add.png'))))
         self.add_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.add_database_button.Bind(wx.EVT_BUTTON, self.new_connection)
         self.add_database_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.add_database_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         buttons_sizer.Add(self.add_database_button, 0, wx.BOTTOM, 5)
 
         self.delete_database_button = wx.BitmapButton(buttons_panel, style=wx.NO_BORDER,
-                                                      bitmap=wx.BitmapBundle(wx.Bitmap('img/16x16/database delete.png')))
+                                                      bitmap=wx.BitmapBundle(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/database delete.png'))))
         self.delete_database_button.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.delete_database_button.Bind(wx.EVT_BUTTON, self.drop_connection)
         self.delete_database_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.delete_database_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))

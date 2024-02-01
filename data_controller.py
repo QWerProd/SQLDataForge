@@ -1,12 +1,17 @@
-import os.path
+import os
+import sys
 from app.error_catcher import ErrorCatcher
-from app.app_parameters import APP_PARAMETERS
+from app_parameters import APP_PARAMETERS
 import sqlite3
 
 # Импорты для параметров
 import datetime
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if getattr(sys, 'frozen', False):
+    BASE_DIR = sys._MEIPASS
+elif __file__:
+    BASE_DIR = os.path.dirname(__file__)
+
 db_path = os.path.join(BASE_DIR, 'app\\app.db')
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
@@ -77,7 +82,7 @@ class DataController:
                 pass
 
             for database, path in databases.items():
-                conn = sqlite3.connect(path)
+                conn = sqlite3.connect(os.path.join(BASE_DIR, path))
                 cursor = conn.cursor()
                 try:
                     tables = cursor.execute(f"""SELECT table_name, column_name, column_code

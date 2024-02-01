@@ -1,7 +1,8 @@
 import re
+import os
 
 from data_controller import DataController as DC
-from app.app_parameters import APP_PARAMETERS
+from app_parameters import APP_PARAMETERS, APPLICATION_PATH
 import sqlite3
 import random as rd
 
@@ -82,7 +83,7 @@ class SQLGenerator:
 
         if self.is_simple_mode:
             db_name = DC.GetDBFromTables([self.added_items[0], ])[0]
-            simp_conn = sqlite3.connect('data/' + db_name)
+            simp_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name))
             curs = simp_conn.cursor()
 
             data = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, column_type
@@ -105,7 +106,7 @@ class SQLGenerator:
             for path in path_of_dbs:
                 for db in list_of_dbs:
                     if db in path[0]:
-                        databases.append((db, path[0]))
+                        databases.append((db, os.path.join(APPLICATION_PATH, path[0])))
                         break
 
             id_column = False

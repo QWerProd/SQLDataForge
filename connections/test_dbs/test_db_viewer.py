@@ -1,6 +1,7 @@
 import wx
+import os
 
-from app.app_parameters import APP_TEXT_LABELS
+from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
 
 
 class TestDBViewer(wx.Frame):
@@ -11,7 +12,7 @@ class TestDBViewer(wx.Frame):
         self.SetMinSize((500, 550))
         self.SetMaxSize((500, 550))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
 
         self.panel = wx.Panel(self)
         self.sizer = wx.BoxSizer(wx.VERTICAL)

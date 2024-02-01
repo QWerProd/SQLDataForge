@@ -1,11 +1,12 @@
 import sqlite3
 import wx
+import os
 import wx.stc
 
 from data_controller import DataController
 from app.error_catcher import ErrorCatcher
 from sql_generator import SQLGenerator
-from app.app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
+from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 
 # Библиотеки для генераторов
 import random
@@ -21,6 +22,7 @@ class SimpleGenerator(wx.Frame):
     curr_data_fields = []
 
     open_code = str
+    db_name = str
 
     class LabeledTextCtrl(wx.Panel):
 
@@ -46,9 +48,6 @@ class SimpleGenerator(wx.Frame):
 
     class SelectFromDB(wx.Panel):
 
-        conn = sqlite3.Connection
-        curs = sqlite3.Cursor
-
         row_count = int
 
         db_name = str
@@ -68,20 +67,22 @@ class SimpleGenerator(wx.Frame):
             self.sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.sizer)
 
-            self.conn = sqlite3.connect('data/' + db_name)
-            self.curs = self.conn.cursor()
             self.db_name = db_name
             self.column_info = column_info
-            self.col_name = self.curs.execute(f"""SELECT column_code FROM t_cases_info 
-                                                  WHERE table_name = '{self.column_info.split(':')[0]}'
-                                                  AND   column_name = '{self.column_info.split(':')[1]}';""").fetchone()[0]
 
-            data = self.curs.execute(f"""SELECT \"{self.column_info.split(':')[1]}\"
-                                              FROM \"{self.column_info.split(':')[0]}\";""").fetchall()
-            self.db_data = [item[0] for item in data]
+            with sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name)) as conn:
+                curs = conn.cursor()
+                self.col_name = curs.execute(f"""SELECT column_code FROM t_cases_info 
+                                                      WHERE table_name = '{self.column_info.split(':')[0]}'
+                                                      AND   column_name = '{self.column_info.split(':')[1]}';""").fetchone()[0]
 
-            self.row_count = self.curs.execute(f"""SELECT COUNT(\"{self.column_info.split(':')[1]}\")
-                                                   FROM \"{self.column_info.split(':')[0]}\";""").fetchone()[0]
+                data = curs.execute(f"""SELECT \"{self.column_info.split(':')[1]}\"
+                                             FROM \"{self.column_info.split(':')[0]}\";""").fetchall()
+                self.db_data = [item[0] for item in data]
+
+                self.row_count = curs.execute(f"""SELECT COUNT(\"{self.column_info.split(':')[1]}\")
+                                                       FROM \"{self.column_info.split(':')[0]}\";""").fetchone()[0]
+                curs.close()
 
             header_statictext = wx.StaticText(self,
                                               label=APP_TEXT_LABELS['SINGLE_GENERATOR.SELECT_DB.SELECT_COUNT'] + str(
@@ -135,6 +136,7 @@ class SimpleGenerator(wx.Frame):
 
             # Возможно когда нибудь я придумаю какой интерфейс реализовать...
             entry_item = SimpleGenerator.SelectFromDB(self.data_panel, db_name[0], open_code)
+            self.db_name = db_name[0]
             entry_item.Hide()
             # Но пока ничего такого не будет :)
             label = entry_item.get_column_name()
@@ -146,20 +148,21 @@ class SimpleGenerator(wx.Frame):
             self.generate_button.SetFocus()
             return label
         else:
-            app_conn = sqlite3.connect('app/app.db')
-            curs = app_conn.cursor()
-            gen_items_info = curs.execute(f"""SELECT lt.text, se.entry_type, lt2.text
-                                              FROM t_simple_gen_entries as se,
-                                                   t_simple_gen as s,
-                                                   t_lang_text as lt,
-                                                   t_lang_text as lt2
-                                              WHERE se.id_field = s.id
-                                              AND   s.gen_code = '{open_code}'
-                                              AND   se.entry_name = lt.label
-                                              AND   s.gen_name = lt2.label
-                                              AND   lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
-                                              AND   lt2.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
-                                              ORDER BY se.posid;""").fetchall()
+            with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
+                curs = app_conn.cursor()
+                gen_items_info = curs.execute(f"""SELECT lt.text, se.entry_type, lt2.text
+                                                  FROM t_simple_gen_entries as se,
+                                                       t_simple_gen as s,
+                                                       t_lang_text as lt,
+                                                       t_lang_text as lt2
+                                                  WHERE se.id_field = s.id
+                                                  AND   s.gen_code = '{open_code}'
+                                                  AND   se.entry_name = lt.label
+                                                  AND   s.gen_name = lt2.label
+                                                  AND   lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
+                                                  AND   lt2.lang = '{APP_PARAMETERS['APP_LANGUAGE']}'
+                                                  ORDER BY se.posid;""").fetchall()
+                curs.close()
 
             gen_name = ''
             for item_info in gen_items_info:
@@ -183,18 +186,17 @@ class SimpleGenerator(wx.Frame):
         exec_code = str
         if len(open_code.split(':')) == 2:
             ret = []
+            self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', self.db_name))
             generator = SQLGenerator(self.app_conn, count, open_code.split(':'), [open_code.split(':')[1], ])
             gen_data = generator.GenerateValues()
             for val in gen_data.values():
                 ret = val
             return ret
         else:
-            conn = sqlite3.connect('app/app.db')
+            conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
             curs = conn.cursor()
             try:
-                exec_code = \
-                    curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[
-                        0]
+                exec_code = curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[0]
 
                 values = []
                 for item in self.curr_data_fields:
@@ -245,10 +247,10 @@ class SimpleGenerator(wx.Frame):
     def __init__(self, catcher: ErrorCatcher, open_code: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
                           style=wx.CAPTION | wx.CLOSE_BOX)
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
         self.SetMaxSize((700, 400))
-        self.app_conn = sqlite3.connect('app/app.db')
+        self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         self.open_code = open_code
         self.catcher = catcher
 

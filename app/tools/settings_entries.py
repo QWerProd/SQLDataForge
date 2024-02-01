@@ -2,7 +2,7 @@ import wx
 import re
 import wx.stc
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin, TextEditMixin
-from app.app_parameters import APP_PARAMETERS
+from app_parameters import APP_PARAMETERS
 
 
 class SimpleEntry(wx.Panel):

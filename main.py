@@ -4,10 +4,11 @@ import wx.lib.scrolledpanel
 import sqlite3
 import subprocess
 import sys
+import os
 import webbrowser
 import json
 
-from app.tools.recovery import Recovery
+from recovery import Recovery
 from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
@@ -20,7 +21,7 @@ from app.tools.settings import Settings
 from app.tools.logviewer import Logviewer
 from connections.test_dbs.new_test_conn import NewTestConnection
 from connections.test_dbs.test_connector import TestConnector
-from app.app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES
+from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
@@ -81,10 +82,11 @@ class MainFrame(wx.Frame):
         def on_colname_changed(self, event):
             # Получаем необходимые значения
             new_colname = self.textctrl_colname.GetValue()
-            item_id = int(self.textctrl_colname.GetId() / 10)
 
-            # Производим замену имени столбца на новое
+            # Производим замену имени столбца
+            item_id = added_item_code.index(self.colname)
             added_item_code[item_id] = new_colname
+            self.colname = new_colname
 
             # Обновляем значения списков у Индексов
             for item in index_items:
@@ -95,9 +97,9 @@ class MainFrame(wx.Frame):
                 self.not_null_checkbox.Enable(is_table)
                 self.unique_checkbox.Enable(is_table)
 
-        def get_column_name(self) -> str: return self.textctrl_colname.GetValue()
+        def get_column_name(self) -> str: return self.colname
 
-        def get_column_type(self) -> str: return self.textctrl_coltype.GetValue()
+        def get_column_type(self) -> str: return self.coltype
 
         def get_value_not_null(self) -> bool: return self.not_null_checkbox.GetValue()
 
@@ -111,7 +113,7 @@ class MainFrame(wx.Frame):
             if self.column_info != "":
                 self.colname = self.column_info.split(':')[2]
                 self.colcode = self.column_info.split(':')[3]
-            self.coltype = column_type                               # Хардкод до сл. обновления sql_generator
+            self.coltype = column_type
             self.im_empty = is_empty
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -258,7 +260,7 @@ class MainFrame(wx.Frame):
             self.button_delete = wx.Button(second_panel,
                                            label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'],
                                            style=wx.NO_BORDER, size=(81, -1))
-            self.button_delete.SetBitmapLabel(wx.Bitmap('img/16x16/minus.png', wx.BITMAP_TYPE_PNG))
+            self.button_delete.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/minus.png'), wx.BITMAP_TYPE_PNG))
             self.button_delete.SetBackgroundColour(wx.Colour(255, 225, 225))
             self.button_delete.Bind(wx.EVT_ENTER_WINDOW,
                                     lambda x: self.button_delete.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -550,7 +552,7 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(self.query_status, 0)
                 else:
                     # Генерация
-                    with sqlite3.connect('app/app.db') as app_conn:
+                    with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
                         cursor = app_conn.cursor()
                         start_build_time = datetime.now()
                         builder = SQLGenerator(app_conn, rows_count, added_items, colinfo, table_info, indexes_info)
@@ -695,7 +697,7 @@ class MainFrame(wx.Frame):
 
     def set_conn_info(self):
         json_data = []
-        with open('connections/test_dbs/test_conns.json') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
             json_data = json.load(json_file)
 
         self.all_connections = json_data
@@ -825,14 +827,14 @@ class MainFrame(wx.Frame):
         wx.Frame.__init__(self, None, title="SDForge", size=(800, 600))
         self.SetMinSize((800, 600))
         self.Maximize()
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
         self.connection = None
 
         self.bold_font = wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         # Локаль приложения
-        locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']], wx.LOCALE_LOAD_DEFAULT)
+        locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']])
 
         def is_table_enabled(event=None):
             self.is_create_table = self.add_table_checkbox.GetValue()
@@ -901,21 +903,21 @@ class MainFrame(wx.Frame):
         generate_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.GENERATE'] + ' \t' + APP_PARAMETERS[
                                             'KEY_EXECUTE'])
-        generate_menuitem.SetBitmap(wx.Bitmap('img/16x16/pencil ruler.png'))
+        generate_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/pencil ruler.png')))
         self.Bind(wx.EVT_MENU, self.generate, generate_menuitem)
         self.file_menu.Append(generate_menuitem)
 
         refresh_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.REFRESH'] + '\t' + APP_PARAMETERS[
                                            'KEY_REFRESH'])
-        refresh_menuitem.SetBitmap(wx.Bitmap('img/16x16/update.png'))
+        refresh_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/update.png')))
         self.Bind(wx.EVT_MENU, self.refresh, refresh_menuitem)
         self.file_menu.Append(refresh_menuitem)
 
         clear_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                      APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.CLEAR_ALL'] + '\t' + APP_PARAMETERS[
                                          'KEY_CLEAR_ALL'])
-        clear_menuitem.SetBitmap(wx.Bitmap('img/16x16/recycle bin sign.png'))
+        clear_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/recycle bin sign.png')))
         self.Bind(wx.EVT_MENU, self.clear_form, clear_menuitem)
         self.file_menu.Append(clear_menuitem)
 
@@ -923,12 +925,12 @@ class MainFrame(wx.Frame):
 
         savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['BUTTON.SAVE'] + '\t' + APP_PARAMETERS['KEY_SAVE_SQL'])
-        savefile_menuitem.SetBitmap(wx.Bitmap('img/16x16/save.png'))
+        savefile_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/save.png')))
         self.Bind(wx.EVT_MENU, self.save, savefile_menuitem)
         self.file_menu.Append(savefile_menuitem)
         savefile_as_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                            APP_TEXT_LABELS['BUTTON.SAVE_AS'] + '\t' + APP_PARAMETERS['KEY_SAVE_AS'])
-        savefile_as_menuitem.SetBitmap(wx.Bitmap('img/16x16/save as.png'))
+        savefile_as_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/save as.png')))
         self.Bind(wx.EVT_MENU, self.save_as, savefile_as_menuitem)
         self.file_menu.Append(savefile_as_menuitem)
 
@@ -936,17 +938,17 @@ class MainFrame(wx.Frame):
 
         execute_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                        APP_TEXT_LABELS['BUTTON.DO'] + '\t' + APP_PARAMETERS['KEY_EXECUTE_SQL'])
-        execute_menuitem.SetBitmap(wx.Bitmap('img/16x16/execute.png'))
+        execute_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/execute.png')))
         self.Bind(wx.EVT_MENU, self.push_query, execute_menuitem)
         self.file_menu.Append(execute_menuitem)
         commit_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                       APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.COMMIT'] + '\t' + APP_PARAMETERS['KEY_COMMIT'])
-        commit_menuitem.SetBitmap(wx.Bitmap('img/16x16/commit.png'))
+        commit_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/commit.png')))
         self.Bind(wx.EVT_MENU, self.commit_transaction, commit_menuitem)
         self.file_menu.Append(commit_menuitem)
         rollback_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.ROLLBACK'] + '\t' + APP_PARAMETERS['KEY_ROLLBACK'])
-        rollback_menuitem.SetBitmap(wx.Bitmap('img/16x16/rollback.png'))
+        rollback_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/rollback.png')))
         self.Bind(wx.EVT_MENU, self.rollback_transaction, rollback_menuitem)
         self.file_menu.Append(rollback_menuitem)
 
@@ -956,14 +958,14 @@ class MainFrame(wx.Frame):
         add_connect_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                            APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.ADD_UDB'] + '\t' +
                                            APP_PARAMETERS['KEY_NEW_INSTANCE'])
-        add_connect_menuitem.SetBitmap(wx.Bitmap('img/16x16/database  add.png'))
+        add_connect_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/database  add.png')))
         self.Bind(wx.EVT_MENU, self.open_new_connection, add_connect_menuitem)
         self.connect_menu.Append(add_connect_menuitem)
 
         create_udb_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.CREATE_UDB'] + '\t' +
                                           APP_PARAMETERS['KEY_CREATE_UDB_WIZARD'])
-        create_udb_menuitem.SetBitmap(wx.Bitmap('img/16x16/case.png'))
+        create_udb_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/case.png')))
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         self.connect_menu.Append(create_udb_menuitem)
 
@@ -972,7 +974,7 @@ class MainFrame(wx.Frame):
         view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                              APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.UDB_VIEWER'] + '\t' +
                                              APP_PARAMETERS['KEY_UDB_VIEWER'])
-        view_connects_menuitem.SetBitmap(wx.Bitmap('img/16x16/marked list points.png'))
+        view_connects_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/marked list points.png')))
         self.Bind(wx.EVT_MENU, self.open_connection_viewer, view_connects_menuitem)
         self.connect_menu.Append(view_connects_menuitem)
 
@@ -981,7 +983,7 @@ class MainFrame(wx.Frame):
         new_test_connection = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN'] + '\t' +
                                           APP_PARAMETERS['KEY_NEW_TEST_CONN'])
-        new_test_connection.SetBitmap(wx.Bitmap('img/16x16/key.png'))
+        new_test_connection.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/key.png')))
         self.Bind(wx.EVT_MENU, self.open_new_test_conn, new_test_connection)
         self.connect_menu.Append(new_test_connection)
 
@@ -1011,20 +1013,20 @@ class MainFrame(wx.Frame):
         recovery_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.RECOVERY'] + '\t' + APP_PARAMETERS[
                                             'KEY_RECOVERY'])
-        recovery_menuitem.SetBitmap(wx.Bitmap('img/16x16/database.png'))
+        recovery_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/database.png')))
         self.Bind(wx.EVT_MENU, self.open_recovery, recovery_menuitem)
         self.tools_menu.Append(recovery_menuitem)
         logviewer_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                          APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.LOGVIEWER'] + '\t' + APP_PARAMETERS[
                                              'KEY_LOGVIEWER'])
-        logviewer_menuitem.SetBitmap(wx.Bitmap('img/16x16/history.png'))
+        logviewer_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/history.png')))
         self.Bind(wx.EVT_MENU, self.open_logviewer, logviewer_menuitem)
         self.tools_menu.Append(logviewer_menuitem)
         self.tools_menu.AppendSeparator()
         settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS[
                                             'KEY_SETTINGS'])
-        settings_menuitem.SetBitmap(wx.Bitmap('img/16x16/options.png'))
+        settings_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/options.png')))
         self.Bind(wx.EVT_MENU, self.open_settings_frame, settings_menuitem)
         self.tools_menu.Append(settings_menuitem)
 
@@ -1033,7 +1035,7 @@ class MainFrame(wx.Frame):
         self.info_menu = wx.Menu()
         about_app = wx.MenuItem(self.info_menu, wx.ID_ANY,
                                 APP_TEXT_LABELS['MAIN.MAIN_MENU.INFO.ABOUT_APP'])
-        about_app.SetBitmap(wx.Bitmap('img/16x16/home.png'))
+        about_app.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/home.png')))
         self.Bind(wx.EVT_MENU, self.open_app_info, about_app)
         self.info_menu.Append(about_app)
 
@@ -1050,40 +1052,40 @@ class MainFrame(wx.Frame):
         # Панель инструментов
         self.toolbar = self.CreateToolBar()
 
-        self.toolbar.AddTool(1, "Генерировать", wx.Bitmap("img/16x16/pencil ruler.png"),
+        self.toolbar.AddTool(1, "Генерировать", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/pencil ruler.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.GENERATE'])
         self.Bind(wx.EVT_TOOL, self.generate, id=1)
-        self.toolbar.AddTool(2, "Очистить", wx.Bitmap("img/16x16/recycle bin sign.png"),
+        self.toolbar.AddTool(2, "Очистить", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/recycle bin sign.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.CLEAR_ALL'])
         self.Bind(wx.EVT_TOOL, self.clear_form, id=2)
-        self.toolbar.AddTool(3, "Обновить", wx.Bitmap("img/16x16/update.png"),
+        self.toolbar.AddTool(3, "Обновить", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/update.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.REFRESH'])
         self.Bind(wx.EVT_TOOL, self.refresh, id=3)
         self.toolbar.AddSeparator()
-        self.toolbar.AddTool(4, "Сохранить", wx.Bitmap("img/16x16/save.png"),
+        self.toolbar.AddTool(4, "Сохранить", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/save.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.SAVE_SQL'])
         self.Bind(wx.EVT_TOOL, self.save, id=4)
-        self.toolbar.AddTool(5, "Сохранить как", wx.Bitmap("img/16x16/save as.png"),
+        self.toolbar.AddTool(5, "Сохранить как", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/save as.png")),
                              shortHelp=APP_TEXT_LABELS['BUTTON.SAVE_AS'])
         self.Bind(wx.EVT_TOOL, self.save_as, id=5)
         self.toolbar.AddSeparator()
-        self.toolbar.AddTool(11, "Выполнить запрос", wx.Bitmap("img/16x16/execute.png"),
+        self.toolbar.AddTool(11, "Выполнить запрос", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/execute.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL'])
         self.Bind(wx.EVT_TOOL, self.push_query, id=11)
-        self.toolbar.AddTool(9, "Commit", wx.Bitmap("img/16x16/commit.png"),
+        self.toolbar.AddTool(9, "Commit", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/commit.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT'])
         self.Bind(wx.EVT_TOOL, self.commit_transaction, id=9)
-        self.toolbar.AddTool(10, "Rollback", wx.Bitmap("img/16x16/rollback.png"),
+        self.toolbar.AddTool(10, "Rollback", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/rollback.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK'])
         self.Bind(wx.EVT_TOOL, self.rollback_transaction, id=10)
-        self.toolbar.AddTool(8, "Тест", wx.Bitmap("img/16x16/key.png"),
+        self.toolbar.AddTool(8, "Тест", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/key.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN'])
         self.Bind(wx.EVT_TOOL, self.open_new_test_conn, id=8)
         self.toolbar.AddSeparator()
-        self.toolbar.AddTool(6, "Просмотр логов", wx.Bitmap("img/16x16/history.png"),
+        self.toolbar.AddTool(6, "Просмотр логов", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/history.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER'])
         self.Bind(wx.EVT_TOOL, self.open_logviewer, id=6)
-        self.toolbar.AddTool(7, "Настройки", wx.Bitmap("img/16x16/options.png"),
+        self.toolbar.AddTool(7, "Настройки", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/options.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SETTINGS'])
         self.Bind(wx.EVT_TOOL, self.open_settings_frame, id=7)
 
@@ -1121,10 +1123,11 @@ class MainFrame(wx.Frame):
         self.all_tables = DataController.GetTablesFromDB()
         self.image_database_items = wx.ImageList(16, 16)
         self.database_image = self.image_database_items.Add(
-            wx.Image('img/16x16/database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.invalid_db_image = self.image_database_items.Add(
-            wx.Image('img/16x16/delete database.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
-        self.table_image = self.image_database_items.Add(wx.Image('img/16x16/table.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/delete database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.table_image = self.image_database_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/table.png'),
+                                                                  wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_database_items)
         self.set_databases_tree_items()
         self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_database_tree_activated, self.treectrl_databases)
@@ -1145,7 +1148,7 @@ class MainFrame(wx.Frame):
         self.treectrl_test_connections_root = self.treectrl_test_connections.AddRoot('')
         self.image_connection_items = wx.ImageList(16, 16)
         self.sqlite_image = self.image_connection_items.Add(
-            wx.Image('img/16x16/SQLite.png', wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/SQLite.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_test_connections.AssignImageList(self.image_connection_items)
         self.set_conn_info()
         self.set_connections_tree_items()
@@ -1304,7 +1307,7 @@ class MainFrame(wx.Frame):
         self.button_new_index = wx.Button(self.indexes_page_panel,
                                           label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.NEW_INDEX'],
                                           style=wx.NO_BORDER)
-        self.button_new_index.SetBitmapLabel(wx.Bitmap("img/16x16/plus.png", wx.BITMAP_TYPE_PNG))
+        self.button_new_index.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/plus.png"), wx.BITMAP_TYPE_PNG))
         self.button_new_index.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.button_new_index.Bind(wx.EVT_ENTER_WINDOW,
                                    lambda x: self.button_new_index.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -1356,7 +1359,7 @@ class AboutApp(wx.Frame):
                           style=wx.CAPTION | wx.CLOSE_BOX)
         self.SetMinSize((350, 250))
         self.SetMaxSize((350, 250))
-        self.SetIcon(wx.Icon('img/main_icon.png', wx.BITMAP_TYPE_PNG))
+        self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.SetBackgroundColour((255, 255, 255))
 
         self.panel = wx.Panel(self)
@@ -1369,7 +1372,7 @@ class AboutApp(wx.Frame):
         self.info_sizer = wx.BoxSizer(wx.VERTICAL)
         self.info_panel.SetSizer(self.info_sizer)
 
-        info_image = wx.Image('img/SDForge.png', wx.BITMAP_TYPE_PNG)
+        info_image = wx.Image(os.path.join(APPLICATION_PATH, 'img/SDForge.png'), wx.BITMAP_TYPE_PNG)
         info_image.Rescale(200, 90, wx.IMAGE_QUALITY_BOX_AVERAGE)
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
@@ -1405,3 +1408,8 @@ if __name__ == '__main__':
     frame = MainFrame()
     frame.Show()
     app.MainLoop()
+
+    if getattr(sys, 'frozen', False):
+        APPLICATION_PATH = os.path.dirname(sys.executable)
+    elif __file__:
+        APPLICATION_PATH = os.path.dirname(__file__)
