@@ -77,7 +77,12 @@ class MainFrame(wx.Frame):
         colname = ""
         coltype = ""
         colcode = ""
-        im_empty = bool
+
+        @property
+        def is_empty(self) -> bool: return self.__is_empty
+
+        @is_empty.setter
+        def is_empty(self, value): self.__is_empty = value
 
         def on_colname_changed(self, event):
             # Получаем необходимые значения
@@ -93,13 +98,15 @@ class MainFrame(wx.Frame):
                 item.update_choices(added_item_code)
 
         def activating_checkboxes(self, is_table=False):
-            if not self.im_empty:
+            if not self.is_empty:
                 self.not_null_checkbox.Enable(is_table)
                 self.unique_checkbox.Enable(is_table)
 
         def get_column_name(self) -> str: return self.colname
 
         def get_column_type(self) -> str: return self.coltype
+
+        def get_column_label(self) -> str: return self.statictext_colcode.GetLabel()
 
         def get_value_not_null(self) -> bool: return self.not_null_checkbox.GetValue()
 
@@ -114,7 +121,7 @@ class MainFrame(wx.Frame):
                 self.colname = self.column_info.split(':')[2]
                 self.colcode = self.column_info.split(':')[3]
             self.coltype = column_type
-            self.im_empty = is_empty
+            self.is_empty = is_empty
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.SetSizer(sizer)
@@ -142,8 +149,8 @@ class MainFrame(wx.Frame):
             self.textctrl_coltype.SetValue(self.coltype)
             sizer.Add(self.textctrl_coltype, 0, wx.RIGHT, 5)
 
-            statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
-            sizer.Add(statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
+            sizer.Add(self.statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
             self.not_null_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
             self.not_null_checkbox.Enable(False)
@@ -288,10 +295,14 @@ class MainFrame(wx.Frame):
 
     # ---------------------------------------------------
 
-    def on_database_tree_activated(self, event):
+    def on_database_tree_activated(self, event, col_name: str = None):
         # Получение выбранного элемента и проверка, является ли он НЕ базой данных
         get_item = event.GetItem()
-        activated = self.treectrl_databases.GetItemText(get_item)
+        if col_name is None:
+            activated = self.treectrl_databases.GetItemText(get_item)
+        else:
+            activated = col_name
+
         if activated.endswith('.db'):
             return
         else:
@@ -333,6 +344,53 @@ class MainFrame(wx.Frame):
 
             # Добавление пустой строки
             self.append_column_item("", "", True)
+
+    def on_database_item_right_click(self, event):
+        get_item = event.GetItem()
+        clicked = self.treectrl_databases.GetItemText(get_item)
+
+        menu = wx.Menu()
+        menu_items = []
+        refresh = wx.MenuItem(menu, wx.ID_ANY,
+                              APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.REFRESH'] + '\t' + APP_PARAMETERS['KEY_REFRESH'])
+        refresh.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/update.png'), wx.BITMAP_TYPE_PNG))
+        self.Bind(wx.EVT_MENU, self.refresh, refresh)
+        menu.Append(refresh)
+        menu.AppendSeparator()
+        if clicked.endswith('.db'):
+            db_info = wx.MenuItem(menu, wx.ID_ANY,
+                                  APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.INFO'])
+            self.Bind(wx.EVT_MENU, lambda evt: self.open_connection_viewer(event, clicked), db_info)
+            menu.Append(db_info)
+        else:
+            append = wx.MenuItem(menu, wx.ID_ANY,
+                                 APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.APPEND'])
+            append.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/plus.png'), wx.BITMAP_TYPE_PNG))
+            self.Bind(wx.EVT_MENU, lambda evt: self.on_database_tree_activated(event, clicked), append)
+            delete = wx.MenuItem(menu, wx.ID_ANY,
+                                 APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.DELETE'])
+            delete.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/minus.png'), wx.BITMAP_TYPE_PNG))
+            self.Bind(wx.EVT_MENU, lambda evt: self.on_database_tree_activated(event, clicked), delete)
+            simple_generator = wx.MenuItem(menu, wx.ID_ANY,
+                                           APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.OPEN_GENERATOR'])
+            self.Bind(wx.EVT_MENU, lambda evt: self.open_simple_generator_from_menu(evt, clicked), simple_generator)
+
+            is_appended = False
+            for colitem in self.column_items:
+                if not colitem.is_empty:
+                    colabel = colitem.get_column_label()
+                    if clicked == colabel:
+                        is_appended = True
+                        break
+            if is_appended:
+                append.Enable(False)
+            else:
+                delete.Enable(False)
+            menu.Append(append)
+            menu.Append(delete)
+            menu.AppendSeparator()
+            menu.Append(simple_generator)
+        self.PopupMenu(menu, event.GetPoint())
 
     def on_connection_tree_activated(self, event):
         get_item = event.GetItem()
@@ -719,8 +777,8 @@ class MainFrame(wx.Frame):
         with NewConnection(self) as new_conn:
             new_conn.ShowModal()
 
-    def open_connection_viewer(self, event):
-        conn_viewer = ConnectionViewer()
+    def open_connection_viewer(self, event, db_name: str = None):
+        conn_viewer = ConnectionViewer(db_name)
         conn_viewer.Show()
         conn_viewer.SetFocus()
 
@@ -740,15 +798,19 @@ class MainFrame(wx.Frame):
                 self.relaunch_app()
                 self.Destroy()
 
-    def open_simple_generator_from_menu(self, event):
-        menuitem = self.menubar.FindItemById(event.GetId())
+    def open_simple_generator(self, item_code: str = None):
+        simple_generator = SimpleGenerator(catcher, item_code)
+        simple_generator.Show()
+        simple_generator.SetFocus()
+
+    def open_simple_generator_from_menu(self, event, menuitem: str = None):
+        if menuitem is None:
+            menuitem = self.menubar.FindItemById(event.GetId())
 
         for simpgen_menuitem in self.simpgens_menuitems:
             if menuitem in simpgen_menuitem:
                 item_code = simpgen_menuitem[1]
-                simple_generator = SimpleGenerator(catcher, item_code)
-                simple_generator.Show()
-                simple_generator.SetFocus()
+                self.open_simple_generator(item_code)
                 break
 
     def open_recovery(self, event):
@@ -1005,7 +1067,7 @@ class MainFrame(wx.Frame):
                 gen_menuitem = wx.MenuItem(database_menuitem, wx.ID_ANY, item[1])
                 self.Bind(wx.EVT_MENU, self.open_simple_generator_from_menu, gen_menuitem)
                 database_menuitem.Append(gen_menuitem)
-                self.simpgens_menuitems.append([gen_menuitem, item[0]])
+                self.simpgens_menuitems.append([gen_menuitem, item[0], item[1]])
 
         # Инструменты
         # ----------
@@ -1130,7 +1192,8 @@ class MainFrame(wx.Frame):
                                                                   wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_database_items)
         self.set_databases_tree_items()
-        self.treectrl_databases.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_database_tree_activated, self.treectrl_databases)
+        self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_database_tree_activated, self.treectrl_databases)
+        self.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.on_database_item_right_click, self.treectrl_databases)
         databases_sizer.Add(self.treectrl_databases, 2, wx.EXPAND)
         # ----------------------------------------
 

@@ -33,9 +33,12 @@ class ConnectionViewer(wx.Frame):
         if not activated.endswith('.db'):
             return
 
+        self.set_values(activated)
+
+    def set_values(self, db_name: str):
         # Ищем выбранную пБД среди остальных
         for database in self.databases:
-            if activated in database:
+            if db_name in database:
                 self.db_info = database
                 break
 
@@ -178,7 +181,7 @@ class ConnectionViewer(wx.Frame):
         else:
             self.Destroy()
 
-    def __init__(self):
+    def __init__(self, db_name: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['CONNECTION_VIEWER.TITLE'], size=(500, 550),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((500, 550))
@@ -328,5 +331,8 @@ class ConnectionViewer(wx.Frame):
 
         self.main_sizer.Add(self.buttons_panel, 0, wx.BOTTOM | wx.ALIGN_RIGHT, 5)
         # ------------
+
+        if db_name is not None:
+            self.set_values(db_name)
 
         self.main_panel.Layout()

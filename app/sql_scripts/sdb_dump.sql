@@ -629,7 +629,15 @@ Transaction time: {1} sec.'),
 	 ('E020.CAPTION','en','Transaction closed'),
 	 ('E020.MESSAGE','en','There is no open transaction with changes!'),
 	 ('MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.MESSAGE','en','Queries canceled: {0}
-Transaction time: {1} sec.');
+Transaction time: {1} sec.'),
+	 ('MAIN.POPUP_MENU.UDB.INFO','ru','Сведения'),
+	 ('MAIN.POPUP_MENU.UDB.APPEND','ru','Добавить'),
+	 ('MAIN.POPUP_MENU.UDB.DELETE','ru','Удалить'),
+	 ('MAIN.POPUP_MENU.UDB.OPEN_GENERATOR','ru','Открыть в генераторе...'),
+	 ('MAIN.POPUP_MENU.UDB.INFO','en','Info'),
+	 ('MAIN.POPUP_MENU.UDB.APPEND','en','Append'),
+	 ('MAIN.POPUP_MENU.UDB.DELETE','en','Delete'),
+	 ('MAIN.POPUP_MENU.UDB.OPEN_GENERATOR','en','Open in Generator...');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),

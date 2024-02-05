@@ -64,20 +64,18 @@ class TestConnector:
 
     def execute_query(self, query_str: str) -> int:
         query_pool = query_str.split('/')
-        for query in query_pool:
-            query = query.lstrip('\n')
-            self.executed_queries += 1
-            if query.startswith('INSERT'):
-                self.rolling_queries += 1
         try:
             if self.connector_name == 'SQLite':
                 curs = self.connection.cursor()
                 for query in query_pool:
                     curs.execute(query)
+                    query = query.lstrip('\n')
+                    self.executed_queries += 1
+                    if query.startswith('INSERT'):
+                        self.rolling_queries += 1
                 curs.close()
                 if not self.is_transaction:
                     self.time_transaction_opened = datetime.now()
-
                     self.is_transaction = True
                 return len(query_pool), None
         except BaseException as e:
