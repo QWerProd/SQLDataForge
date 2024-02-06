@@ -65,6 +65,24 @@ class MainFrame(wx.Frame):
     file_path = ''
     file_name = ''
     query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
+    generation_status = (
+        (0, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING'], '#FFF'),
+        (1, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.GENERATING'], '#FF0000'),
+        (2, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE'], '#00FF00')
+    )
+    saved_status = (
+        (0, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING'], '#FFF'),
+        (1, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.NOT_SAVED'], '#FFFF00'),
+        (2, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'], '#FFF')
+    )
+    transaction_status = (
+        (0, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.TRANSACTION_CLOSED'], '#FFF'),
+        (1, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.TRANSACTION_OPENED'], '#0000FF')
+    )
+    connection_status = (
+        (0, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.CONNECTION_CLOSED'], '#FFF'),
+        (1, APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.CONNECTION_OPENED'], '#00FF00')
+    )
 
     # Переменная отвечает за изменение индекса обращения к столбцам
     id_added = 0
@@ -293,6 +311,38 @@ class MainFrame(wx.Frame):
 
             self.Layout()
 
+    class StatusPanel(wx.Panel):
+
+        title = str
+        statuses = tuple
+        curr_status = int
+
+        def get_status(self) -> tuple: return self.statuses[self.curr_status]
+
+        def set_status(self, status: int):
+            self.curr_status = status
+            self.colour_panel.SetBackgroundColour(self.statuses[self.curr_status][2])
+            self.status_statictext.SetLabel(self.title + ' - ' + self.statuses[self.curr_status][1])
+            self.colour_panel.Refresh()
+
+        def __init__(self, parent: wx.Panel, title: str, statuses: tuple, init_status: int = 0):
+            super().__init__(parent, style=wx.BORDER_STATIC)
+            self.title = title
+            self.statuses = statuses
+            self.curr_status = init_status
+            self.sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.SetSizer(self.sizer)
+
+            self.colour_panel = wx.Panel(self, size=(10, 24), style=wx.BORDER_STATIC)
+            self.colour_panel.SetBackgroundColour(self.statuses[self.curr_status][2])
+            self.sizer.Add(self.colour_panel, 0, wx.ALIGN_CENTER_VERTICAL)
+
+            self.status_statictext = wx.StaticText(self, label=self.title + ' - ' + self.statuses[self.curr_status][1])
+            self.sizer.Add(self.status_statictext, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.colour_panel.Refresh()
+            self.Layout()
+
     # ---------------------------------------------------
 
     def on_database_tree_activated(self, event, col_name: str = None):
@@ -399,12 +449,14 @@ class MainFrame(wx.Frame):
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.curr_conn_item = None
             self.connection = None
+            self.connection_status_panel.set_status(0)
         else:
             # Сбрасываем прошлое подключение
             if self.connection is not None:
                 self.connection.close()
                 self.connection = None
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
 
             self.curr_conn_item = get_item
             activated = self.treectrl_test_connections.GetItemText(self.curr_conn_item)
@@ -417,6 +469,7 @@ class MainFrame(wx.Frame):
 
             self.connection = TestConnector(conn_data)
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
+            self.connection_status_panel.set_status(1)
 
     def push_query(self, event):
         if self.connection.check_connection():
@@ -429,11 +482,13 @@ class MainFrame(wx.Frame):
                 wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
                               APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
                               wx.ICON_INFORMATION | wx.OK)
+                self.transaction_status_panel.set_status(1)
             else:
                 catcher.error_message('E016', 'Error message: ' + error_message)
         else:
             catcher.error_message('E015')
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+            self.connection_status_panel.set_status(0)
 
     def commit_transaction(self, event):
         if self.connection is None:
@@ -447,11 +502,13 @@ class MainFrame(wx.Frame):
                                                                                                           round(transaction_time, 2)),
                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
                                   wx.ICON_INFORMATION | wx.OK)
+                    self.transaction_status_panel.set_status(0)
                 else:
                     catcher.error_message('E017', 'Error message: ' + count_query)
             else:
                 catcher.error_message('E015')
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
         else:
             catcher.error_message('E020')
 
@@ -467,11 +524,13 @@ class MainFrame(wx.Frame):
                                                                                                           round(transaction_time, 2)),
                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
                                   wx.ICON_INFORMATION | wx.OK)
+                    self.transaction_status_panel.set_status(0)
                 else:
                     catcher.error_message('E018', 'Error message: ' + count_query)
             else:
                 catcher.error_message('E015')
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
         else:
             catcher.error_message('E020')
 
@@ -541,6 +600,7 @@ class MainFrame(wx.Frame):
 
         self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.GENERATING']
         self.statusbar.SetStatusText(self.query_status, 0)
+        self.query_status_panel.set_status(1)
 
         if len(added_items) == 0:
             self.query_status = catcher.error_message('E003')
@@ -636,9 +696,12 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
                                                  + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
                         generate_time) + " с.", 2)
+                    self.query_status_panel.set_status(2)
+                    self.saved_status_panel.set_status(1)
             except ValueError:
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
+                self.query_status_panel.set_status(0)
             finally:
                 self.SetCursor(wx.NullCursor)
                 cursor.close()
@@ -674,6 +737,8 @@ class MainFrame(wx.Frame):
             self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.SAVED'] + ' - ' + self.file_name
             self.statusbar.SetStatusText(self.query_status, 0)
             self.SetTitle('SDForge - ' + self.file_name)
+            self.saved_status_panel.set_status(2)
+            self.query_status_panel.set_status(0)
 
     def save(self, event):
         self.save_script(self.file_path)
@@ -722,6 +787,8 @@ class MainFrame(wx.Frame):
         self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
         self.statusbar.SetStatusText(self.query_status, 0)
         self.statusbar.SetStatusText("", 2)
+        self.query_status_panel.set_status(0)
+        self.saved_status_panel.set_status(0)
 
     def refresh(self, event=None):
         self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
@@ -1224,6 +1291,40 @@ class MainFrame(wx.Frame):
         # --------------------
 
         side_sizer.Add(treectrl_splitterwindow, 1, wx.EXPAND)
+        # ----------
+
+        self.status_panel = wx.Panel(side_panel, style=wx.BORDER_STATIC)
+        self.status_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.status_panel.SetSizer(self.status_sizer)
+
+        status_statictext = wx.StaticText(self.status_panel, label=APP_TEXT_LABELS['MAIN.SIDE_PANEL.STATUS'])
+        status_statictext.SetFont(self.bold_font)
+        self.status_sizer.Add(status_statictext, 0, wx.EXPAND | wx.ALL, 5)
+
+        # --------------------
+
+        self.statuses_panel = wx.Panel(self.status_panel, style=wx.BORDER_SIMPLE)
+        self.statuses_sizer = wx.BoxSizer(wx.VERTICAL)
+        self.statuses_panel.SetSizer(self.statuses_sizer)
+
+        self.connection_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.CONNECTION'],
+                                                             self.connection_status)
+        self.statuses_sizer.Add(self.connection_status_panel, 0, wx.EXPAND)
+        self.transaction_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.TRANSACTION'],
+                                                              self.transaction_status)
+        self.statuses_sizer.Add(self.transaction_status_panel, 0, wx.EXPAND)
+        self.query_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.QUERY'],
+                                                        self.generation_status)
+        self.statuses_sizer.Add(self.query_status_panel, 0, wx.EXPAND)
+        self.saved_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.FILE'],
+                                                        self.saved_status)
+        self.statuses_sizer.Add(self.saved_status_panel, 0, wx.EXPAND)
+
+        self.status_sizer.Add(self.statuses_panel, 1, wx.EXPAND)
+        # --------------------
+
+        side_sizer.Add(self.status_panel, 0, wx.EXPAND)
+        # ----------
 
         # Контейнер работы с кейсами
         # ----------

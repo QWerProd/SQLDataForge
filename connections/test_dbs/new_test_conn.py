@@ -355,7 +355,7 @@ class NewTestConnection(wx.Dialog):
 
         json_list.append(curr_test_conn)
         with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
-            json.dump(json_list, json_file)
+            json.dump(json_list, json_file, sort_keys=True, indent=4)
         self.EndModal(0)
 
     def __init__(self, parent: wx.Frame):
