@@ -3,3 +3,6 @@ Pillow==9.5.0
 Pypubsub==4.0.3
 six==1.16.0
 wxPython==4.0.3
+openpyxl==3.1.2
+python-docx==1.1.0
+python-docx-replace=0.4.4
