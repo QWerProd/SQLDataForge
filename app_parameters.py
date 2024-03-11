@@ -42,7 +42,8 @@ APP_PARAMETERS = {
     'KEY_NEW_TEST_CONN': str,
     'KEY_COMMIT': str,
     'KEY_ROLLBACK': str,
-    'KEY_EXECUTE_SQL': str
+    'KEY_EXECUTE_SQL': str,
+    'IS_CLOSING_REPORTS_AFTER_GEN': str
 }
 
 APP_LOCALES = {

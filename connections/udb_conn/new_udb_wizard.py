@@ -156,7 +156,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_name_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_name_panel.SetSizer(self.db_name_sizer)
 
-            db_name_statictext = wx.StaticText(self.db_name_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_NAME'] + ':', size=(80, -1))
+            db_name_statictext = wx.StaticText(self.db_name_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_NAME'], size=(80, -1))
             self.db_name_sizer.Add(db_name_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             self.db_name_textctrl = wx.TextCtrl(self.db_name_panel, size=(-1, 22))
@@ -170,7 +170,7 @@ class UDBCreateMaster(wx.Frame):
             self.db_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
             self.db_path_panel.SetSizer(self.db_path_sizer)
 
-            db_path_statictext = wx.StaticText(self.db_path_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_PATH'] + ':', size=(80, -1))
+            db_path_statictext = wx.StaticText(self.db_path_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DB_PATH'], size=(80, -1))
             self.db_path_sizer.Add(db_path_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
             self.db_path_textctrl = wx.TextCtrl(self.db_path_panel, size=(-1, 22))
@@ -312,11 +312,11 @@ class UDBCreateMaster(wx.Frame):
             self.Layout()
 
     def __init__(self, catcher: ErrorCatcher):
-        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(500, 300),
-                          style=wx.FRAME_NO_TASKBAR | wx.CLOSE_BOX | wx.CAPTION)
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['NEW_UDB_WIZARD.TITLE'], size=(600, 400),
+                          style=wx.CAPTION | wx.RESIZE_BORDER | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
-        self.SetMinSize((500, 300))
-        self.SetMaxSize((500, 300))
+        self.SetMinSize((600, 400))
+        self.SetMaxSize((800, 550))
 
         self.catcher = catcher
 

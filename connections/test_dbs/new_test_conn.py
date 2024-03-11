@@ -359,9 +359,10 @@ class NewTestConnection(wx.Dialog):
         self.EndModal(0)
 
     def __init__(self, parent: wx.Frame):
-        super().__init__(parent, title=APP_TEXT_LABELS['NEW_TEST_CONN.TITLE'], size=(700, 500))
+        super().__init__(parent, title=APP_TEXT_LABELS['NEW_TEST_CONN.TITLE'], size=(700, 500),
+                         style=wx.CAPTION | wx.RESIZE_BORDER | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.SetMinSize((700, 500))
-        self.SetMaxSize((700, 500))
+        self.SetMaxSize((900, 700))
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.curr_page = 0
         self.connector = {}

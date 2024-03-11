@@ -21,6 +21,7 @@ from app.tools.settings import Settings
 from app.tools.logviewer import Logviewer
 from connections.test_dbs.new_test_conn import NewTestConnection
 from connections.test_dbs.test_connector import TestConnector
+from reports.report_wizard import ReportWizard
 from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
@@ -343,7 +344,7 @@ class MainFrame(wx.Frame):
             self.colour_panel.Refresh()
             self.Layout()
 
-    # ---------------------------------------------------
+    # --------------------------------------------------
 
     def on_database_tree_activated(self, event, col_name: str = None):
         # Получение выбранного элемента и проверка, является ли он НЕ базой данных
@@ -359,6 +360,12 @@ class MainFrame(wx.Frame):
             add_act = ""
             get_parent = self.treectrl_databases.GetItemParent(get_item)
             parent_name = self.treectrl_databases.GetItemText(get_parent)
+
+            if APP_PARAMETERS['IS_ALIAS_UDB_USING'] == 'True':
+                for db in self.databases:
+                    if parent_name in db:
+                        parent_name = db[0]
+                        break
 
             # Поиск таблицы
             for key in self.all_tables:
@@ -899,6 +906,11 @@ class MainFrame(wx.Frame):
         with NewTestConnection(self) as new_test_conn:
             result = new_test_conn.ShowModal()
 
+    def open_report_wizard(self, event):
+        report_wizard = ReportWizard()
+        report_wizard.Show()
+        report_wizard.SetFocus()
+
     ############################
 
     def close_app(self, event):
@@ -1211,6 +1223,9 @@ class MainFrame(wx.Frame):
                              shortHelp=APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.NEW_TEST_CONN'])
         self.Bind(wx.EVT_TOOL, self.open_new_test_conn, id=8)
         self.toolbar.AddSeparator()
+        self.toolbar.AddTool(12, "Reports", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/report.png")),
+                             shortHelp=APP_TEXT_LABELS['REPORT_WIZARD.TITLE'])
+        self.Bind(wx.EVT_TOOL, self.open_report_wizard, id=12)
         self.toolbar.AddTool(6, "Просмотр логов", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/history.png")),
                              shortHelp=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER'])
         self.Bind(wx.EVT_TOOL, self.open_logviewer, id=6)
@@ -1541,7 +1556,7 @@ class AboutApp(wx.Frame):
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
 
-        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.1, 2024'), 0, wx.TOP, 10),
+        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.5, 2024'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
 

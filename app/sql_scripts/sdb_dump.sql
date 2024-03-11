@@ -556,6 +556,7 @@ ds.qwerprog04@mail.ru'),
 	 ('MAIN.MAIN_MENU.FILE.ROLLBACK','ru','Откат'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT','ru','Подтверждение транзакции'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK','ru','Откат транзакции');
+/
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E018.CAPTION','ru','Ошибка отката транзакции'),
 	 ('E018.MESSAGE','ru','При откате транзакции в тестовой БД произошла ошибка.
@@ -618,6 +619,7 @@ Try again or report the incident:
 ds.qwerprog04@mail.ru'),
 	 ('E019.CAPTION','en','Connection not exists'),
 	 ('E019.MESSAGE','en','Before the operation, connect to the test database!');
+/
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL','en','Execute the query in test database'),
 	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION','en','Successful completion'),
@@ -657,8 +659,48 @@ Transaction time: {1} sec.'),
 	 ('MAIN.STATUSBAR.CONNECTION','en','Connection'),
 	 ('MAIN.STATUSBAR.TRANSACTION','en','Transaction'),
 	 ('MAIN.STATUSBAR.QUERY','en','Query'),
-	 ('MAIN.STATUSBAR.FILE','en','File');
-
+	 ('MAIN.STATUSBAR.FILE','en','File'),
+	 ('REPORT_WIZARD.TITLE','ru','Мастер отчетности'),
+	 ('REPORT_WIZARD.HEADER2','ru','Данный мастер позволит создать отчет из сгенерированных данных'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMNS.TITLE','ru','Укажите необходимые столбцы:'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.NONE_COLUMNS.MESSAGE','ru','Выберите хотя бы один столбец!'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.NONE_COLUMNS.CAPTION','ru','Не выбраны поля для генерации'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.INVALID_ROWCOUNT.MESSAGE','ru','Укажите корректное количество генерируемых строк!'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.FILE_EXTENSION','ru','Расширение файла:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.FILE_TEMPLATE','ru','Шаблон:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.FILE_TEMPLATE.CHANGE','ru','Изменить...'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.TITLE','ru','Заполните все указанные поля:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.PARAMETERS.REPORT_NAME','ru','Имя отчета:'),
+	 ('FILE_DIALOG.WILDCARD_XLSX','ru','Файл Excel (*.xls,*.xlsx)|*.xls;*.xlsx'),
+	 ('FILE_DIALOG.WILDCARD_DOCX','ru','Файл Word (*.doc,*.docx)|*.doc;*.docx');
+/
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.MESSAGE','ru','Укажите корректное имя файла и путь его расположения!'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.CAPTION','ru','Не указана информация о файле'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_TEMPLATE_INFO.CAPTION','ru','Не указан шаблон'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_TEMPLATE_INFO.MESSAGE','ru','Укажите шаблон для генерации отчета!'),
+	 ('REPORT_WIZARD.REPORT_SAVED.MESSAGE','ru','Отчет "{0}" сохранен в {1}'),
+	 ('REPORT_WIZARD.REPORT_SAVED.CAPTION','ru','Отчет создан'),
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN','ru','Закрывать мастер репортов после генерации'),
+	 ('REPORT_WIZARD.TITLE','en','Report wizard'),
+	 ('REPORT_WIZARD.HEADER2','en','This wizard will allow you to create a report from the generated data'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMNS.TITLE','en','Specify the required columns:'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.NONE_COLUMNS.MESSAGE','en','Select at least one column!'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.NONE_COLUMNS.CAPTION','en','Fields for generation are not selected'),
+	 ('REPORT_WIZARD.CHOOSE_COLUMN.INVALID_ROWCOUNT.MESSAGE','en','Specify the correct number of rows to generate!'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.FILE_EXTENSION','en','File extension:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.FILE_TEMPLATE','en','Template:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.TITLE','en','Fill in all the specified fields:'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.PARAMETERS.REPORT_NAME','en','Report name:'),
+	 ('FILE_DIALOG.WILDCARD_XLSX','en','Excel file (*.xls,*.xlsx)|*.xls;*.xlsx'),
+	 ('FILE_DIALOG.WILDCARD_DOCX','en','Word file (*.doc,*.docx)|*.doc;*.docx'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.MESSAGE','en','Specify the correct file name and location path!'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.CAPTION','en','No information about the file is specified'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_TEMPLATE_INFO.CAPTION','en','The template is not specified'),
+	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_TEMPLATE_INFO.MESSAGE','en','Specify the template for generating the report!'),
+	 ('REPORT_WIZARD.REPORT_SAVED.MESSAGE','en','The report "{0}" is saved in {1}'),
+	 ('REPORT_WIZARD.REPORT_SAVED.CAPTION','en','The report has been created'),
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN','en','Close the report wizard after generation');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -709,7 +751,8 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_NEW_TEST_CONN','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_NEW_TEST_CONN',0),
 	 ('KEY_COMMIT','Shift+Alt+C','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT',0),
 	 ('KEY_ROLLBACK','Shift+Alt+R','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK',0),
-	 ('KEY_EXECUTE_SQL','Shift+Alt+E','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL',0);
+	 ('KEY_EXECUTE_SQL','Shift+Alt+E','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL',0),
+	 ('IS_CLOSING_REPORTS_AFTER_GEN','False','SYSTEM',NULL,0);
 /
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
@@ -735,7 +778,9 @@ INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_l
 	 (NULL,5,1,'HeaderGroup','APP.SETTINGS.SYSTEM.GENERAL.APP_SETTINGS',NULL,NULL,'Y'),
 	 (17,5,4,'MaskedTextEntry','APP.SETTINGS.SYSTEM.GENERAL.FORMAT_DATE',NULL,NULL,'Y'),
 	 (18,5,2,'SelectorBox','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE','ru:en','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','Y'),
-	 (22,5,4,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING',NULL,NULL,'Y');
+	 (22,5,4,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING',NULL,NULL,'Y'),
+	 (27,5,5,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN',NULL,NULL,'Y');
+
 /
 INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES
 	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','simple','random.randint($1, $2)','Y'),

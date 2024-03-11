@@ -102,6 +102,7 @@ class NewConnection(wx.Dialog):
                 exit(14)
             finally:
                 cursor.close()
+                app_conn.close()
 
     def __init__(self, parent: wx.Window):
         super().__init__(parent, title=APP_TEXT_LABELS['NEW_CONN.TITLE'], size=(500, 300))

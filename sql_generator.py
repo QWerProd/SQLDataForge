@@ -24,7 +24,7 @@ class SQLGenerator:
     indexes = []
 
     def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
-                 table_info: dict = None, indexes: list = None) -> None:
+                 table_info: dict = None, indexes: list = None, is_simple_mode: bool = None):
         self.app_conn = app_conn
 
         self.rows_count = rows_count
@@ -32,14 +32,22 @@ class SQLGenerator:
         self.cols.clear()
         self.columns_info = columns_info
         self.added_items = added_items
-        self.is_simple_mode = True
+        if is_simple_mode is None:
+            self.is_simple_mode = True
 
-        if table_info is not None:
-            self.is_simple_mode = False
-            for key, value in table_info.items():
-                self.table_name = key
-                self.new_table_info = value
-        self.indexes = indexes
+            if table_info is not None:
+                self.is_simple_mode = False
+                for key, value in table_info.items():
+                    self.table_name = key
+                    self.new_table_info = value
+            self.indexes = indexes
+        else:
+            self.is_simple_mode = is_simple_mode
+
+        if table_info is None:
+            self.new_table_info = {
+                'is_id_create': False
+            }
 
     def CreateHeader(self):
         self.queryrow1 += 'INSERT INTO ' + self.table_name
