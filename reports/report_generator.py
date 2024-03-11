@@ -108,6 +108,8 @@ class ReportGenerator:
                     while (1):
                         if re.search(r'\$\{TABLE\}', curr_value) is not None:
                             for col_key, col_values in data.items():
+                                if col_key in ('report-name', 'report-date'):
+                                    continue
                                 table_row = row_num
                                 col_width = 0
                                 col_letter = sheet.cell(row=table_row, column=col_num).column_letter
@@ -124,7 +126,7 @@ class ReportGenerator:
                         else:
                             for data_key in self.report_info.keys():
                                 if data_key in curr_value:
-                                    cell.value = curr_value.replace(f'[{data_key}]', self.report_info[data_key])
+                                    cell.value = curr_value.replace(f'${{{data_key}}}', self.report_info[data_key])
                                     curr_value = cell.value
                             if re.search(r'\$\{[\w-]*\}', curr_value) is None:
                                 is_contains_rep = False
