@@ -13,14 +13,14 @@ from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator
 from app.error_catcher import ErrorCatcher
+from app.tools.settings import Settings
+from app.tools.logviewer import Logviewer
 from connections.udb_conn.connection_viewer import ConnectionViewer
 from connections.udb_conn.new_conn import NewConnection
 from connections.udb_conn.new_udb_wizard import UDBCreateMaster
-from single_generator import SimpleGenerator
-from app.tools.settings import Settings
-from app.tools.logviewer import Logviewer
 from connections.test_dbs.new_test_conn import NewTestConnection
-from connections.test_dbs.test_connector import TestConnector
+from connections.test_dbs.type_connectors import *
+from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
 from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH
 
@@ -37,6 +37,12 @@ index_items = []
 # Редакторы кода для обновления стилей
 stc_redactors = []
 
+# Доступные типы коннекторов
+avaliable_connectors = {
+    'SQLite': SQLiteConnector,
+    'PostgreSQL': PostgreSQLConnector
+}
+
 
 class MainFrame(wx.Frame):
     tree_items = {}
@@ -45,7 +51,7 @@ class MainFrame(wx.Frame):
 
     # Тестовые подключения
     all_connections = []
-    connection = TestConnector
+    connection = BaseConnector
     curr_conn_item = wx.TreeItemId
 
     # Переменные "Простого генератора"
@@ -470,11 +476,11 @@ class MainFrame(wx.Frame):
 
             conn_data = {}
             for conn_info in self.all_connections:
-                if conn_info['db-name'] == activated:
+                if conn_info['database-name'] == activated:
                     conn_data = conn_info
                     break
 
-            self.connection = TestConnector(conn_data)
+            self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
             self.connection_status_panel.set_status(1)
 
@@ -483,7 +489,12 @@ class MainFrame(wx.Frame):
             query = self.textctrl_sql.GetValue()
             if query == '':
                 return catcher.error_message('E001')
-            result, error_message = self.connection.execute_query(query)
+            try:
+                result, error_message = self.connection.execute_query(query)
+            except (DestroyedConnectionError, DestroyedTunnelError):
+                return
+
+            # Изменения статусов при безошибочной отработке
             if result != -1:
                 self.is_transaction = True
                 wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
@@ -836,9 +847,8 @@ class MainFrame(wx.Frame):
 
     def set_connections_tree_items(self):
         for conn_info in self.all_connections:
-            tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['db-name'])
-            if conn_info['connector-name'] == 'SQLite':
-                self.treectrl_test_connections.SetItemImage(tree_item, self.sqlite_image)
+            tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['database-name'])
+            self.treectrl_test_connections.SetItemImage(tree_item, self.test_dbs_images[conn_info['connector-name']])
 
     def delete_index(self, item):
         index_items.remove(item)
@@ -1291,10 +1301,18 @@ class MainFrame(wx.Frame):
         self.treectrl_test_connections = wx.TreeCtrl(connections_panel,
                                                      style=wx.TR_HIDE_ROOT)
         self.treectrl_test_connections_root = self.treectrl_test_connections.AddRoot('')
+
         self.image_connection_items = wx.ImageList(16, 16)
         self.sqlite_image = self.image_connection_items.Add(
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/SQLite.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.postgresql_image = self.image_connection_items.Add(
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/PostgreSQL.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_test_connections.AssignImageList(self.image_connection_items)
+        self.test_dbs_images = {
+            'SQLite': self.sqlite_image,
+            'PostgreSQL': self.postgresql_image
+        }
+
         self.set_conn_info()
         self.set_connections_tree_items()
         self.treectrl_test_connections.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_connection_tree_activated)

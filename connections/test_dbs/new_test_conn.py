@@ -3,6 +3,7 @@ import os
 import json
 import hashlib
 
+from connections.test_dbs.type_connectors import *
 from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
 
 
@@ -148,13 +149,217 @@ class NewTestConnection(wx.Dialog):
 
     class ConnectDBServer(wx.Panel):
 
+        connector = dict
+        is_ssh_used = bool
+        host_info = {
+            'database-name': str,
+            'database-host': str,
+            'database-port': str,
+            'database-user': str,
+            'database-pass': str
+        }
+        ssh_info = {
+            'ssh-need': bool,
+            'ssh-host': str,
+            'ssh-port': str,
+            'ssh-user': str,
+            'ssh-pass': str
+        }
+
+        def set_connector(self, connector: dict):
+            self.connector = connector
+            self.conn_type_statictext.SetLabel(APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'] + ' | ' + self.connector['connector-name'])
+
+        def get_host_info(self) -> dict:
+            self.host_info['database-name'] = self.host_path_database_textctrl.GetValue()
+            self.host_info['database-host'] = self.host_path_textctrl.GetValue()
+            self.host_info['database-port'] = self.host_path_port_textctrl.GetValue()
+            self.host_info['database-user'] = self.host_user_name_textctrl.GetValue()
+            self.host_info['database-pass'] = self.host_user_password_textctrl.GetValue()
+            return self.host_info
+
+        def get_ssh_info(self) -> dict:
+            self.ssh_info['ssh-need'] = self.is_ssh_used
+            if self.is_ssh_used:
+                self.ssh_info['ssh-host'] = self.ssh_host_textctrl.GetValue()
+                self.ssh_info['ssh-port'] = self.ssh_host_port_textctrl.GetValue()
+                self.ssh_info['ssh-user'] = self.ssh_user_name_textctrl.GetValue()
+                self.ssh_info['ssh-pass'] = self.ssh_user_password_textctrl.GetValue()
+            else:
+                self.ssh_info['ssh-host'] = None
+                self.ssh_info['ssh-port'] = None
+                self.ssh_info['ssh-user'] = None
+                self.ssh_info['ssh-pass'] = None
+            return self.ssh_info
+
+        def is_ssh_checkbox_changed(self, event):
+            self.is_ssh_used = self.is_using_ssh_checkbox.GetValue()
+
+            if self.is_ssh_used:
+                self.ssh_host_textctrl.Enable()
+                self.ssh_host_port_textctrl.Enable()
+                self.ssh_user_name_textctrl.Enable()
+                self.ssh_user_password_textctrl.Enable()
+            else:
+                self.ssh_host_textctrl.Disable()
+                self.ssh_host_port_textctrl.Disable()
+                self.ssh_user_name_textctrl.Disable()
+                self.ssh_user_password_textctrl.Disable()
+
         def __init__(self, parent: wx.Panel):
             super().__init__(parent)
+            self.connector = {}
+            self.is_ssh_used = False
+
+            self.driver_font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+            self.sizer = wx.BoxSizer(wx.VERTICAL)
+            self.SetSizer(self.sizer)
+
+            # ----------
+            self.connector_type_panel = wx.Panel(self)
+            self.connector_type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.connector_type_panel.SetSizer(self.connector_type_sizer)
+
+            self.conn_type_statictext = wx.StaticText(self.connector_type_panel,
+                                                      label=APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'])
+            self.conn_type_statictext.SetFont(self.driver_font)
+            self.connector_type_sizer.Add(self.conn_type_statictext, 0, wx.LEFT, 10)
+
+            self.sizer.Add(self.connector_type_panel, 0, wx.ALL | wx.EXPAND, 5)
+            self.sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+            # ----------
+
+            self.host_info_panel = wx.Panel(self)
+            self.host_info_staticbox = wx.StaticBox(self.host_info_panel, label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO'])
+            self.host_info_sizer = wx.StaticBoxSizer(self.host_info_staticbox, wx.VERTICAL)
+            self.host_info_panel.SetSizer(self.host_info_sizer)
+
+            # --------------------
+
+            self.host_path_panel = wx.Panel(self.host_info_panel)
+            self.host_path_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.host_path_panel.SetSizer(self.host_path_sizer)
+
+            self.host_path_database_statictext = wx.StaticText(self.host_path_panel, size=(100, -1),
+                                                               label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_DATABASE'])
+            self.host_path_sizer.Add(self.host_path_database_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.host_path_database_textctrl = wx.TextCtrl(self.host_path_panel, size=(125, -1))
+            self.host_path_sizer.Add(self.host_path_database_textctrl, 0, wx.EXPAND)
+
+            self.host_path_statictext = wx.StaticText(self.host_path_panel, size=(50, -1),
+                                                      label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PATH'])
+            self.host_path_sizer.Add(self.host_path_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.host_path_textctrl = wx.TextCtrl(self.host_path_panel)
+            self.host_path_sizer.Add(self.host_path_textctrl, 1, wx.EXPAND)
+
+            self.host_path_port_statictext = wx.StaticText(self.host_path_panel, size=(50, -1),
+                                                           label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT'])
+            self.host_path_sizer.Add(self.host_path_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.host_path_port_textctrl = wx.TextCtrl(self.host_path_panel, size=(50, -1))
+            self.host_path_port_textctrl.SetValue('5432')
+            self.host_path_sizer.Add(self.host_path_port_textctrl, 0, wx.EXPAND)
+
+            self.host_info_sizer.Add(self.host_path_panel, 0, wx.ALL | wx.EXPAND, 5)
+            # --------------------
+
+            self.host_user_panel = wx.Panel(self.host_info_panel)
+            self.host_user_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.host_user_panel.SetSizer(self.host_user_sizer)
+
+            self.host_user_name_statictext = wx.StaticText(self.host_user_panel, size=(100, -1),
+                                                           label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME'])
+            self.host_user_sizer.Add(self.host_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.host_user_name_textctrl = wx.TextCtrl(self.host_user_panel)
+            self.host_user_sizer.Add(self.host_user_name_textctrl, 1, wx.EXPAND)
+
+            self.host_user_password_statictext = wx.StaticText(self.host_user_panel, size=(50, -1),
+                                                               label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD'])
+            self.host_user_sizer.Add(self.host_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.host_user_password_textctrl = wx.TextCtrl(self.host_user_panel, style=wx.TE_PASSWORD)
+            self.host_user_sizer.Add(self.host_user_password_textctrl, 1, wx.EXPAND)
+
+            self.host_info_sizer.Add(self.host_user_panel, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 5)
+            # --------------------
+
+            self.sizer.Add(self.host_info_panel, 0, wx.ALL | wx.EXPAND, 10)
+            # ----------
+
+            self.is_using_ssh_checkbox = wx.CheckBox(self, label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.USE_SSH'])
+            self.is_using_ssh_checkbox.Bind(wx.EVT_CHECKBOX, self.is_ssh_checkbox_changed)
+            self.sizer.Add(self.is_using_ssh_checkbox, 0, wx.LEFT | wx.TOP, 10)
+            # ----------
+
+            self.ssh_info_panel = wx.Panel(self)
+            self.ssh_info_staticbox = wx.StaticBox(self.ssh_info_panel, label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO'])
+            self.ssh_info_sizer = wx.StaticBoxSizer(self.ssh_info_staticbox, wx.VERTICAL)
+            self.ssh_info_panel.SetSizer(self.ssh_info_sizer)
+
+            # --------------------
+
+            self.ssh_host_panel = wx.Panel(self.ssh_info_panel)
+            self.ssh_host_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.ssh_host_panel.SetSizer(self.ssh_host_sizer)
+
+            self.ssh_host_statictext = wx.StaticText(self.ssh_host_panel, size=(100, -1),
+                                                     label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO.HOST'])
+            self.ssh_host_sizer.Add(self.ssh_host_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.ssh_host_textctrl = wx.TextCtrl(self.ssh_host_panel)
+            self.ssh_host_textctrl.Disable()
+            self.ssh_host_sizer.Add(self.ssh_host_textctrl, 1, wx.EXPAND)
+
+            self.ssh_host_port_statictext = wx.StaticText(self.ssh_host_panel, size=(50, -1),
+                                                          label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT'])
+            self.ssh_host_sizer.Add(self.ssh_host_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.ssh_host_port_textctrl = wx.TextCtrl(self.ssh_host_panel, size=(50, -1))
+            self.ssh_host_port_textctrl.Disable()
+            self.ssh_host_port_textctrl.SetValue('22')
+            self.ssh_host_sizer.Add(self.ssh_host_port_textctrl, 0, wx.EXPAND)
+
+            self.ssh_info_sizer.Add(self.ssh_host_panel, 0, wx.ALL | wx.EXPAND, 5)
+            # --------------------
+
+            self.ssh_user_panel = wx.Panel(self.ssh_info_panel)
+            self.ssh_user_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.ssh_user_panel.SetSizer(self.ssh_user_sizer)
+
+            self.ssh_user_name_statictext = wx.StaticText(self.ssh_user_panel, size=(100, -1),
+                                                          label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME'])
+            self.ssh_user_sizer.Add(self.ssh_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.ssh_user_name_textctrl = wx.TextCtrl(self.ssh_user_panel)
+            self.ssh_user_name_textctrl.Disable()
+            self.ssh_user_sizer.Add(self.ssh_user_name_textctrl, 1, wx.EXPAND)
+
+            self.ssh_user_password_statictext = wx.StaticText(self.ssh_user_panel, size=(50, -1),
+                                                              label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD'])
+            self.ssh_user_sizer.Add(self.ssh_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.ssh_user_password_textctrl = wx.TextCtrl(self.ssh_user_panel, style=wx.TE_PASSWORD)
+            self.ssh_user_password_textctrl.Disable()
+            self.ssh_user_sizer.Add(self.ssh_user_password_textctrl, 1, wx.EXPAND)
+
+            self.ssh_info_sizer.Add(self.ssh_user_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 5)
+            # --------------------
+
+            self.sizer.Add(self.ssh_info_panel, 0, wx.ALL | wx.EXPAND, 10)
+            # ----------
 
     class ConfirmationConnect(wx.Panel):
 
         connector = dict
         conn_info = dict
+        avaliable_connectors = {
+            'SQLite': SQLiteConnector,
+            'PostgreSQL': PostgreSQLConnector
+        }
 
         def set_connection_data(self, connector: dict, conn_data: dict):
             self.connector = connector
@@ -163,33 +368,32 @@ class NewTestConnection(wx.Dialog):
 
         def set_values(self):
             self.conn_type_statictext.SetLabel(APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'] + ' | ' + self.connector['connector-name'])
-            self.db_name_textctrl.SetHint(self.conn_info['db-name'])
-            self.db_path_textctrl.SetValue(self.conn_info['db-path'])
+            self.db_name_textctrl.SetHint(self.conn_info['database-name'])
+            self.db_path_textctrl.SetValue(self.conn_info['database-path'])
 
         def get_conn_data(self) -> dict:
             db_alias = self.db_name_textctrl.GetValue()
-            self.conn_info['db-name'] = db_alias if db_alias != '' else self.db_name_textctrl.GetHint()
+            self.conn_info['database-name'] = db_alias if db_alias != '' else self.db_name_textctrl.GetHint()
             return self.conn_info
 
         def test_connection(self, event=None):
             conn_type = self.connector['connection-type']
             conn_name = self.connector['connector-name']
+            connector = BaseConnector
 
-            if conn_type == 'local_file':
-                if conn_name == 'SQLite':
-                    import sqlite3
-                    file_path = self.conn_info['db-path']
-                    try:
-                        test_conn = sqlite3.connect(file_path)
-                        test_conn.close()
-                    except sqlite3.Error as e:
-                        return wx.MessageBox(e.sqlite_errorcode + ': ' + e.sqlite_errorname + '\n' + e.args[0],
-                                             APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION'],
-                                             wx.ICON_ERROR | wx.OK)
+            try:
+                import pdb; pdb.set_trace()  # breakpoint c7cc58e2 //
+                self.avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
+                														 self.conn_info['database-username'] + ':' + self.conn_info['database-password'],
+                														 self.conn_info.get('ssh-path', None),
+                														 self.conn_info.get('ssh-user', None) + self.conn_info.get('ssh-pass', None))
+            except BaseException as e:
+                return wx.MessageBox(e.args[0], APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION'],
+                                     wx.ICON_ERROR | wx.OK)
 
-            wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],
-                          APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION'],
-                          wx.ICON_INFORMATION | wx.OK)
+            return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],
+                                 APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION'],
+                                 wx.ICON_INFORMATION | wx.OK)
 
         def __init__(self, parent: wx.Panel):
             super().__init__(parent)
@@ -295,18 +499,42 @@ class NewTestConnection(wx.Dialog):
             if self.connector['connection-type'] == 'local_file':
                 next_page = self.page_local
                 self.page_local.set_connector(self.connector)
-            else:
-                pass
+            elif self.connector['connection-type'] == 'server_host':
+                next_page = self.page_server
+                self.page_server.set_connector(self.connector)
+
         if self.curr_page == 1:
             next_page = self.page_final
             conn_data = {}
             if self.curr_page_panel == self.page_local:
-                conn_data['db-path'] = self.page_local.get_path()
-                conn_data['db-name'] = self.page_local.get_db_name()
-                if conn_data['db-path'] == '':
+                conn_data['database-path'] = self.page_local.get_path()
+                conn_data['database-name'] = self.page_local.get_db_name()
+                if conn_data['database-path'] == '':
                     return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.MESSAGE'],
                                          APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.CAPTION'],
                                          wx.ICON_ERROR | wx.OK)
+            elif self.curr_page_panel == self.page_server:
+                host_info = self.page_server.get_host_info()
+                ssh_info = self.page_server.get_ssh_info()
+                conn_data['database-path'] = f'{host_info["database-host"]}:{host_info["database-port"]}/{host_info["database-name"]}'
+                conn_data['database-name'] = host_info['database-name']
+                conn_data['database-username'] = host_info['database-user']
+                conn_data['database-password'] = host_info['database-pass']
+                conn_data['ssh'] = ssh_info['ssh-need']
+                if ssh_info['ssh-need']:
+                    conn_data['ssh-path'] = f"{ssh_info['ssh-host']}:{ssh_info['ssh-port']}"
+                    conn_data['ssh-user'] = ssh_info['ssh-user']
+                    conn_data['ssh-pass'] = ssh_info['ssh-pass']
+                if (conn_data['database-name'] == '' or conn_data['database-username'] == '' or
+                    conn_data['database-password'] == '' or host_info['database-host'] == '' or
+                    host_info['database-port'] == '' or
+                        (conn_data['ssh'] and
+                            (ssh_info['ssh-host'] is None or ssh_info['ssh-port'] is None or
+                                conn_data['ssh-user'] is None or conn_data['ssh-pass'] is None))):
+                    return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.MESSAGE'],
+                                         APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.CAPTION'],
+                                         wx.ICON_ERROR | wx.OK)
+
             self.page_final.set_connection_data(self.connector, conn_data)
             self.next_button.SetLabel(APP_TEXT_LABELS['NEW_UDB_WIZARD.BUTTON.FINISH'])
             self.next_button.Bind(wx.EVT_BUTTON, self.finish)
@@ -338,7 +566,11 @@ class NewTestConnection(wx.Dialog):
         # Формирования хеша для идентификации подключений
         hash_string = ''
         if curr_test_conn['connection-type'] == 'local_file':
-            hash_string = curr_test_conn['connector-name'] + curr_test_conn['db-path']
+            hash_string = curr_test_conn['connector-name'] + curr_test_conn['database-path']
+        elif curr_test_conn['connection-type'] == 'server_host':
+            hash_string = curr_test_conn['connector-name'] + curr_test_conn['database-path']
+            if curr_test_conn['ssh']:
+                hash_string += curr_test_conn['ssh-path']
         curr_hash_object = hashlib.sha1(hash_string.encode())
         curr_test_conn['id'] = curr_hash_object.hexdigest()
 
@@ -348,7 +580,7 @@ class NewTestConnection(wx.Dialog):
                 return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.MESSAGE'],
                                      APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.CAPTION'],
                                      wx.ICON_WARNING | wx.OK)
-            elif test_conn['db-name'] == curr_test_conn['db-name']:
+            elif test_conn['database-name'] == curr_test_conn['database-name']:
                 return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.MESSAGE'],
                                      APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.CAPTION'],
                                      wx.ICON_WARNING, wx.OK)
@@ -413,11 +645,14 @@ class NewTestConnection(wx.Dialog):
         self.page_init = NewTestConnection.ChooseConnectorTypePanel(self.main_panel)
         self.curr_page_panel = self.page_init
         self.page_local = NewTestConnection.ConnectDBLocalFile(self.main_panel)
+        self.page_server = NewTestConnection.ConnectDBServer(self.main_panel)
         self.page_final = NewTestConnection.ConfirmationConnect(self.main_panel)
         self.main_sizer.Add(self.page_init, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_local, 1, wx.EXPAND)
+        self.main_sizer.Add(self.page_server, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_final, 1, wx.EXPAND)
         self.page_local.Hide()
+        self.page_server.Hide()
         self.page_final.Hide()
 
         self.sizer.Add(self.main_panel, 1, wx.EXPAND)

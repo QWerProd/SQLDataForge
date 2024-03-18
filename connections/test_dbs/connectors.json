@@ -3,5 +3,10 @@
     "connector-name": "SQLite",
     "connection-type": "local_file",
     "connector-logo": "img/connectors/SQlite.png"
+  },
+  {
+    "connector-name": "PostgreSQL",
+    "connection-type": "server_host",
+    "connector-logo": "img/connectors/PostgreSQL.png"
   }
 ]
