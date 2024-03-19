@@ -1,0 +1,50 @@
+{
+	"text-value": {
+		"TEXT": {
+			"size-required": "False",
+			"connectors": ["SQLite", "PostgreSQL"]
+		},
+		"CHARACTER": {
+			"size-required": "True",
+			"connectors": ["PostgreSQL"]
+		},
+		"CHAR": {
+			"size-required": "False",
+			"connectors": ["PostgreSQL"]
+		}
+	},
+	"integer-value": {
+		"INTEGER": {
+			"size-required": "False",
+			"connectors": ["SQLite", "PostgreSQL"]
+		},
+		"BIGINT": {
+			"size-required": "False",
+			"connectors": ["PostgreSQL"]
+		},
+		"NUMERIC": {
+			"size-required": "True",
+			"connectors": ["SQLite", "PostgreSQL"]
+		}
+	},
+	"float-value": {
+		"REAL": {
+			"size-required": "False",
+			"connectors": ["SQLite", "PostgreSQL"]
+		},
+		"FLOAT": {
+			"size-required": "True",
+			"connectors": ["PostgreSQL"]
+		}
+	},
+	"date-value": {
+		"DATE": {
+			"size-required": "False",
+			"connectors": ["PostgreSQL"]
+		},
+		"TIMESTAMP": {
+			"size-required": "False",
+			"connectors": ["PostgreSQL"]
+		}
+	}
+}

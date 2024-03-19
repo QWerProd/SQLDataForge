@@ -700,7 +700,45 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_TEMPLATE_INFO.MESSAGE','en','Specify the template for generating the report!'),
 	 ('REPORT_WIZARD.REPORT_SAVED.MESSAGE','en','The report "{0}" is saved in {1}'),
 	 ('REPORT_WIZARD.REPORT_SAVED.CAPTION','en','The report has been created'),
-	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN','en','Close the report wizard after generation');
+	 ('APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN','en','Close the report wizard after generation'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO','ru','Сервер:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PATH','ru','Хост:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT','ru','Порт:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_DATABASE','ru','База данных:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME','ru','Пользователь:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD','ru','Пароль:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO','ru','Тоннель SSH:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO.HOST','ru','Хост/IP:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.USE_SSH','ru','Использовать тоннель SSH'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.CAPTION','ru','Заполните все необходимые поля'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.MESSAGE','ru','Все доступные поля должны быть заполнены!'),
+	 ('E021.CAPTION','ru','Ошибка при подключении'),
+	 ('E021.MESSAGE','ru','При подключении к БД произошла следующая ошибка:'),
+	 ('E022.CAPTION','ru','Ошибка SSH'),
+	 ('E022.MESSAGE','ru','При подключении к БД произошла ошибка с тоннелем SSH:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULTS','ru','По умолчанию'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','ru','Типы столбцов для коннектора:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.HEADER','ru','Значения по умолчанию'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO','en','Server:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PATH','en','Host:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT','en','Port:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_DATABASE','en','Database:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME','en','Username:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD','en','Password:');
+/
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO','en','Tunnel SSH:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO.HOST','en','Host/IP:'),
+	 ('NEW_TEST_CONN.CONNECT_SERVER.USE_SSH','en','Enable using tunnel SSH'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.CAPTION','en','Fill in all the required fields'),
+	 ('NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.MESSAGE','en','All available fields must be filled in!'),
+	 ('E021.CAPTION','en','Connection error'),
+	 ('E021.MESSAGE','en','The following error occurred when connecting to the database:'),
+	 ('E022.CAPTION','en','Tunnel SSH error'),
+	 ('E022.MESSAGE','en','An error occurred with the SSH tunnel when connecting to the database:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULTS','en','Default'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','en','Types of columns for the connector:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.HEADER','en','Default values');
 /
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -717,13 +755,14 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E012','E012.CAPTION','E012.MESSAGE'),
 	 ('E013','E013.CAPTION','E013.MESSAGE'),
 	 ('E014','E014.CAPTION','E014.MESSAGE'),
-	 ('E015','E015.CAPTION','E015.MESSAGE'),
 	 ('E015','NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION','E015.MESSAGE'),
 	 ('E016','E016.CAPTION','E016.MESSAGE'),
 	 ('E017','E017.CAPTION','E017.MESSAGE'),
 	 ('E018','E018.CAPTION','E018.MESSAGE'),
 	 ('E019','E019.CAPTION','E019.MESSAGE'),
-	 ('E020','E020.CAPTION','E020.MESSAGE');
+	 ('E020','E020.CAPTION','E020.MESSAGE'),
+	 ('E021','E021.CAPTION','E021.MESSAGE'),
+	 ('E022','E022.CAPTION','E022.MESSAGE');
 /
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
@@ -752,7 +791,8 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_COMMIT','Shift+Alt+C','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT',0),
 	 ('KEY_ROLLBACK','Shift+Alt+R','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK',0),
 	 ('KEY_EXECUTE_SQL','Shift+Alt+E','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL',0),
-	 ('IS_CLOSING_REPORTS_AFTER_GEN','False','SYSTEM',NULL,0);
+	 ('IS_CLOSING_REPORTS_AFTER_GEN','False','SYSTEM',NULL,0),
+	 ('DEFAULT_CONNECTOR','PostgreSQL','SYSTEM',NULL,2);
 /
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
@@ -761,7 +801,8 @@ INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.SYSTEM','Y'),
 	 (4,'APP.SETTINGS.SYSTEM.GENERAL','Y'),
 	 (4,'APP.SETTINGS.SYSTEM.HOTKEYS','Y'),
-	 (4,'APP.SETTINGS.SYSTEM.PARAMETERS','N');
+	 (4,'APP.SETTINGS.SYSTEM.PARAMETERS','N'),
+	 (4,'APP.SETTINGS.SYSTEM.DEFAULTS','Y');
 /
 INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_label,entry_choices,entry_label_choices,is_valid) VALUES
 	 (3,5,3,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CATCH_CLOSING_APP',NULL,NULL,'Y'),
@@ -779,7 +820,9 @@ INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_l
 	 (17,5,4,'MaskedTextEntry','APP.SETTINGS.SYSTEM.GENERAL.FORMAT_DATE',NULL,NULL,'Y'),
 	 (18,5,2,'SelectorBox','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE','ru:en','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','Y'),
 	 (22,5,4,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING',NULL,NULL,'Y'),
-	 (27,5,5,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN',NULL,NULL,'Y');
+	 (27,5,5,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN',NULL,NULL,'Y'),
+	 (28,8,1,'SelectorBox','APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','SQLite:PostgreSQL','','Y'),
+	 (NULL,8,0,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.HEADER',NULL,NULL,'Y');
 
 /
 INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES

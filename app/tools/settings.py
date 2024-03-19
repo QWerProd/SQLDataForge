@@ -96,7 +96,10 @@ class Settings(wx.Dialog):
                     menu_entry_panel = RadioSelect(self.settings_item_panel, entry[2], entry[3])
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL, 2)
                 elif entry[1] == 'SelectorBox':
-                    menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'), entry[5].split(':'))
+                    if entry[5] is None:
+                        menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'))
+                    else:
+                        menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'), entry[5].split(':'))
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
                 elif entry[1] == 'HEXEnter':
                     menu_entry_panel = HEXEnter(self.settings_item_panel, entry[2])

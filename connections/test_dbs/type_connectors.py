@@ -257,8 +257,6 @@ class PostgreSQLConnector(BaseConnector):
             except psycopg2.OperationalError as e:
             	catcher.error_message('E021', e.args[0])
             	raise DestroyedConnectionError
-            # except psycopg2.Error:
-            # 	self.close()
 
         else:
             try:

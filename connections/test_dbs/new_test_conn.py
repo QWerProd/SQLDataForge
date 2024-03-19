@@ -19,7 +19,7 @@ class NewTestConnection(wx.Dialog):
         connectors = list
 
         def set_connectors(self):
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/connectors.json'), 'r') as conn_data:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json'), 'r') as conn_data:
                 data = json.load(conn_data)
 
             self.connectors = data
@@ -382,7 +382,6 @@ class NewTestConnection(wx.Dialog):
             connector = BaseConnector
 
             try:
-                import pdb; pdb.set_trace()  # breakpoint c7cc58e2 //
                 self.avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
                 														 self.conn_info['database-username'] + ':' + self.conn_info['database-password'],
                 														 self.conn_info.get('ssh-path', None),

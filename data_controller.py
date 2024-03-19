@@ -68,8 +68,8 @@ class DataController:
     def GetTablesFromDB() -> dict:
         """Возвращает словарь с именами таблиц базы данных из специальной таблицы t_cases_info.
         {'Person.db':
-        ['t_person_man_names:last_name:Фамилия (М)',
-        't_person_man_names:first_name:Имя (М)', ...],
+        ['t_person_man_names:last_name:Фамилия (М):text-value',
+        't_person_man_names:first_name:Имя (М):text-value', ...],
         ...}"""
         with sqlite3.connect(db_path) as app_conn:
             all_tables = {}
@@ -85,13 +85,13 @@ class DataController:
                 conn = sqlite3.connect(os.path.join(BASE_DIR, path))
                 cursor = conn.cursor()
                 try:
-                    tables = cursor.execute(f"""SELECT table_name, column_name, column_code
+                    tables = cursor.execute(f"""SELECT table_name, column_name, column_code, column_type
                                                 FROM t_cases_info
                                                 ORDER BY posid;""").fetchall()
 
                     list_tables = []
                     for item in tables:
-                        list_tables.append(f"{item[0]}:{item[1]}:{item[2]}")
+                        list_tables.append(f"{item[0]}:{item[1]}:{item[2]}:{item[3]}")
 
                     all_tables[database] = list_tables
                 except sqlite3.Error as e:

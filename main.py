@@ -127,9 +127,35 @@ class MainFrame(wx.Frame):
                 self.not_null_checkbox.Enable(is_table)
                 self.unique_checkbox.Enable(is_table)
 
+        def changing_column_type(self, connector=None):
+            if self.is_empty:
+                return
+
+            self.combobox_coltype.Clear()
+            curr_connect = APP_PARAMETERS['DEFAULT_CONNECTOR']
+            json_object = {}
+            type_columns = []
+            if connector is not None:
+                curr_connect = connector
+
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r') as json_file:
+                json_object = json.load(json_file)
+
+            for value_name, value_types in json_object.items():
+                for type_name, type_params in value_types.items():
+                    col_type = None
+                    if curr_connect in type_params.get('connectors'):
+                        col_type = type_name
+                        if type_params.get('size-required') == 'True':
+                            col_type += '()'
+                    if col_type is not None:
+                        self.combobox_coltype.Append(col_type)
+                if value_name == self.coltype:
+                    self.combobox_coltype.SetValue(type_name)
+
         def get_column_name(self) -> str: return self.colname
 
-        def get_column_type(self) -> str: return self.coltype
+        def get_column_type(self) -> str: return self.combobox_coltype.GetValue()
 
         def get_column_label(self) -> str: return self.statictext_colcode.GetLabel()
 
@@ -139,13 +165,13 @@ class MainFrame(wx.Frame):
 
         def get_column_info(self) -> str: return self.column_info
 
-        def __init__(self, parent: wx.Panel, column_info: str = "", column_type: str = "", is_empty: bool = False):
+        def __init__(self, parent: wx.Panel, column_info: str = "", is_empty: bool = False):
             super().__init__(parent)
             self.column_info = column_info
             if self.column_info != "":
                 self.colname = self.column_info.split(':')[2]
                 self.colcode = self.column_info.split(':')[3]
-            self.coltype = column_type
+                self.coltype = self.column_info.split(':')[4]
             self.is_empty = is_empty
 
             sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -170,9 +196,8 @@ class MainFrame(wx.Frame):
             self.textctrl_colname.Bind(wx.EVT_TEXT, self.on_colname_changed)
             sizer.Add(self.textctrl_colname, 0, wx.RIGHT, 5)
 
-            self.textctrl_coltype = wx.TextCtrl(self, size=(150, -1), style=wx.TE_READONLY)
-            self.textctrl_coltype.SetValue(self.coltype)
-            sizer.Add(self.textctrl_coltype, 0, wx.RIGHT, 5)
+            self.combobox_coltype = wx.ComboBox(self, size=(150, -1))
+            sizer.Add(self.combobox_coltype, 0, wx.RIGHT, 5)
 
             self.statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
             sizer.Add(self.statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
@@ -389,7 +414,7 @@ class MainFrame(wx.Frame):
             # Переопределение массивов элементов и выделения выбранных элементов в дереве
             if len(added_items) <= 0:
                 added_items.append(add_act)
-                self.append_column_item(add_act, 'TEXT')
+                self.append_column_item(add_act)
                 self.treectrl_databases.SetItemBold(get_item, True)
             else:
                 is_removed = False
@@ -402,11 +427,11 @@ class MainFrame(wx.Frame):
                         break
                 if not is_removed:
                     added_items.append(add_act)
-                    self.append_column_item(add_act, 'TEXT')
+                    self.append_column_item(add_act)
                     self.treectrl_databases.SetItemBold(get_item, True)
 
             # Добавление пустой строки
-            self.append_column_item("", "", True)
+            self.append_column_item("", True)
 
     def on_database_item_right_click(self, event):
         get_item = event.GetItem()
@@ -463,6 +488,9 @@ class MainFrame(wx.Frame):
             self.curr_conn_item = None
             self.connection = None
             self.connection_status_panel.set_status(0)
+
+            for colitem in self.column_items:
+                colitem.changing_column_type(APP_PARAMETERS['DEFAULT_CONNECTOR'])
         else:
             # Сбрасываем прошлое подключение
             if self.connection is not None:
@@ -483,6 +511,9 @@ class MainFrame(wx.Frame):
             self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
             self.connection_status_panel.set_status(1)
+
+            for colitem in self.column_items:
+                colitem.changing_column_type(conn_data['connector-name'])
 
     def push_query(self, event):
         if self.connection.check_connection():
@@ -555,10 +586,12 @@ class MainFrame(wx.Frame):
     # Методы работы со столбцами
     ############################
 
-    def append_column_item(self, column_item: str, column_type: str, is_empty: bool = False):
+    def append_column_item(self, column_item: str, is_empty: bool = False):
         # Создаем столбец
-        colitem = MainFrame.ColumnItem(self.table_items_panel, column_item, column_type, is_empty)
+        colitem = MainFrame.ColumnItem(self.table_items_panel, column_item, is_empty)
         colitem.activating_checkboxes(self.is_create_table)
+        if not is_empty:
+            colitem.changing_column_type()
         self.column_items.append(colitem)
 
         # Обновляем значения списков у Индексов
@@ -571,7 +604,7 @@ class MainFrame(wx.Frame):
         self.table_items_sizer.Add(colitem, 0, wx.LEFT, 5)
         self.table_items_panel.Layout()
 
-    def insert_column_item(self, position: int, column_item: str, column_type: str, is_empty: bool = False):
+    def insert_column_item(self, position: int, column_item: str, is_empty: bool = False):
         # Обход по всем элементам после указанной позиции и их удаление
         after_position_items = []
         for i in range(position, len(self.column_items)):
@@ -582,7 +615,7 @@ class MainFrame(wx.Frame):
         self.table_items_panel.Layout()
 
         # Добавление столбца
-        self.append_column_item(column_item, column_type, is_empty)
+        self.append_column_item(column_item, is_empty)
 
         # Восстановление удаленных столбцов
         for deleted_colitem in after_position_items:
@@ -800,7 +833,7 @@ class MainFrame(wx.Frame):
             colitem.Destroy()
         self.table_items_panel.Layout()
         self.column_items.clear()
-        self.append_column_item("", "", True)
+        self.append_column_item("", True)
 
         self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.WAITING']
         self.statusbar.SetStatusText(self.query_status, 0)
@@ -878,6 +911,8 @@ class MainFrame(wx.Frame):
                 self.update_stc_style()
             if res > 1:
                 self.refresh()
+                for colitem in self.column_items:
+                    colitem.changing_column_type()
             if res > 2:
                 self.relaunch_app()
                 self.Destroy()
@@ -1007,11 +1042,11 @@ class MainFrame(wx.Frame):
             self.is_id_column = self.id_column_checkbox.GetValue()
 
             if self.is_id_column:
-                self.insert_column_item(0, '::id:', 'INTEGER')
+                self.insert_column_item(0, '::id:integer-value')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
             else:
-                self.delete_column_item('::id:')
+                self.delete_column_item('::id:integer-value')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')
@@ -1450,7 +1485,7 @@ class MainFrame(wx.Frame):
         notebook_settings.AddPage(main_page_panel, APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE'])
         # ------------------------------
 
-        # Таблица 
+        # Таблица
         # ------------------------------
         table_page_panel = wx.Panel(notebook_settings)
         table_page_boxsizer = wx.BoxSizer(wx.VERTICAL)

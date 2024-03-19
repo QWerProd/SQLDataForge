@@ -87,14 +87,17 @@ class SelectorBox(SimpleEntry):
 
     label_choices = list
 
-    def __init__(self, parent: wx.Panel, title: str, choices: list, label_choices: list):
+    def __init__(self, parent: wx.Panel, title: str, choices: list, label_choices: list = None):
         super().__init__(parent, title, choices=choices, sizer_mode=wx.HORIZONTAL)
-        self.label_choices = label_choices
+        if label_choices is None:
+            self.label_choices = choices
+        else:
+            self.label_choices = label_choices
 
         statictext = wx.StaticText(self, label=self.title)
         self.sizer.Add(statictext, 1, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.choicesbox = wx.Choice(self, choices=label_choices, size=(125, -1))
+        self.choicesbox = wx.Choice(self, choices=self.label_choices, size=(125, -1))
         self.choicesbox.Bind(wx.EVT_CHOICE, self.change_param)
         self.choicesbox.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.choicesbox.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.sizer.Add(self.choicesbox, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
