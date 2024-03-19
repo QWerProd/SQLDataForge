@@ -183,26 +183,29 @@ class SQLGenerator:
 
                     datadict[table[0] + ':' + table[1] + ':' + table[2]].append(str(rd.randint(minvalue, maxvalue)))
                 elif table[3] == 'RDate':
-                    data = cursor.execute(f"""SELECT minvalue, minvalue_subtract, maxvalue, maxvalue_subtract
+                    data = cursor.execute(f"""SELECT minvalue, maxvalue, min_day, min_month * 30, min_year * 365, max_day, max_month * 30, max_year * 365
                                               FROM {table[1]};""").fetchone()
+
                     # Обработка минимального значения
                     mindate = data[0]
-                    maxdate = data[2]
+                    maxdate = data[1]
+                    min_substract = sum(data[2:5])
+                    max_substract = sum(data[5:])
                     try:
-                        mindate = datetime.datetime.strptime(mindate, APP_PARAMETERS['FORMAT_DATE'])
+                        mindate = datetime.datetime.strptime(mindate, '%d.%m.%Y')
                     except ValueError:
                         mindate = DC.ParamChanger(mindate)
-                    mindate = mindate - datetime.timedelta(days=data[1] * 365)
+                    mindate = mindate - datetime.timedelta(days=min_substract)
 
                     # Обработка максимального значения
                     try:
-                        maxdate = datetime.datetime.strptime(maxdate, APP_PARAMETERS['FORMAT_DATE'])
+                        maxdate = datetime.datetime.strptime(maxdate, '%d.%m.%Y')
                     except ValueError:
                         maxdate = DC.ParamChanger(maxdate)
-                    maxdate = maxdate - datetime.timedelta(days=data[3] * 365)
+                    maxdate = maxdate - datetime.timedelta(days=max_substract)
 
                     # Выбор рандомного дня из промежутка
-                    days = (maxdate - mindate).days
+                    days = (datetime.datetime(maxdate.year, maxdate.month, maxdate.day) - datetime.datetime(mindate.year, mindate.month, mindate.day)).days
                     rnd_day = rd.randint(1, days)
 
                     # Генерация даты
