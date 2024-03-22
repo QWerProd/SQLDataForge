@@ -2,7 +2,7 @@
 	"text-value": {
 		"TEXT": {
 			"size-required": "False",
-			"connectors": ["SQLite", "PostgreSQL"]
+			"connectors": ["SQLite", "PostgreSQL", "MySQL"]
 		},
 		"CHARACTER": {
 			"size-required": "True",
@@ -10,7 +10,11 @@
 		},
 		"CHAR": {
 			"size-required": "False",
-			"connectors": ["PostgreSQL"]
+			"connectors": ["PostgreSQL", "MySQL"]
+		},
+		"VARCHAR": {
+			"size-required": "True",
+			"connectors": ["MySQL"]
 		}
 	},
 	"integer-value": {
@@ -18,9 +22,13 @@
 			"size-required": "False",
 			"connectors": ["SQLite", "PostgreSQL"]
 		},
+		"INT": {
+			"size-required": "False",
+			"connectors": ["MySQL"]
+		},
 		"BIGINT": {
 			"size-required": "False",
-			"connectors": ["PostgreSQL"]
+			"connectors": ["PostgreSQL", "MySQL"]
 		},
 		"NUMERIC": {
 			"size-required": "True",
@@ -34,7 +42,15 @@
 		},
 		"FLOAT": {
 			"size-required": "True",
-			"connectors": ["PostgreSQL"]
+			"connectors": ["PostgreSQL", "MySQL"]
+		},
+		"DECIMAL": {
+			"size-required": "True",
+			"connectors": ["MySQL"]
+		},
+		"DOUBLE": {
+			"size-required": "True",
+			"connectors": ["MySQL"]
 		}
 	},
 	"date-value": {
@@ -45,6 +61,16 @@
 		"TIMESTAMP": {
 			"size-required": "False",
 			"connectors": ["PostgreSQL"]
+		},
+		"TEXT": {
+			"size-required": "False",
+			"connectors": ["SQLite"]
+		}
+	},
+	"boolean-value": {
+		"BOOL": {
+			"size-required": "False",
+			"connectors": ["MySQL"]
 		}
 	}
 }

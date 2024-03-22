@@ -19,10 +19,13 @@ class NewTestConnection(wx.Dialog):
         connectors = list
 
         def set_connectors(self):
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json'), 'r') as conn_data:
-                data = json.load(conn_data)
+            try:
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json'), 'r') as conn_data:
+                    data = json.load(conn_data)
 
-            self.connectors = data
+                self.connectors = data
+            except FileNotFoundError as e:
+                catcher.error_message('E023', str(e))
 
         def set_items(self):
             # Установка листа картинок
@@ -356,10 +359,6 @@ class NewTestConnection(wx.Dialog):
 
         connector = dict
         conn_info = dict
-        avaliable_connectors = {
-            'SQLite': SQLiteConnector,
-            'PostgreSQL': PostgreSQLConnector
-        }
 
         def set_connection_data(self, connector: dict, conn_data: dict):
             self.connector = connector
@@ -382,10 +381,10 @@ class NewTestConnection(wx.Dialog):
             connector = BaseConnector
 
             try:
-                self.avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
-                														 self.conn_info['database-username'] + ':' + self.conn_info['database-password'],
-                														 self.conn_info.get('ssh-path', None),
-                														 self.conn_info.get('ssh-user', None) + self.conn_info.get('ssh-pass', None))
+                avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
+                													self.conn_info['database-username'] + ':' + self.conn_info['database-password'],
+                													self.conn_info.get('ssh-path', ''),
+                													self.conn_info.get('ssh-user', '') + self.conn_info.get('ssh-pass', ''))
             except BaseException as e:
                 return wx.MessageBox(e.args[0], APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION'],
                                      wx.ICON_ERROR | wx.OK)
@@ -551,11 +550,11 @@ class NewTestConnection(wx.Dialog):
         json_list = []
         curr_test_conn = {}
         conn_data = self.page_final.get_conn_data()
-        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
-            try:
+        try:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
                 json_list = json.load(json_file)
-            except json.decoder.JSONDecodeError:
-                pass
+        except (json.decoder.JSONDecodeError, FileNotFoundError) as e:
+            return catcher.error_message('E023', str(e))
 
         curr_test_conn['connector-name'] = self.connector['connector-name']
         curr_test_conn['connection-type'] = self.connector['connection-type']

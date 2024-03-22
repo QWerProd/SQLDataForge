@@ -8,5 +8,10 @@
     "connector-name": "PostgreSQL",
     "connection-type": "server_host",
     "connector-logo": "img/connectors/PostgreSQL.png"
+  },
+  {
+    "connector-name": "MySQL",
+    "connection-type": "server_host",
+    "connector-logo": "img/connectors/MySQL.png"
   }
 ]

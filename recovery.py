@@ -1,3 +1,4 @@
+import re
 import wx
 import os
 import sys
@@ -61,7 +62,7 @@ class Recovery(wx.Frame):
         scripts = list
         with open(os.path.join(RECOVERY_PATH, 'app/sql_scripts/sdb_dump.sql'), encoding='utf-8') as file:
             file_text = file.read()
-            scripts = file_text.split('/')
+            scripts = re.split('\$script\$', file_text)
         pub.sendMessage("recovery_sdb", msg="")
 
         app_conn = sqlite3.Connection
@@ -76,13 +77,13 @@ class Recovery(wx.Frame):
             app_conn = sqlite3.connect(os.path.join(RECOVERY_PATH, 'app/app.db'))
             cursor = app_conn.cursor()
             for script in scripts:
+                print(script)
                 cursor.execute(script)
                 app_conn.commit()
                 pub.sendMessage("recovery_sdb", msg="")
-                print(script)
             self.status_statictext.SetLabel(APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE'])
         except sqlite3.Error as e:
-            wx.MessageBox('The recovery script is corrupted!', 'Recovery error', wx.ICON_ERROR)
+            wx.MessageBox('The recovery script is corrupted!\n' + str(e), 'Recovery error', wx.ICON_ERROR)
         finally:
             pub.unsubscribe(self.increment_progressbar, "recovery_sdb")
 

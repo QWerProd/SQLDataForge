@@ -37,12 +37,6 @@ index_items = []
 # Редакторы кода для обновления стилей
 stc_redactors = []
 
-# Доступные типы коннекторов
-avaliable_connectors = {
-    'SQLite': SQLiteConnector,
-    'PostgreSQL': PostgreSQLConnector
-}
-
 
 class MainFrame(wx.Frame):
     tree_items = {}
@@ -138,8 +132,11 @@ class MainFrame(wx.Frame):
             if connector is not None:
                 curr_connect = connector
 
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r') as json_file:
-                json_object = json.load(json_file)
+            try:
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r') as json_file:
+                    json_object = json.load(json_file)
+            except FileNotFoundError as e:
+                return catcher.error_message('E023', str(e))
 
             for value_name, value_types in json_object.items():
                 for type_name, type_params in value_types.items():
@@ -148,10 +145,10 @@ class MainFrame(wx.Frame):
                         col_type = type_name
                         if type_params.get('size-required') == 'True':
                             col_type += '()'
+                        if value_name == self.coltype:
+                            self.combobox_coltype.SetValue(type_name)
                     if col_type is not None:
                         self.combobox_coltype.Append(col_type)
-                if value_name == self.coltype:
-                    self.combobox_coltype.SetValue(type_name)
 
         def get_column_name(self) -> str: return self.colname
 
@@ -516,25 +513,32 @@ class MainFrame(wx.Frame):
                 colitem.changing_column_type(conn_data['connector-name'])
 
     def push_query(self, event):
-        if self.connection.check_connection():
-            query = self.textctrl_sql.GetValue()
-            if query == '':
-                return catcher.error_message('E001')
-            try:
-                result, error_message = self.connection.execute_query(query)
-            except (DestroyedConnectionError, DestroyedTunnelError):
-                return
+        try:
+            if self.connection.check_connection():
+                query = self.textctrl_sql.GetValue()
+                if query == '':
+                    return catcher.error_message('E001')
+                try:
+                    result, error_message = self.connection.execute_query(query)
+                except DestroyedConnectionError as e:
+                    catcher.error_message('E021', str(e))
+                except DestroyedTunnelError as e:
+                    catcher.error_message('E022', str(e))
 
-            # Изменения статусов при безошибочной отработке
-            if result != -1:
-                self.is_transaction = True
-                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
-                              APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
-                              wx.ICON_INFORMATION | wx.OK)
-                self.transaction_status_panel.set_status(1)
+                # Изменения статусов при безошибочной отработке
+                if result != -1:
+                    self.is_transaction = True
+                    wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
+                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
+                                  wx.ICON_INFORMATION | wx.OK)
+                    self.transaction_status_panel.set_status(1)
+                else:
+                    catcher.error_message('E016', 'Error message: ' + str(error_message))
             else:
-                catcher.error_message('E016', 'Error message: ' + error_message)
-        else:
+                catcher.error_message('E021')
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
+        except AttributeError:
             catcher.error_message('E015')
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.connection_status_panel.set_status(0)
@@ -847,6 +851,8 @@ class MainFrame(wx.Frame):
         self.databases = DataController.GetDatabases(False)
         self.set_databases_tree_items()
         self.set_conn_info()
+        for colitem in self.column_items:
+            colitem.changing_column_type()
 
     def set_databases_tree_items(self):
         for key, value in self.all_tables.items():
@@ -873,12 +879,16 @@ class MainFrame(wx.Frame):
 
     def set_conn_info(self):
         json_data = []
-        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
-            json_data = json.load(json_file)
+        try:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+                json_data = json.load(json_file)
 
-        self.all_connections = json_data
+            self.all_connections = json_data
+        except FileNotFoundError as e:
+            return catcher.error_message('E023', str(e))
 
     def set_connections_tree_items(self):
+        self.treectrl_test_connections.DeleteAllItems()
         for conn_info in self.all_connections:
             tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['database-name'])
             self.treectrl_test_connections.SetItemImage(tree_item, self.test_dbs_images[conn_info['connector-name']])
@@ -911,8 +921,6 @@ class MainFrame(wx.Frame):
                 self.update_stc_style()
             if res > 1:
                 self.refresh()
-                for colitem in self.column_items:
-                    colitem.changing_column_type()
             if res > 2:
                 self.relaunch_app()
                 self.Destroy()
@@ -950,6 +958,8 @@ class MainFrame(wx.Frame):
     def open_new_test_conn(self, event):
         with NewTestConnection(self) as new_test_conn:
             result = new_test_conn.ShowModal()
+            self.set_conn_info()
+            self.set_connections_tree_items()
 
     def open_report_wizard(self, event):
         report_wizard = ReportWizard()
@@ -996,6 +1006,7 @@ class MainFrame(wx.Frame):
         # Подсветка синтаксиса
         stc_redactor.SetLexer(wx.stc.STC_LEX_SQL)
         stc_redactor.SetKeyWords(0, APP_PARAMETERS['SQL_KEYWORDS'])
+        stc_redactor.SetKeyWords(1, APP_PARAMETERS['SQL_TYPES_KEYWORDS'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENT, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTLINE, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
@@ -1003,6 +1014,7 @@ class MainFrame(wx.Frame):
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, APP_PARAMETERS['STC_COLOUR_STRING'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_STRING'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD, APP_PARAMETERS['STC_COLOUR_WORD'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD2, APP_PARAMETERS['STC_COLOUR_TYPES'])
         # Боковое поле
         stc_redactor.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
         stc_redactor.SetMarginWidth(1, 45)
@@ -1342,10 +1354,16 @@ class MainFrame(wx.Frame):
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/SQLite.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.postgresql_image = self.image_connection_items.Add(
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/PostgreSQL.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.mysql_image = self.image_connection_items.Add(
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/MySQL.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+        self.oracledb_image = self.image_connection_items.Add(
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/OracleDB.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_test_connections.AssignImageList(self.image_connection_items)
         self.test_dbs_images = {
             'SQLite': self.sqlite_image,
-            'PostgreSQL': self.postgresql_image
+            'PostgreSQL': self.postgresql_image,
+            'MySQL': self.mysql_image,
+            'OracleDB': self.oracledb_image
         }
 
         self.set_conn_info()
@@ -1609,7 +1627,7 @@ class AboutApp(wx.Frame):
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
 
-        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.1.5.5, 2024'), 0, wx.TOP, 10),
+        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.2.0, 2024'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
 

@@ -36,15 +36,18 @@ APP_PARAMETERS = {
     'KEY_RECOVERY': str,
     'KEY_LOGVIEWER': str,
     'KEY_SAVE_AS': str,
-    'SQL_KEYWORDS': "insert into values create table as text number primary key integer not null where and or like"
-                    " if exists index on is unique update set bigint numeric real float date timestamp",
+    'SQL_KEYWORDS': "insert into values create table as primary key not null where and or like"
+                    " if exists index on is unique update set ",
     'IS_ALIAS_UDB_USING': str,
     'KEY_NEW_TEST_CONN': str,
     'KEY_COMMIT': str,
     'KEY_ROLLBACK': str,
     'KEY_EXECUTE_SQL': str,
     'IS_CLOSING_REPORTS_AFTER_GEN': str,
-    'DEFAULT_CONNECTOR': str
+    'DEFAULT_CONNECTOR': str,
+    'SQL_TYPES_KEYWORDS': "text character char varchar integer int bigint numeric real float decimal"
+                          " double date timestamp bool",
+    'STC_COLOUR_TYPES': str
 }
 
 APP_LOCALES = {

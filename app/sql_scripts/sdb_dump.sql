@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS "t_databases" (
 	"field_name"	TEXT,
 	"description"	TEXT,
 	"is_valid"	TEXT NOT NULL DEFAULT 'Y');
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_params" (
 	"id"	INTEGER PRIMARY KEY AUTOINCREMENT,
 	"param_name"	TEXT NOT NULL UNIQUE,
@@ -13,25 +13,25 @@ CREATE TABLE IF NOT EXISTS "t_params" (
 	"param_type"	TEXT NOT NULL DEFAULT 'SYSTEM',
 	"param_label"	TEXT DEFAULT NULL,
 	"update_layout"	INTEGER DEFAULT 0);
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_err_codes" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"err_code"	TEXT NOT NULL,
 	"title"	    TEXT NOT NULL,
 	"message"	TEXT NOT NULL DEFAULT NULL);
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_lang_text" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"label"	TEXT NOT NULL,
 	"lang"	TEXT NOT NULL,
 	"text"	TEXT NOT NULL);
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_settings_items" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"id_fk"	INTEGER,
 	"sett_label"	TEXT NOT NULL,
 	"is_valid"	TEXT NOT NULL DEFAULT 'Y');
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_settings_items_params" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"id_param"	INTEGER,
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS "t_settings_items_params" (
 	"entry_choices"	TEXT DEFAULT NULL,
 	"entry_label_choices"	TEXT,
 	"is_valid"	TEXT NOT NULL DEFAULT 'Y');
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_simple_gen" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"gen_code"	TEXT NOT NULL,
@@ -50,24 +50,24 @@ CREATE TABLE IF NOT EXISTS "t_simple_gen" (
 	"gen_type"	TEXT NOT NULL,
 	"generator"	TEXT DEFAULT NULL,
 	"is_valid"	TEXT NOT NULL DEFAULT 'Y');
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_simple_gen_entries" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"id_field"	INTEGER NOT NULL,
 	"posid"	INTEGER NOT NULL,
 	"entry_name"	TEXT NOT NULL,
 	"entry_type"	TEXT NOT NULL);
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_error_log" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"error_code"	TEXT NOT NULL,
 	"date_catched"	TEXT NOT NULL);
-/
+$script$
 CREATE TABLE IF NOT EXISTS "t_execution_log" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"query_text"	TEXT NOT NULL,
 	"date_execute"	TEXT NOT NULL);
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('MAIN.MAIN_MENU.FILE.GENERATE','ru','Генерировать'),
 	 ('MAIN.MAIN_MENU.FILE.REFRESH','ru','Обновить'),
@@ -120,7 +120,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 Заполните все поля при необходимости.'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE','ru','Добавить в SQLDataForge'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS','ru','Псевдоним');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC','ru','Описание'),
 	 ('NEW_UDB_WIZARD.THIRD_PAGE.INFO_TITLE','ru','Информация о файле'),
@@ -174,7 +174,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 Для продолжения работы подтвердите добавление!'),
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.CAPTION','ru','Подтвердите добавление пБД'),
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE','ru','пБД успешно добавлена!');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION','ru','Успешное добавление'),
 	 ('NEW_CONN.TITLE','ru','Новое подключение'),
@@ -227,7 +227,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_UDB_VIEWER','ru','Открыть обзорщик пБД'),
 	 ('APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','ru','Русский:Английский'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','ru','Простой:Жирный');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('SETTINGS.TITLE','ru','Настройки'),
 	 ('BUTTON.OK','ru','ОК'),
@@ -280,7 +280,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.TITLE','en','Specify whether you want to add the created uDB to SQLDataForge.
 Fill in all the fields if necessary.'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.ADD_IN_SDFORGE','en','Add in SQLDataForge');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_ALIAS','en','Alias'),
 	 ('NEW_UDB_WIZARD.SECOND_PAGE.DB_DESC','en','Description'),
@@ -334,7 +334,7 @@ The unsaved request will be deleted forever!'),
 	 ('NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION','en','Successful connection'),
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.MESSAGE','en','You are trying to add uDB''s without testing the connection!
 To continue working, confirm the addition!');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_CONN.MESSAGE_BOX.WITHOUT_TEXT_CONN.CAPTION','en','Confirm the addition of uDB''s'),
 	 ('NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE','en','uDB has been successfully added!'),
@@ -387,7 +387,7 @@ The first value must not be greater than or equal to the second value!'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SETTINGS','en','Open settings'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_CREATE_UDB_WIZARD','en','Open wizard for creating uDB'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_UDB_VIEWER','en','Open the uDB viewer');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','en','Russian:English'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','en','Normal:Bold'),
@@ -439,7 +439,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E002.MESSAGE','en','The substitution parameter was not found!'),
 	 ('E003.MESSAGE','en','Enter at least one table!'),
 	 ('E004.MESSAGE','en','Enter the name of the table to which the data will be entered!');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E005.MESSAGE','en','Specify how many rows of data will be generated!'),
 	 ('E006.MESSAGE','en','Check the value specified for the number of rows to be generated!'),
@@ -499,7 +499,7 @@ Restart now?'),
 	 ('MAIN.MAIN_PANEL.MAIN_PAGE.COLUMN_LABEL','en','Column alias'),
 	 ('MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL','en','NOT NULL'),
 	 ('MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE','en','UNIQUE');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CODE','en','Error code'),
 	 ('LOGVIEWER.ERROR_LOG.HEADER.ERROR_CAPTION','en','Error desc'),
@@ -556,7 +556,7 @@ ds.qwerprog04@mail.ru'),
 	 ('MAIN.MAIN_MENU.FILE.ROLLBACK','ru','Откат'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT','ru','Подтверждение транзакции'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK','ru','Откат транзакции');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E018.CAPTION','ru','Ошибка отката транзакции'),
 	 ('E018.MESSAGE','ru','При откате транзакции в тестовой БД произошла ошибка.
@@ -619,7 +619,7 @@ Try again or report the incident:
 ds.qwerprog04@mail.ru'),
 	 ('E019.CAPTION','en','Connection not exists'),
 	 ('E019.MESSAGE','en','Before the operation, connect to the test database!');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL','en','Execute the query in test database'),
 	 ('MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION','en','Successful completion'),
@@ -673,7 +673,7 @@ Transaction time: {1} sec.'),
 	 ('REPORT_WIZARD.CHOOSE_TYPE.PARAMETERS.REPORT_NAME','ru','Имя отчета:'),
 	 ('FILE_DIALOG.WILDCARD_XLSX','ru','Файл Excel (*.xls,*.xlsx)|*.xls;*.xlsx'),
 	 ('FILE_DIALOG.WILDCARD_DOCX','ru','Файл Word (*.doc,*.docx)|*.doc;*.docx');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.MESSAGE','ru','Укажите корректное имя файла и путь его расположения!'),
 	 ('REPORT_WIZARD.CHOOSE_TYPE.NULL_FILE_INFO.CAPTION','ru','Не указана информация о файле'),
@@ -725,7 +725,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_DATABASE','en','Database:'),
 	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME','en','Username:'),
 	 ('NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD','en','Password:');
-/
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO','en','Tunnel SSH:'),
 	 ('NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO.HOST','en','Host/IP:'),
@@ -738,8 +738,14 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E022.MESSAGE','en','An error occurred with the SSH tunnel when connecting to the database:'),
 	 ('APP.SETTINGS.SYSTEM.DEFAULTS','en','Default'),
 	 ('APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','en','Types of columns for the connector:'),
-	 ('APP.SETTINGS.SYSTEM.DEFAULT.HEADER','en','Default values');
-/
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.HEADER','en','Default values'),
+	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES','ru','Цвет типов столбцов:'),
+	 ('E023.CAPTION','ru','Ошибка чтения файла'),
+	 ('E023.MESSAGE','ru','Файл был поврежден или не найден!'),
+	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES','en','Color of column types:'),
+	 ('E023.CAPTION','en','File reading error'),
+	 ('E023.MESSAGE','en','The file was corrupted or not found!');
+$script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
 	 ('E002','E002.CAPTION','E002.MESSAGE'),
@@ -762,8 +768,9 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E019','E019.CAPTION','E019.MESSAGE'),
 	 ('E020','E020.CAPTION','E020.MESSAGE'),
 	 ('E021','E021.CAPTION','E021.MESSAGE'),
-	 ('E022','E022.CAPTION','E022.MESSAGE');
-/
+	 ('E022','E022.CAPTION','E022.MESSAGE'),
+	 ('E023','E023.CAPTION','E023.MESSAGE');
+$script$
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
 	 ('IS_CATCH_CLOSING_APP','False','SYSTEM',NULL,0),
@@ -782,7 +789,7 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_CREATE_UDB_WIZARD','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_CREATE_UDB_WIZARD',0),
 	 ('KEY_UDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_UDB_VIEWER',0),
 	 ('FORMAT_DATE','%d-%m-%Y','SYSTEM',NULL,0),
-	 ('APP_LANGUAGE','ru','SYSTEM',NULL,2),
+	 ('APP_LANGUAGE','ru','SYSTEM',NULL,3),
 	 ('KEY_RECOVERY','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.RECOVERY',0),
 	 ('KEY_LOGVIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_LOGVIEWER',0),
 	 ('KEY_SAVE_AS','Ctrl+Shift+S','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_SAVE_AS',0),
@@ -792,8 +799,9 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_ROLLBACK','Shift+Alt+R','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK',0),
 	 ('KEY_EXECUTE_SQL','Shift+Alt+E','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_EXECUTE_SQL',0),
 	 ('IS_CLOSING_REPORTS_AFTER_GEN','False','SYSTEM',NULL,0),
-	 ('DEFAULT_CONNECTOR','PostgreSQL','SYSTEM',NULL,2);
-/
+	 ('DEFAULT_CONNECTOR','PostgreSQL','SYSTEM',NULL,2),
+	 ('STC_COLOUR_TYPES','#00764f','SYSTEM',NULL,1);
+$script$
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
 	 (1,'APP.SETTINGS.THEME.GENERAL','N'),
@@ -803,33 +811,33 @@ INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (4,'APP.SETTINGS.SYSTEM.HOTKEYS','Y'),
 	 (4,'APP.SETTINGS.SYSTEM.PARAMETERS','N'),
 	 (4,'APP.SETTINGS.SYSTEM.DEFAULTS','Y');
-/
+$script$
 INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_label,entry_choices,entry_label_choices,is_valid) VALUES
-	 (3,5,3,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CATCH_CLOSING_APP',NULL,NULL,'Y'),
+	 (2,5,3,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CATCH_CLOSING_APP',NULL,NULL,'Y'),
 	 (NULL,3,1,'HeaderGroup','APP.SETTINGS.SYSTEM.REDACTOR.FONT_COLOR',NULL,NULL,'Y'),
-	 (4,3,2,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_WORD',NULL,NULL,'Y'),
-	 (5,3,3,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_COMMENT',NULL,NULL,'Y'),
-	 (6,3,4,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_NUMBER',NULL,NULL,'Y'),
-	 (NULL,3,6,'HeaderGroup','APP.SETTINGS.SYSTEM.REDACTOR.FONT_SETTINGS',NULL,NULL,'Y'),
-	 (8,3,7,'SpinNumber','APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE','6:20',NULL,'Y'),
-	 (7,3,5,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_STRING',NULL,NULL,'Y'),
-	 (9,3,8,'SelectorBox','APP.SETTINGS.THEME.REDACTOR.STC_FONT_BOLD','400:700','APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','Y'),
-	 (NULL,3,9,'CodeRedactor',NULL,'UPDATE t_persons as p\nSET    p.age = 18\nWHERE  p.first_name = ''Smith''; -- Only one Smith on this table :)',NULL,'Y'),
+	 (3,3,2,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_WORD',NULL,NULL,'Y'),
+	 (4,3,3,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_COMMENT',NULL,NULL,'Y'),
+	 (5,3,4,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_NUMBER',NULL,NULL,'Y'),
+	 (NULL,3,7,'HeaderGroup','APP.SETTINGS.SYSTEM.REDACTOR.FONT_SETTINGS',NULL,NULL,'Y'),
+	 (7,3,8,'SpinNumber','APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE','6:20',NULL,'Y'),
+	 (6,3,5,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_STRING',NULL,NULL,'Y'),
+	 (8,3,9,'SelectorBox','APP.SETTINGS.THEME.REDACTOR.STC_FONT_BOLD','400:700','APP.SETTINGS.THEME.REDACTOR.STC_FONT_SIZE.CAPTIONS','Y'),
+	 (NULL,3,10,'CodeRedactor',NULL,'UPDATE t_persons as p\nSET    p.age = 18\nWHERE  p.first_name = ''Smith''; -- Only one Smith on this table :)',NULL,'Y'),
 	 (NULL,6,1,'TableSystemColumns','APP.SETTINGS.SYSTEM.HOTKEYS.TABLE_TITLE','SELECT p.param_name, lt.text, p.param_value FROM t_params p, t_lang_text lt WHERE p.param_type = ''HOTKEY'' AND p.param_label = lt.label AND lt.lang = ''$0'';',NULL,'Y'),
 	 (NULL,5,1,'HeaderGroup','APP.SETTINGS.SYSTEM.GENERAL.APP_SETTINGS',NULL,NULL,'Y'),
-	 (17,5,4,'MaskedTextEntry','APP.SETTINGS.SYSTEM.GENERAL.FORMAT_DATE',NULL,NULL,'Y'),
+	 (17,5,6,'MaskedTextEntry','APP.SETTINGS.SYSTEM.GENERAL.FORMAT_DATE',NULL,NULL,'Y'),
 	 (18,5,2,'SelectorBox','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE','ru:en','APP.SETTINGS.SYSTEM.GENERAL.APP_LANGUAGE.CAPTIONS','Y'),
 	 (22,5,4,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_ALIAS_UDB_USING',NULL,NULL,'Y'),
 	 (27,5,5,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN',NULL,NULL,'Y'),
 	 (28,8,1,'SelectorBox','APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','SQLite:PostgreSQL','','Y'),
-	 (NULL,8,0,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.HEADER',NULL,NULL,'Y');
-
-/
+	 (NULL,8,0,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.HEADER',NULL,NULL,'Y'),
+	 (29,3,6,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES',NULL,NULL,'Y');
+$script$
 INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES
 	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','simple','random.randint($1, $2)','Y'),
 	 ('rand_date','APP.SIMPLE_GEN.RAND_DATE','simple',NULL,'N');
-/
+$script$
 INSERT INTO t_simple_gen_entries (id_field,posid,entry_name,entry_type) VALUES
 	 (1,1,'APP.SIMPLE_GEN.RAND_NUMBER.MINVALUE','TextCtrl'),
 	 (1,2,'APP.SIMPLE_GEN.RAND_NUMBER.MAXVALUE','TextCtrl');
-/
+$script$

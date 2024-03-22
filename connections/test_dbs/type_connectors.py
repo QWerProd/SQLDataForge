@@ -1,6 +1,8 @@
 import re
 import sqlite3
 import psycopg2
+import oracledb
+import mysql.connector
 from sshtunnel import SSHTunnelForwarder, HandlerSSHTunnelForwarderError
 from datetime import datetime
 from app.error_catcher import ErrorCatcher
@@ -94,7 +96,7 @@ class SQLiteConnector(BaseConnector):
 
             return True, executed, transaction_time
         except sqlite3.Error as e:
-            return False, e.args[0]
+            return False, str(e)
 
     def rollback(self):
         try:
@@ -103,7 +105,7 @@ class SQLiteConnector(BaseConnector):
 
             return True, rolledback, transaction_time
         except sqlite3.Error as e:
-            return False, e.args[0]
+            return False, str(e)
 
     @staticmethod
     def test_connection(db_name: str) -> bool:
@@ -116,7 +118,8 @@ class SQLiteConnector(BaseConnector):
 
     def check_connection(self) -> bool:
         try:
-            self.connection.cursor().close()
+            cursor = self.connection.cursor()
+            cursor.close()
             return True
         except sqlite3.Error:
             return False
@@ -163,18 +166,18 @@ class PostgreSQLConnector(BaseConnector):
             self.connection.commit()
             executed, transaction_time = super().commit()
 
-            return executed, transaction_time
+            return True, executed, transaction_time
         except psycopg2.Error:
-            self.close()
+            return False, str(e)
 
     def rollback(self) -> (int, float):
         try:
             self.connection.rollback()
             rolledback, transaction_time = super().rollback()
 
-            return rolledback, transaction_time
+            return True, rolledback, transaction_time
         except psycopg2.Error:
-            self.close()
+            return False, str(e)
 
     @staticmethod
     def test_connection(db_path: str, db_user_info: str, ssh_path: str = None, ssh_user_info: str = None) -> bool:
@@ -233,7 +236,8 @@ class PostgreSQLConnector(BaseConnector):
     def close(self):
         try:
             self.connection.close()
-            self.server.stop()
+            if self.connector_info['ssh']:
+                self.server.stop()
             super().close()
         except:
             raise DestroyedConnectionError
@@ -252,10 +256,10 @@ class PostgreSQLConnector(BaseConnector):
                 self.connection = psycopg2.connect(database=database, port=self.server.local_bind_port,
                 								   user=connector_info['database-username'], password=connector_info['database-password'])
             except HandlerSSHTunnelForwarderError as e:
-                catcher.error_message('E022', e.args[0])
+                catcher.error_message('E022', str(e))
                 raise DestroyedTunnelError
             except psycopg2.OperationalError as e:
-            	catcher.error_message('E021', e.args[0])
+            	catcher.error_message('E021', str(e))
             	raise DestroyedConnectionError
 
         else:
@@ -266,4 +270,136 @@ class PostgreSQLConnector(BaseConnector):
                                                    port=db_port,
                                                    database=database)
             except psycopg2.Error:
-                self.close()
+                catcher.error_message('E021', e.args[0])
+                raise DestroyedConnectionError
+
+
+class MySQLConnector(BaseConnector):
+
+    server = SSHTunnelForwarder
+
+    def commit(self) -> (int, float):
+        try:
+            self.connection.commit()
+            executed, transaction_time = super().commit()
+
+            return True, executed, transaction_time
+        except mysql.connector.Error:
+            return False, str(e)
+
+    def rollback(self) -> (int, float):
+        try:
+            self.connection.rollback()
+            rolledback, transaction_time = super().rollback()
+
+            return True, rolledback, transaction_time
+        except mysql.connector.Error:
+            return False, str(e)
+
+    @staticmethod
+    def test_connection(db_path: str, db_user_info: str, ssh_path: str = None, ssh_user_info: str = None) -> bool:
+        db_host, db_port, db_name = re.split(r'[\:\/]', db_path)
+        db_user, db_pass = db_user_info.split(':')
+        try:
+            if ssh_path == '':
+                connection = mysql.connector.connect(user=db_user,
+                                        password=db_pass,
+                                        host=db_host,
+                                        port=db_port,
+                                        database=db_name)
+                cursor = connection.cursor()
+                cursor.close()
+                connection.close()
+            else:
+                ssh_host, ssh_port = ssh_path.split(':')
+                ssh_user, ssh_pass = ssh_user_info.split(':')
+                server = SSHTunnelForwarder((ssh_host, ssh_port),
+                                            ssh_username=ssh_user,
+                                            ssh_password=ssh_pass,
+                                            remote_bind_address=(db_host, db_port))
+                connection = mysql.connector.connect(database=db_name, port=server.local_bind_port)
+                cursor = connection.cursor()
+                cursor.close()
+                connection.close()
+                server.close()
+            return True
+        except HandlerSSHTunnelForwarderError as e:
+            catcher.error_message('E022', str(e))
+            return False
+        except mysql.connector.Error as e:
+            catcher.error_message('E021', str(e))
+            return False
+
+    def check_connection(self) -> bool:
+        try:
+            self.connection.cursor().close()
+            return True
+        except HandlerSSHTunnelForwarderError as e:
+            catcher.error_message('E022', str(e))
+            return False
+        except mysql.connector.Error as e:
+            catcher.error_message('E021', str(e))
+            return False
+
+    def execute_query(self, query_str: str) -> int:
+        query_pool = super().init_execute_query(query_str)
+        try:
+            curs = self.connection.cursor()
+            for query in query_pool:
+                query = query.lstrip('\n')
+                curs.execute(query)
+                self.executed_queries += 1
+                if query.startswith('INSERT'):
+                    self.rolling_queries += 1
+            curs.close()
+            return len(query_pool), None
+        except HandlerSSHTunnelForwarderError as e:
+            catcher.error_message('E022', str(e))
+            return -1, None
+        except mysql.connector.Error as e:
+            catcher.error_message('E021', str(e))
+            return -1, None
+
+    def close(self):
+        try:
+            self.connection.close()
+            if self.connector_info['ssh']:
+                self.server.stop()
+            super().close()
+        except:
+            raise DestroyedConnectionError
+
+    def __init__(self, connector_info: dict):
+        BaseConnector.__init__(self, connector_info)
+        db_host, db_port, database = re.split(r'[\:\/]', connector_info['database-path'])
+        if connector_info['ssh']:
+            ssh_host, ssh_port = connector_info['ssh-path'].split(':')
+            try:
+                self.server = SSHTunnelForwarder((ssh_host, int(ssh_port)),
+                                                 ssh_password=connector_info['ssh-pass'],
+                                                 ssh_username=connector_info['ssh-user'],
+                                                 remote_bind_address=(db_host, int(db_port)))
+                self.server.start()
+                self.connection = mysql.connector.connect(database=database, port=self.server.local_bind_port,
+                                                          user=connector_info['database-username'], password=connector_info['database-password'])
+            except HandlerSSHTunnelForwarderError as e:
+                catcher.error_message('E022', str(e))
+            except mysql.connector.Error as e:
+                catcher.error_message('E021', str(e))
+        else:
+            try:
+                self.connection = mysql.connector.connect(user=connector_info['database-username'],
+                                                          password=connector_info['database-password'],
+                                                          host=db_host,
+                                                          port=db_port,
+                                                          database=database)
+            except mysql.connector.Error as e:
+                catcher.error_message('E021', str(e))
+                raise DestroyedConnectionError
+
+# Доступные типы коннекторов
+avaliable_connectors = {
+    'SQLite': SQLiteConnector,
+    'PostgreSQL': PostgreSQLConnector,
+    'MySQL': MySQLConnector
+}
