@@ -1,3 +1,4 @@
+import re
 import wx
 import os
 import json
@@ -24,7 +25,7 @@ class NewTestConnection(wx.Dialog):
                     data = json.load(conn_data)
 
                 self.connectors = data
-            except FileNotFoundError as e:
+            except (FileNotFoundError, PermissionError) as e:
                 catcher.error_message('E023', str(e))
 
         def set_items(self):
@@ -73,6 +74,9 @@ class NewTestConnection(wx.Dialog):
             self.connector = connector
             self.conn_type_statictext.SetLabel(APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'] + ' | ' + self.connector['connector-name'])
 
+        def set_values(self, connection_info: dict):
+            self.db_path_textctrl.SetValue(connection_info.get('database-path', ''))
+
         def file_explore(self, event):
             with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
                                wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_DB'],
@@ -87,6 +91,13 @@ class NewTestConnection(wx.Dialog):
         def get_path(self) -> str: return self.db_path
 
         def get_db_name(self) -> str: return self.db_name
+
+        def get_conn_info(self) -> dict:
+            conn_info = {
+                'connector-name': self.connector['connector-name'],
+                'database-path': self.db_path_textctrl.GetValue()
+            }
+            return conn_info
 
         def __init__(self, parent: wx.Panel):
             super().__init__(parent)
@@ -173,10 +184,30 @@ class NewTestConnection(wx.Dialog):
             self.connector = connector
             self.conn_type_statictext.SetLabel(APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'] + ' | ' + self.connector['connector-name'])
 
+        def set_values(self, connection_info: dict):
+            db_host, db_port, db_name = re.split(r'[:/]', connection_info['database-path'])
+            self.host_path_database_textctrl.SetValue(db_name)
+            self.host_path_textctrl.SetValue(db_host)
+            self.host_path_port_textctrl.SetValue(db_port)
+            self.host_user_name_textctrl.SetValue(connection_info['database-username'])
+            self.host_user_password_textctrl.SetValue(connection_info['database-password'])
+            self.is_using_ssh_checkbox.SetValue(connection_info['ssh'])
+            if connection_info['ssh']:
+                ssh_host, ssh_port = re.split(':', connection_info['ssh-path'])
+                self.ssh_host_textctrl.SetValue(ssh_host)
+                self.ssh_host_port_textctrl.SetValue(ssh_port)
+                self.ssh_user_name_textctrl.SetValue(connection_info['ssh-user'])
+                self.ssh_user_password_textctrl.SetValue(connection_info['ssh-pass'])
+            self.ssh_host_textctrl.Enable(connection_info['ssh'])
+            self.ssh_host_port_textctrl.Enable(connection_info['ssh'])
+            self.ssh_user_name_textctrl.Enable(connection_info['ssh'])
+            self.ssh_user_password_textctrl.Enable(connection_info['ssh'])
+
         def get_host_info(self) -> dict:
             self.host_info['database-name'] = self.host_path_database_textctrl.GetValue()
             self.host_info['database-host'] = self.host_path_textctrl.GetValue()
             self.host_info['database-port'] = self.host_path_port_textctrl.GetValue()
+            self.host_info['database-path'] = f"{self.host_info['database-host']}:{self.host_info['database-port']}/{self.host_info['database-name']}"
             self.host_info['database-user'] = self.host_user_name_textctrl.GetValue()
             self.host_info['database-pass'] = self.host_user_password_textctrl.GetValue()
             return self.host_info
@@ -208,6 +239,13 @@ class NewTestConnection(wx.Dialog):
                 self.ssh_host_port_textctrl.Disable()
                 self.ssh_user_name_textctrl.Disable()
                 self.ssh_user_password_textctrl.Disable()
+
+        def get_conn_info(self) -> dict:
+            self.get_host_info()
+            self.get_ssh_info()
+            conn_info = dict(list(self.host_info.items()) + list(self.ssh_info.items()))
+            conn_info['connector-name'] = self.connector['connector-name']
+            return conn_info
 
         def __init__(self, parent: wx.Panel):
             super().__init__(parent)
@@ -379,19 +417,21 @@ class NewTestConnection(wx.Dialog):
             conn_type = self.connector['connection-type']
             conn_name = self.connector['connector-name']
             connector = BaseConnector
+            result = bool
 
             try:
-                avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
-                													self.conn_info['database-username'] + ':' + self.conn_info['database-password'],
-                													self.conn_info.get('ssh-path', ''),
-                													self.conn_info.get('ssh-user', '') + self.conn_info.get('ssh-pass', ''))
+                result = avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
+                													         self.conn_info.get('database-username', '') + ':' + self.conn_info.get('database-password', ''),
+                													         self.conn_info.get('ssh-path', ''),
+                													         self.conn_info.get('ssh-user', '') + ':' + self.conn_info.get('ssh-pass', ''))
             except BaseException as e:
                 return wx.MessageBox(e.args[0], APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION'],
                                      wx.ICON_ERROR | wx.OK)
 
-            return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],
-                                 APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION'],
-                                 wx.ICON_INFORMATION | wx.OK)
+            if result:
+                return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],
+                                     APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.CAPTION'],
+                                     wx.ICON_INFORMATION | wx.OK)
 
         def __init__(self, parent: wx.Panel):
             super().__init__(parent)
@@ -514,6 +554,8 @@ class NewTestConnection(wx.Dialog):
             elif self.curr_page_panel == self.page_server:
                 host_info = self.page_server.get_host_info()
                 ssh_info = self.page_server.get_ssh_info()
+                conn_data['database-host'] = host_info['database-host']
+                conn_data['database-port'] = host_info['database-port']
                 conn_data['database-path'] = f'{host_info["database-host"]}:{host_info["database-port"]}/{host_info["database-name"]}'
                 conn_data['database-name'] = host_info['database-name']
                 conn_data['database-username'] = host_info['database-user']
@@ -553,7 +595,7 @@ class NewTestConnection(wx.Dialog):
         try:
             with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
                 json_list = json.load(json_file)
-        except (json.decoder.JSONDecodeError, FileNotFoundError) as e:
+        except (json.decoder.JSONDecodeError, FileNotFoundError, PermissionError) as e:
             return catcher.error_message('E023', str(e))
 
         curr_test_conn['connector-name'] = self.connector['connector-name']
@@ -579,9 +621,9 @@ class NewTestConnection(wx.Dialog):
                                      APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_CONN_ALREADY_EXISTS.CAPTION'],
                                      wx.ICON_WARNING | wx.OK)
             elif test_conn['database-name'] == curr_test_conn['database-name']:
-                return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.MESSAGE'],
+                wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.MESSAGE'],
                                      APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHANGE_DB_NAME.CAPTION'],
-                                     wx.ICON_WARNING, wx.OK)
+                                     wx.ICON_WARNING | wx.OK)
 
         json_list.append(curr_test_conn)
         with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:

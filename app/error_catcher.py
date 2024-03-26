@@ -27,8 +27,10 @@ class ErrorCatcher:
                          '"date_catched"	TEXT NOT NULL);')
             app_conn.commit()
 
-    def error_message(self, code, addon=''):
+    def error_message(self, code: str, addon: str = ''):
         """Возврашает сообщение об ошибке по коду"""
+        if addon is None:
+            addon = ''
         app_conn = sqlite3.connect(self.db_path)
         cursor = app_conn.cursor()
         err_message = cursor.execute(f"SELECT lt.text, lt2.text "
@@ -55,7 +57,7 @@ class ErrorCatcher:
             self.put_log(code)
             return code
 
-    def put_log(self, code):
+    def put_log(self, code: str):
         with sqlite3.connect(self.db_path) as app_conn:
             cursor = app_conn.cursor()
             cursor.execute(f"""INSERT INTO t_error_log(error_code, date_catched)

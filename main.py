@@ -19,6 +19,7 @@ from connections.udb_conn.connection_viewer import ConnectionViewer
 from connections.udb_conn.new_conn import NewConnection
 from connections.udb_conn.new_udb_wizard import UDBCreateMaster
 from connections.test_dbs.new_test_conn import NewTestConnection
+from connections.test_dbs.test_db_viewer import TestDBViewer
 from connections.test_dbs.type_connectors import *
 from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
@@ -47,6 +48,7 @@ class MainFrame(wx.Frame):
     all_connections = []
     connection = BaseConnector
     curr_conn_item = wx.TreeItemId
+    conn_items = {}
 
     # Переменные "Простого генератора"
     gens = {}
@@ -479,6 +481,7 @@ class MainFrame(wx.Frame):
 
     def on_connection_tree_activated(self, event):
         get_item = event.GetItem()
+        # ТОЛЬКО Сброс подключения, если выбрано активное подключение
         if self.curr_conn_item == get_item:
             self.connection.close()
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
@@ -497,11 +500,17 @@ class MainFrame(wx.Frame):
                 self.connection_status_panel.set_status(0)
 
             self.curr_conn_item = get_item
-            activated = self.treectrl_test_connections.GetItemText(self.curr_conn_item)
+
+            # Получаем информацию о выбранном тестовом подключении
+            curr_item_id = ''
+            for id_key, treeitem_value in self.conn_items.items():
+                if self.curr_conn_item == treeitem_value:
+                    curr_item_id = id_key
+                    break
 
             conn_data = {}
             for conn_info in self.all_connections:
-                if conn_info['database-name'] == activated:
+                if curr_item_id == conn_info['id']:
                     conn_data = conn_info
                     break
 
@@ -891,6 +900,7 @@ class MainFrame(wx.Frame):
         self.treectrl_test_connections.DeleteAllItems()
         for conn_info in self.all_connections:
             tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['database-name'])
+            self.conn_items[conn_info['id']] = tree_item
             self.treectrl_test_connections.SetItemImage(tree_item, self.test_dbs_images[conn_info['connector-name']])
 
     def delete_index(self, item):
@@ -965,6 +975,11 @@ class MainFrame(wx.Frame):
         report_wizard = ReportWizard()
         report_wizard.Show()
         report_wizard.SetFocus()
+
+    def open_test_databases_info(self, event, db_id: str = None):
+        tdb_info = TestDBViewer(db_id)
+        tdb_info.Show()
+        tdb_info.SetFocus()
 
     ############################
 
@@ -1167,8 +1182,6 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.open_newudb_master, create_udb_menuitem)
         self.connect_menu.Append(create_udb_menuitem)
 
-        self.connect_menu.AppendSeparator()
-
         view_connects_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                              APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.UDB_VIEWER'] + '\t' +
                                              APP_PARAMETERS['KEY_UDB_VIEWER'])
@@ -1184,6 +1197,13 @@ class MainFrame(wx.Frame):
         new_test_connection.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/key.png')))
         self.Bind(wx.EVT_MENU, self.open_new_test_conn, new_test_connection)
         self.connect_menu.Append(new_test_connection)
+
+        view_test_databases_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
+                                                   APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.TDB_VIEWER'] + '\t' +
+                                                   APP_PARAMETERS['KEY_TDB_VIEWER'])
+        view_test_databases_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/marked list points.png')))
+        self.Bind(wx.EVT_MENU, self.open_test_databases_info, view_test_databases_menuitem)
+        self.connect_menu.Append(view_test_databases_menuitem)
 
         # Генератор
         # ----------

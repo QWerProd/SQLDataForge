@@ -57,6 +57,10 @@ class BaseConnector:
         self.time_transaction_opened = None
         return rolledback, transaction_time.total_seconds()
 
+    @staticmethod
+    def test_connection(db_path: str, db_user_info: str = None, ssh_path: str = None, ssh_user_info: str = None) -> bool:
+        pass
+
     def check_connection(self) -> bool:
         """Проверка подключения при открытом соединении"""
         pass
@@ -108,10 +112,12 @@ class SQLiteConnector(BaseConnector):
             return False, str(e)
 
     @staticmethod
-    def test_connection(db_name: str) -> bool:
+    def test_connection(db_path: str, db_user_info: str = None, ssh_path: str = None, ssh_user_info: str = None) -> bool:
         try:
-            import sqlite3
-            sqlite3.connect(db_name).cursor().close()
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.close()
+            conn.close()
             return True
         except BaseException:
             return False
@@ -185,24 +191,35 @@ class PostgreSQLConnector(BaseConnector):
         db_user, db_pass = db_user_info.split(':')
         try:
             if ssh_path is None:
-                psycopg2.connect(user=db_user,
-                                 password=db_pass,
-                                 host=db_host,
-                                 port=db_port,
-                                 database=db_name).cursor().close()
+                conn = psycopg2.connect(user=db_user,
+                                        password=db_pass,
+                                        host=db_host,
+                                        port=db_port,
+                                        database=db_name)
+                curs = conn.cursor()
+                curs.close()
+                conn.close()
             else:
                 ssh_host, ssh_port = ssh_path.split(':')
                 ssh_user, ssh_pass = ssh_user_info.split(':')
-                server = SSHTunnelForwarder((ssh_host, ssh_port),
+                server = SSHTunnelForwarder((ssh_host, int(ssh_port)),
                                             ssh_username=ssh_user,
                                             ssh_password=ssh_pass,
-                                            remote_bind_address=(db_host, db_port))
-                psycopg2.connect(database=db_name, port=server.local_bind_port).cursor().close()
+                                            remote_bind_address=(db_host, int(db_port)))
+                server.start()
+                conn = psycopg2.connect(database=db_name, port=server.local_bind_port,
+                                        user=db_user, password=db_pass)
+                curs = conn.cursor()
+                curs.close()
+                conn.close()
+                server.stop()
+
             return True
         except HandlerSSHTunnelForwarderError as e:
-            catcher.error_message('E021', e.args[0])
+            catcher.error_message('E022', str(e))
             return False
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            catcher.error_message('E021', str(e))
             return False
 
     def check_connection(self) -> bool:
@@ -210,9 +227,10 @@ class PostgreSQLConnector(BaseConnector):
             self.connection.cursor().close()
             return True
         except HandlerSSHTunnelForwarderError as e:
-            catcher.error_message('E021', e.args[0])
+            catcher.error_message('E022', str(e))
             return False
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            catcher.error_message('E021', str(e))
             return False
 
     def execute_query(self, query_str: str) -> int:
@@ -228,9 +246,10 @@ class PostgreSQLConnector(BaseConnector):
             curs.close()
             return len(query_pool), None
         except HandlerSSHTunnelForwarderError as e:
-            catcher.error_message('E021', e.args[0])
+            catcher.error_message('E022', str(e))
             return -1, None
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            catcher.error_message('E021', str(e))
             return -1, None
 
     def close(self):
@@ -317,11 +336,12 @@ class MySQLConnector(BaseConnector):
                                             ssh_username=ssh_user,
                                             ssh_password=ssh_pass,
                                             remote_bind_address=(db_host, db_port))
+                server.start()
                 connection = mysql.connector.connect(database=db_name, port=server.local_bind_port)
                 cursor = connection.cursor()
                 cursor.close()
                 connection.close()
-                server.close()
+                server.stop()
             return True
         except HandlerSSHTunnelForwarderError as e:
             catcher.error_message('E022', str(e))

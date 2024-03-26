@@ -47,7 +47,8 @@ APP_PARAMETERS = {
     'DEFAULT_CONNECTOR': str,
     'SQL_TYPES_KEYWORDS': "text character char varchar integer int bigint numeric real float decimal"
                           " double date timestamp bool",
-    'STC_COLOUR_TYPES': str
+    'STC_COLOUR_TYPES': str,
+    'KEY_TDB_VIEWER': str
 }
 
 APP_LOCALES = {

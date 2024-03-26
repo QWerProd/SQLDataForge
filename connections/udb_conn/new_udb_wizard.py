@@ -387,7 +387,7 @@ class UDBCreateMaster(wx.Frame):
         div_separator_statictext.SetForegroundColour(wx.Colour(150, 150, 150))
         div_separator_sizer.Add(div_separator_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 5)
 
-        div_separator_sizer.Add(wx.StaticLine(div_separator_panel), 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+        div_separator_sizer.Add(wx.StaticLine(div_separator_panel), 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT | wx.LEFT, 5)
 
         self.main_sizer.Add(div_separator_panel, 0, wx.EXPAND)
         # ---------------

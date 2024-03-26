@@ -744,7 +744,15 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E023.MESSAGE','ru','Файл был поврежден или не найден!'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES','en','Color of column types:'),
 	 ('E023.CAPTION','en','File reading error'),
-	 ('E023.MESSAGE','en','The file was corrupted or not found!');
+	 ('E023.MESSAGE','en','The file was corrupted or not found!'),
+	 ('MAIN.MAIN_MENU.CONNECTIONS.TDB_VIEWER','ru','Все подключенные тБД...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER','ru','Открыть обзорщик тБД'),
+	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.CAPTION','ru','Изменения сохранены'),
+	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE','ru','Информация для доступа к Базе Данных {0} обновлена!'),
+	 ('MAIN.MAIN_MENU.CONNECTIONS.TDB_VIEWER','en','All connected tDBs...'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER','en','Open the tDB Reviewer'),
+	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.CAPTION','en','The changes are saved'),
+	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE','en','The information for accessing the Database {0} has been updated!');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
