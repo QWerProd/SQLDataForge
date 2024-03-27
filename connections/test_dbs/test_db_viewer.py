@@ -63,6 +63,8 @@ class TestDBViewer(wx.Frame):
                 break
 
         self.page_init.Hide()
+        self.page_internal.Show()
+        self.page_internal.set_values(conn_data)
         self.save_button.Enable()
         if conn_data['connection-type'] == 'local_file':
             self.page_server.Show(False)
@@ -80,7 +82,9 @@ class TestDBViewer(wx.Frame):
         self.Destroy()
 
     def save_changes(self, event):
-        curr_conn_info = self.curr_page_panel.get_conn_info()
+        connector_info = self.curr_page_panel.get_conn_info()
+        internal_info = self.page_internal.get_internal_info()
+        curr_conn_info = dict(list(connector_info.items()) + list(internal_info.items()))
         json_data = []
 
         # Читаем JSON и отбираем все подключения
@@ -117,10 +121,10 @@ class TestDBViewer(wx.Frame):
                              wx.ICON_INFORMATION | wx.OK)
 
     def __init__(self, db_id: str = None):
-        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['TEST_DB_VIEWER.TITLE'], size=(800, 450),
+        wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['TEST_DB_VIEWER.TITLE'], size=(800, 650),
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
-        self.SetMinSize((800, 450))
-        self.SetMaxSize((800, 450))
+        self.SetMinSize((800, 650))
+        self.SetMaxSize((1000, 850))
         self.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.all_connections = []
@@ -166,11 +170,14 @@ class TestDBViewer(wx.Frame):
         self.page_init = wx.Panel(self.main_panel)
         self.page_local = NewTestConnection.ConnectDBLocalFile(self.main_panel)
         self.page_server = NewTestConnection.ConnectDBServer(self.main_panel)
+        self.page_internal = NewTestConnection.InternalConnectInformation(self.main_panel)
         self.main_sizer.Add(self.page_init, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_local, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_server, 1, wx.EXPAND)
+        self.main_sizer.Add(self.page_internal, 2, wx.EXPAND)
         self.page_local.Hide()
         self.page_server.Hide()
+        self.page_internal.Hide()
         # --------------------
 
         self.buttons_panel = wx.Panel(self.main_panel)

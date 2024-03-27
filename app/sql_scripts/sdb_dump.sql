@@ -752,7 +752,13 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('MAIN.MAIN_MENU.CONNECTIONS.TDB_VIEWER','en','All connected tDBs...'),
 	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER','en','Open the tDB Reviewer'),
 	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.CAPTION','en','The changes are saved'),
-	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE','en','The information for accessing the Database {0} has been updated!');
+	 ('TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE','en','The information for accessing the Database {0} has been updated!'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO','ru','Доп. информация о подключении:'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE','ru','Тип подключения:'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES','ru','Разработка:Тест:Продакшн'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO','en','Additional information about the connection:'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE','en','Connection type:'),
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES','en','Development:Test:Production');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),

@@ -990,7 +990,8 @@ class MainFrame(wx.Frame):
                                    wx.YES_NO | wx.NO_DEFAULT, self)
             if result == wx.YES:
                 self.Destroy()
-                self.connection.close()
+                if self.connection is not None:
+                    self.connection.close()
                 exit()
             else:
                 return

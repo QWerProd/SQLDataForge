@@ -13,6 +13,7 @@ class NewTestConnection(wx.Dialog):
     curr_page = int
     pages = list
     connector = dict
+    type_connection = wx.Panel
     curr_page_panel = wx.Panel
 
     class ChooseConnectorTypePanel(wx.Panel):
@@ -284,21 +285,21 @@ class NewTestConnection(wx.Dialog):
 
             self.host_path_database_statictext = wx.StaticText(self.host_path_panel, size=(100, -1),
                                                                label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_DATABASE'])
-            self.host_path_sizer.Add(self.host_path_database_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.host_path_sizer.Add(self.host_path_database_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.host_path_database_textctrl = wx.TextCtrl(self.host_path_panel, size=(125, -1))
             self.host_path_sizer.Add(self.host_path_database_textctrl, 0, wx.EXPAND)
 
             self.host_path_statictext = wx.StaticText(self.host_path_panel, size=(50, -1),
                                                       label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PATH'])
-            self.host_path_sizer.Add(self.host_path_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.host_path_sizer.Add(self.host_path_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.host_path_textctrl = wx.TextCtrl(self.host_path_panel)
             self.host_path_sizer.Add(self.host_path_textctrl, 1, wx.EXPAND)
 
-            self.host_path_port_statictext = wx.StaticText(self.host_path_panel, size=(50, -1),
+            self.host_path_port_statictext = wx.StaticText(self.host_path_panel, size=(40, -1),
                                                            label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT'])
-            self.host_path_sizer.Add(self.host_path_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.host_path_sizer.Add(self.host_path_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.host_path_port_textctrl = wx.TextCtrl(self.host_path_panel, size=(50, -1))
             self.host_path_port_textctrl.SetValue('5432')
@@ -313,14 +314,14 @@ class NewTestConnection(wx.Dialog):
 
             self.host_user_name_statictext = wx.StaticText(self.host_user_panel, size=(100, -1),
                                                            label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME'])
-            self.host_user_sizer.Add(self.host_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.host_user_sizer.Add(self.host_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.host_user_name_textctrl = wx.TextCtrl(self.host_user_panel)
             self.host_user_sizer.Add(self.host_user_name_textctrl, 1, wx.EXPAND)
 
             self.host_user_password_statictext = wx.StaticText(self.host_user_panel, size=(50, -1),
                                                                label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD'])
-            self.host_user_sizer.Add(self.host_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.host_user_sizer.Add(self.host_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.host_user_password_textctrl = wx.TextCtrl(self.host_user_panel, style=wx.TE_PASSWORD)
             self.host_user_sizer.Add(self.host_user_password_textctrl, 1, wx.EXPAND)
@@ -349,15 +350,15 @@ class NewTestConnection(wx.Dialog):
 
             self.ssh_host_statictext = wx.StaticText(self.ssh_host_panel, size=(100, -1),
                                                      label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.SSH_INFO.HOST'])
-            self.ssh_host_sizer.Add(self.ssh_host_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.ssh_host_sizer.Add(self.ssh_host_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.ssh_host_textctrl = wx.TextCtrl(self.ssh_host_panel)
             self.ssh_host_textctrl.Disable()
             self.ssh_host_sizer.Add(self.ssh_host_textctrl, 1, wx.EXPAND)
 
-            self.ssh_host_port_statictext = wx.StaticText(self.ssh_host_panel, size=(50, -1),
+            self.ssh_host_port_statictext = wx.StaticText(self.ssh_host_panel, size=(40, -1),
                                                           label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.HOST_PORT'])
-            self.ssh_host_sizer.Add(self.ssh_host_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.ssh_host_sizer.Add(self.ssh_host_port_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.ssh_host_port_textctrl = wx.TextCtrl(self.ssh_host_panel, size=(50, -1))
             self.ssh_host_port_textctrl.Disable()
@@ -373,7 +374,7 @@ class NewTestConnection(wx.Dialog):
 
             self.ssh_user_name_statictext = wx.StaticText(self.ssh_user_panel, size=(100, -1),
                                                           label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_NAME'])
-            self.ssh_user_sizer.Add(self.ssh_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.ssh_user_sizer.Add(self.ssh_user_name_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.ssh_user_name_textctrl = wx.TextCtrl(self.ssh_user_panel)
             self.ssh_user_name_textctrl.Disable()
@@ -381,7 +382,7 @@ class NewTestConnection(wx.Dialog):
 
             self.ssh_user_password_statictext = wx.StaticText(self.ssh_user_panel, size=(50, -1),
                                                               label=APP_TEXT_LABELS['NEW_TEST_CONN.CONNECT_SERVER.HOST_INFO.USER_PASSWORD'])
-            self.ssh_user_sizer.Add(self.ssh_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.ssh_user_sizer.Add(self.ssh_user_password_statictext, 0, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
 
             self.ssh_user_password_textctrl = wx.TextCtrl(self.ssh_user_panel, style=wx.TE_PASSWORD)
             self.ssh_user_password_textctrl.Disable()
@@ -392,6 +393,97 @@ class NewTestConnection(wx.Dialog):
 
             self.sizer.Add(self.ssh_info_panel, 0, wx.ALL | wx.EXPAND, 10)
             # ----------
+
+    class InternalConnectInformation(wx.Panel):
+
+        connector = dict
+        internal_info = dict
+
+        def set_connector(self, connector: dict):
+            self.connector = connector
+            self.conn_type_statictext.SetLabel(APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'] + ' | ' + self.connector['connector-name'])
+
+        def set_values(self, connection_info: dict, is_hide_type_connector: bool = True):
+            if is_hide_type_connector:
+                self.connector_type_panel.Hide()
+            self.conn_alias_textctrl.SetValue(connection_info['database-alias'])
+            self.conn_type_choice.SetSelection(connection_info['database-type-conn'])
+            self.conn_desc_textctrl.SetValue(connection_info['database-desc'])
+
+        def get_internal_info(self) -> dict:
+            self.internal_info['database-alias'] = self.conn_alias_textctrl.GetValue()
+            self.internal_info['database-type-conn'] = self.conn_type_choice.GetSelection()
+            self.internal_info['database-desc'] = self.conn_desc_textctrl.GetValue()
+            return self.internal_info
+
+        def __init__(self, parent: wx.Panel):
+            super().__init__(parent)
+            self.connector = {}
+            self.internal_info = {}
+
+            self.driver_font = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
+
+            self.sizer = wx.BoxSizer(wx.VERTICAL)
+            self.SetSizer(self.sizer)
+
+            # ----------
+
+            self.connector_type_panel = wx.Panel(self)
+            self.connector_type_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.connector_type_panel.SetSizer(self.connector_type_sizer)
+
+            self.conn_type_statictext = wx.StaticText(self.connector_type_panel,
+                                                      label=APP_TEXT_LABELS['NEW_TEST_CONN.DRIVER'])
+            self.conn_type_statictext.SetFont(self.driver_font)
+            self.connector_type_sizer.Add(self.conn_type_statictext, 0, wx.LEFT, 10)
+
+            self.sizer.Add(self.connector_type_panel, 0, wx.ALL | wx.EXPAND, 5)
+            self.sizer.Add(wx.StaticLine(self, style=wx.LI_HORIZONTAL), 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 5)
+            # ----------
+
+            self.internal_info_panel = wx.Panel(self)
+            self.internal_info_staticbox = wx.StaticBox(self.internal_info_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.INTERNAL_INFO'])
+            self.internal_info_sizer = wx.StaticBoxSizer(self.internal_info_staticbox, wx.VERTICAL)
+            self.internal_info_panel.SetSizer(self.internal_info_sizer)
+
+            # --------------------
+
+            self.main_info_panel = wx.Panel(self.internal_info_panel)
+            self.main_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.main_info_panel.SetSizer(self.main_info_sizer)
+
+            self.conn_alias_statictext = wx.StaticText(self.main_info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_ALIAS'], size=(80, -1))
+            self.main_info_sizer.Add(self.conn_alias_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+
+            self.conn_alias_textctrl = wx.TextCtrl(self.main_info_panel)
+            self.main_info_sizer.Add(self.conn_alias_textctrl, 2, wx.EXPAND)
+
+            self.conn_type_choice_statictext = wx.StaticText(self.main_info_panel, label=APP_TEXT_LABELS['NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE'])
+            self.main_info_sizer.Add(self.conn_type_choice_statictext, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT | wx.RIGHT, 8)
+
+            self.conn_type_choice = wx.Choice(self.main_info_panel, choices=APP_TEXT_LABELS['NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES'].split(':'))
+            self.main_info_sizer.Add(self.conn_type_choice, 1, wx.EXPAND)
+
+            self.internal_info_sizer.Add(self.main_info_panel, 0, wx.EXPAND | wx.ALL, 5)
+            # --------------------
+
+            self.addon_info_panel = wx.Panel(self.internal_info_panel)
+            self.addon_info_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.addon_info_panel.SetSizer(self.addon_info_sizer)
+
+            self.conn_desc_statictext = wx.StaticText(self.addon_info_panel, label=APP_TEXT_LABELS['CONNECTION_VIEWER.DB_DESC'], size=(80, -1))
+            self.addon_info_sizer.Add(self.conn_desc_statictext, 0, wx.RIGHT, 8)
+
+            self.conn_desc_textctrl = wx.TextCtrl(self.addon_info_panel, style=wx.TE_MULTILINE, size=(-1, 75))
+            self.addon_info_sizer.Add(self.conn_desc_textctrl, 1, wx.EXPAND)
+
+            self.internal_info_sizer.Add(self.addon_info_panel, 1, wx.EXPAND | wx.BOTTOM | wx.LEFT | wx.RIGHT, 5)
+            # --------------------
+
+            self.sizer.Add(self.internal_info_panel, 0, wx.EXPAND | wx.ALL, 10)
+            # ----------
+
+            self.Layout()
 
     class ConfirmationConnect(wx.Panel):
 
@@ -542,16 +634,24 @@ class NewTestConnection(wx.Dialog):
                 self.page_server.set_connector(self.connector)
 
         if self.curr_page == 1:
+            next_page = self.page_internal
+            self.type_connection = self.curr_page_panel
+            self.page_internal.set_connector(self.connector)
+
+        if self.curr_page == 2:
             next_page = self.page_final
             conn_data = {}
-            if self.curr_page_panel == self.page_local:
+            internal_info = self.page_internal.get_internal_info()
+            for key, value in internal_info.items():
+                conn_data[key] = value
+            if self.type_connection == self.page_local:
                 conn_data['database-path'] = self.page_local.get_path()
                 conn_data['database-name'] = self.page_local.get_db_name()
                 if conn_data['database-path'] == '':
                     return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.MESSAGE'],
                                          APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.CHOOSE_PATH_ERROR.CAPTION'],
                                          wx.ICON_ERROR | wx.OK)
-            elif self.curr_page_panel == self.page_server:
+            elif self.type_connection == self.page_server:
                 host_info = self.page_server.get_host_info()
                 ssh_info = self.page_server.get_ssh_info()
                 conn_data['database-host'] = host_info['database-host']
@@ -639,6 +739,7 @@ class NewTestConnection(wx.Dialog):
         self.curr_page = 0
         self.connector = {}
         self.pages = []
+        self.type_connection = None
 
         self.small_header_font = wx.Font(10, wx.SWISS, wx.NORMAL, wx.BOLD)
         self.header_font = wx.Font(12, wx.FONTFAMILY_DEFAULT, 0, 500, faceName='Verdana')
@@ -686,13 +787,16 @@ class NewTestConnection(wx.Dialog):
         self.curr_page_panel = self.page_init
         self.page_local = NewTestConnection.ConnectDBLocalFile(self.main_panel)
         self.page_server = NewTestConnection.ConnectDBServer(self.main_panel)
+        self.page_internal = NewTestConnection.InternalConnectInformation(self.main_panel)
         self.page_final = NewTestConnection.ConfirmationConnect(self.main_panel)
         self.main_sizer.Add(self.page_init, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_local, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_server, 1, wx.EXPAND)
+        self.main_sizer.Add(self.page_internal, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_final, 1, wx.EXPAND)
         self.page_local.Hide()
         self.page_server.Hide()
+        self.page_internal.Hide()
         self.page_final.Hide()
 
         self.sizer.Add(self.main_panel, 1, wx.EXPAND)
