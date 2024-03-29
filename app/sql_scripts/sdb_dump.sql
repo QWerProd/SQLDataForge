@@ -758,7 +758,17 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES','ru','Разработка:Тест:Продакшн'),
 	 ('NEW_UDB_WIZARD.INTERNAL_INFO','en','Additional information about the connection:'),
 	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE','en','Connection type:'),
-	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES','en','Development:Test:Production');
+	 ('NEW_UDB_WIZARD.INTERNAL_INFO.CONN_TYPE.CHOICES','en','Development:Test:Production'),
+	 ('TEST_DB_VIEWER.DELETE.MESSAGE','ru','Информация о подключении "{0}" удалена!'),
+	 ('TEST_DB_VIEWER.DELETE.CAPTION','ru','Подключение отвязано'),
+	 ('TEST_DB_VIEWER.DELETE_APPROVE.CAPTION','ru','Подтвердите удаление'),
+	 ('TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE','ru','Вы уверены, что хотите удалить выбранное подключение?
+Данное действие нельзя будет отменить!'),
+	 ('TEST_DB_VIEWER.DELETE.MESSAGE','en','Information about connection "{0}" has been deleted!'),
+	 ('TEST_DB_VIEWER.DELETE.CAPTION','en','Connection is disconnected'),
+	 ('TEST_DB_VIEWER.DELETE_APPROVE.CAPTION','en','Confirm the deletion'),
+	 ('TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE','en','Are you sure you want to delete the selected connection?
+This action cannot be undone!');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),

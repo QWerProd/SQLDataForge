@@ -1,7 +1,6 @@
 import re
 import sqlite3
 import psycopg2
-import oracledb
 import mysql.connector
 from sshtunnel import SSHTunnelForwarder, HandlerSSHTunnelForwarderError
 from datetime import datetime

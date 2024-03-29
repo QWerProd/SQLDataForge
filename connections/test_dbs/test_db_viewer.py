@@ -65,6 +65,7 @@ class TestDBViewer(wx.Frame):
         self.page_init.Hide()
         self.page_internal.Show()
         self.page_internal.set_values(conn_data)
+        self.delete_button.Enable()
         self.save_button.Enable()
         if conn_data['connection-type'] == 'local_file':
             self.page_server.Show(False)
@@ -119,6 +120,45 @@ class TestDBViewer(wx.Frame):
         return wx.MessageBox(APP_TEXT_LABELS['TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE'].format(curr_conn_info['database-name']),
                              APP_TEXT_LABELS['TEST_DB_VIEWER.MESSAGE_BOX.SAVED.CAPTION'],
                              wx.ICON_INFORMATION | wx.OK)
+
+    def delete_connection_record(self, event):
+        with wx.MessageDialog(self, APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE'],
+                              APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.CAPTION'], wx.YES_NO | wx.ICON_WARNING) as dialog:
+            if dialog.ShowModal() == wx.ID_NO:
+                return False
+            else:
+                self.delete_curr_conn()
+                self.set_conn_info()
+                self.set_connections_tree_items()
+                self.page_init.Show()
+                self.page_internal.Hide()
+                self.page_local.Hide()
+                self.page_server.Hide()
+                self.delete_button.Disable()
+                self.save_button.Disable()
+                self.main_panel.Layout()
+
+                return wx.MessageBox(APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE.MESSAGE'].format(deleted_conn),
+                                     APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE.CAPTION'],
+                                     wx.OK_DEFAULT | wx.ICON_INFORMATION)
+
+    def delete_curr_conn(self):
+        json_data = []
+        try:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+                json_data = json.load(json_file)
+        except (json.decoder.JSONDecodeError, FileNotFoundError, PermissionError) as e:
+            return catcher.error_message('E023', str(e))
+
+        deleted_conn = ''
+        for i in range(len(json_data)):
+            if json_data[i]['id'] == self.curr_item_id:
+                deleted_conn = json_data[i]['database-name']
+                json_data.pop(i)
+                break
+
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
+            json.dump(json_data, json_file, sort_keys=True, indent=4)
 
     def __init__(self, db_id: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['TEST_DB_VIEWER.TITLE'], size=(800, 650),
@@ -188,6 +228,12 @@ class TestDBViewer(wx.Frame):
         self.close_button.Bind(wx.EVT_BUTTON, self.close)
         self.close_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.close_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
         self.buttons_sizer.Add(self.close_button, 0, wx.ALL, 5)
+
+        self.delete_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'], size=(75, -1))
+        self.delete_button.Disable()
+        self.delete_button.Bind(wx.EVT_BUTTON, self.delete_connection_record)
+        self.delete_button.Bind(wx.EVT_ENTER_WINDOW, lambda x: self.delete_button.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
+        self.buttons_sizer.Add(self.delete_button, 0, wx.ALL, 5)
 
         self.save_button = wx.Button(self.buttons_panel, label=APP_TEXT_LABELS['BUTTON.SAVE'], size=(75, -1))
         self.save_button.Disable()
