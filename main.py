@@ -1,12 +1,13 @@
 import wx
+import os
+import sys
+import json
 import wx.stc
-import wx.lib.scrolledpanel
+import locale
 import sqlite3
 import subprocess
-import sys
-import os
 import webbrowser
-import json
+import wx.lib.scrolledpanel
 
 from recovery import Recovery
 from datetime import datetime
@@ -1048,7 +1049,8 @@ class MainFrame(wx.Frame):
         self.bold_font = wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
         # Локаль приложения
-        locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']])
+        locale.setlocale(locale.LC_ALL, APP_PARAMETERS['APP_LANGUAGE'])
+        app_locale = wx.Locale(APP_LOCALES[APP_PARAMETERS['APP_LANGUAGE']])
 
         def is_table_enabled(event=None):
             self.is_create_table = self.add_table_checkbox.GetValue()

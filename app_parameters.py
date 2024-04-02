@@ -1,7 +1,7 @@
-import sqlite3
-import sys
 import os
 import wx
+import sys
+import sqlite3
 
 from app.error_catcher import ErrorCatcher
 
