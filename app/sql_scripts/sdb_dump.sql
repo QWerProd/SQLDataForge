@@ -768,7 +768,19 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('TEST_DB_VIEWER.DELETE.CAPTION','en','Connection is disconnected'),
 	 ('TEST_DB_VIEWER.DELETE_APPROVE.CAPTION','en','Confirm the deletion'),
 	 ('TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE','en','Are you sure you want to delete the selected connection?
-This action cannot be undone!');
+This action cannot be undone!'),
+	 ('ERROR_LOG_FILE.DOCX.HEADING','ru','Отчет об ошибках программы SQLDataForge'),
+	 ('LOGVIEWER.ERROR_LOG.BUTTONS.SAVE_DOCX','ru','Сохранить (DOCX)'),
+	 ('EXECUTION_LOG_FILE.DOCX.HEADING','ru','Отчет об сгенерируемых запросах в SQLDataForge'),
+	 ('E024.CAPTION','ru','Некорректный тип столбца');
+$script$
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('E024.MESSAGE','ru','Для столбца был указан недоступный тип данных!'),
+	 ('LOGVIEWER.ERROR_LOG.BUTTONS.SAVE_DOCX','en ','Save in DOCX'),
+	 ('ERROR_LOG_FILE.DOCX.HEADING','en','Error log report from SQLDataForge'),
+	 ('EXECUTION_LOG_FILE.DOCX.HEADING','en','Execution log report from SQLDataForge'),
+	 ('E024.CAPTION','en','Uncorrect column type'),
+	 ('E024.MESSAGE','en','An unavailable data type was specified for the column!');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -793,7 +805,8 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E020','E020.CAPTION','E020.MESSAGE'),
 	 ('E021','E021.CAPTION','E021.MESSAGE'),
 	 ('E022','E022.CAPTION','E022.MESSAGE'),
-	 ('E023','E023.CAPTION','E023.MESSAGE');
+	 ('E023','E023.CAPTION','E023.MESSAGE'),
+	 ('E024','E024.CAPTION','E024.MESSAGE');
 $script$
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),

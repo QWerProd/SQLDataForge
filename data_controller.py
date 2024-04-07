@@ -82,7 +82,11 @@ class DataController:
                 pass
 
             for database, path in databases.items():
-                conn = sqlite3.connect(os.path.join(BASE_DIR, path))
+                conn = sqlite3.Connection
+                if path.startswith('C:'):
+                    conn = sqlite3.connect(path)
+                else:
+                    conn = sqlite3.connect(os.path.join(BASE_DIR, path))
                 cursor = conn.cursor()
                 try:
                     tables = cursor.execute(f"""SELECT table_name, column_name, column_code, column_type
@@ -109,7 +113,7 @@ class DataController:
             return all_tables
 
     @staticmethod
-    def GetDBFromTables(tables: list) -> tuple:
+    def GetDBFromTables(tables: list) -> list:
         """Принимает список таблиц, возвращает список баз данных, в которых они присутствуют"""
         all_tables = DataController.GetTablesFromDB()
         databases = []
@@ -122,7 +126,7 @@ class DataController:
                         databases.append(key)
                         break
 
-        return tuple(databases)
+        return list(databases)
 
     @staticmethod
     def ParamChanger(param: str) -> str:

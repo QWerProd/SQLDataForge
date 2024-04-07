@@ -12,7 +12,7 @@ import wx.lib.scrolledpanel
 from recovery import Recovery
 from datetime import datetime
 from data_controller import DataController
-from sql_generator import SQLGenerator
+from sql_generator import SQLGenerator, ColumnTypeNotAllowedError
 from app.error_catcher import ErrorCatcher
 from app.tools.settings import Settings
 from app.tools.logviewer import Logviewer
@@ -749,6 +749,10 @@ class MainFrame(wx.Frame):
                         self.statusbar.SetStatusText(self.query_status, 0)
                         generate_time = datetime.now() - start_generate_time
 
+                        # Тестовый вывод времени генерации
+                        # print(f"Кол-во строк: {rows_count}, кол-во столбцов: {len(colinfo)}")
+                        # print("Время генерации запроса: " + str(round(generate_time.total_seconds(), 4)))
+
                         # Запись запроса в лог
                         cursor = app_conn.cursor()
                         cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
@@ -767,6 +771,14 @@ class MainFrame(wx.Frame):
                 self.query_status = catcher.error_message('E010')
                 self.statusbar.SetStatusText(self.query_status, 0)
                 self.query_status_panel.set_status(0)
+                self.saved_status_panel.set_status(0)
+            except ColumnTypeNotAllowedError as e:
+                catcher.error_message('E024', str(e))
+                self.query_status = str(e)
+                self.statusbar.SetStatusText(self.query_status, 0)
+                self.query_status_panel.set_status(0)
+                self.saved_status_panel.set_status(0)
+
             finally:
                 self.SetCursor(wx.NullCursor)
                 cursor.close()
