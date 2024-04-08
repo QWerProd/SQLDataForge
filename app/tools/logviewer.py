@@ -76,6 +76,8 @@ class Logviewer(wx.Frame):
             for col in range(3):
                 cell = table.cell(row, col)
                 cell.text = error_log_data[row][col]
+
+        doc.add_paragraph()
         date_time = doc.add_paragraph(str(datetime.now().strftime('%d %B %Y, %A, %X')))
         date_time.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
@@ -96,9 +98,7 @@ class Logviewer(wx.Frame):
             finally:
                 cursor.close()
 
-        error_log = self.get_errorlog()
-        self.errorlog_report.SetChoices(error_log)
-        self.errorlog_report.SetItems()
+        self.errorlog_report.ClearLog()
 
     def generate_execution_log_docx(self, event):
         """Генерация отчета DOCX на основе данных из get_execution_log()"""
@@ -121,7 +121,9 @@ class Logviewer(wx.Frame):
             code_run = doc.add_paragraph().add_run(query)
             code_run.font.size = Pt(8)
             code_run.font.name = 'Courier New'
+            doc.add_paragraph()
 
+        doc.add_paragraph()
         date_time = doc.add_paragraph(str(datetime.now().strftime('%d %B %Y, %A, %X')))
         date_time.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
@@ -252,14 +254,20 @@ class ReportViewer(wx.ListCtrl, ListCtrlAutoWidthMixin, ColumnSorterMixin):
         self.SetChoices(choices)
 
         # Appending headers
-        for column in columns:
+        self.SetColumns()
+        self.SetItems()
+
+    def SetColumns(self):
+        for column in self.columns:
             self.AppendColumn(column)
-            self.resizeColumn(150)
+            self.resizeColumn(100)
             self.SetHeaderAttr(wx.ItemAttr(self.GetForegroundColour(),
                                            self.GetBackgroundColour(),
                                            wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)))
 
-        self.SetItems()
+    def ClearLog(self):
+        self.ClearAll()
+        self.SetColumns()
 
     def SetChoices(self, choices: list):
         self.choices = {}

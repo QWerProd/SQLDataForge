@@ -127,7 +127,7 @@ class TestDBViewer(wx.Frame):
             if dialog.ShowModal() == wx.ID_NO:
                 return False
             else:
-                self.delete_curr_conn()
+                deleted_conn = self.delete_curr_conn()
                 self.set_conn_info()
                 self.set_connections_tree_items()
                 self.page_init.Show()
@@ -142,7 +142,7 @@ class TestDBViewer(wx.Frame):
                                      APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE.CAPTION'],
                                      wx.OK_DEFAULT | wx.ICON_INFORMATION)
 
-    def delete_curr_conn(self):
+    def delete_curr_conn(self) -> str:
         json_data = []
         try:
             with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
@@ -159,6 +159,8 @@ class TestDBViewer(wx.Frame):
 
         with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
             json.dump(json_data, json_file, sort_keys=True, indent=4)
+
+        return deleted_conn
 
     def __init__(self, db_id: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['TEST_DB_VIEWER.TITLE'], size=(800, 650),

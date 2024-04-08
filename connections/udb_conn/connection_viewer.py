@@ -54,6 +54,7 @@ class ConnectionViewer(wx.Frame):
         self.db_name_textctrl.SetValue(self.db_info[0])
         if self.db_info[1] is None or self.db_info[1] == '':
             self.db_field_name_textctrl.SetHint(self.db_info[0])
+            self.db_field_name_textctrl.Clear()
         else:
             self.db_field_name_textctrl.SetValue(self.db_info[1])
         self.db_valid_textctrl.SetValue(self.db_info[4])
@@ -64,10 +65,11 @@ class ConnectionViewer(wx.Frame):
         self.db_path_textctrl.SetValue(self.db_info[2])
         if self.db_info[3] is None or self.db_info[3] == '':
             self.db_desc_textctrl.SetHint(APP_TEXT_LABELS['CONNECTION_VIEWER.DB_DESC.HINT'])
+            self.db_desc_textctrl.Clear()
         else:
             self.db_desc_textctrl.SetValue(self.db_info[3])
 
-    def refresh(self, event=wx.EVT_BUTTON):
+    def refresh(self, event=wx.EVT_BUTTON, block=True):
         self.databases = DC.GetDatabases(False)
         self.treectrl_databases.DeleteAllItems()
         root = self.treectrl_databases.AddRoot('')
@@ -77,21 +79,24 @@ class ConnectionViewer(wx.Frame):
         self.treectrl_databases.SetItemImage(self.global_root, self.closed_root)
         self.set_databases()
 
-        self.db_name_textctrl.Clear()
-        self.db_name_textctrl.Disable()
-        self.db_field_name_textctrl.Clear()
-        self.db_field_name_textctrl.Disable()
-        self.db_valid_textctrl.Clear()
-        self.db_valid_textctrl.Disable()
-        self.db_path_textctrl.Clear()
-        self.db_desc_textctrl.Clear()
-        self.db_desc_textctrl.Disable()
-        self.save_button.Disable()
-        self.save_button.Unbind(wx.EVT_ENTER_WINDOW)
+        if block:
+            self.db_name_textctrl.Clear()
+            self.db_name_textctrl.Disable()
+            self.db_field_name_textctrl.Clear()
+            self.db_field_name_textctrl.Disable()
+            self.db_valid_textctrl.Clear()
+            self.db_valid_textctrl.Disable()
+            self.db_path_textctrl.Clear()
+            self.db_desc_textctrl.Clear()
+            self.db_desc_textctrl.Disable()
+            self.save_button.Disable()
+            self.save_button.Unbind(wx.EVT_ENTER_WINDOW)
 
     def new_connection(self, event):
         with NewConnection(self) as new_conn:
             new_conn.ShowModal()
+
+        self.refresh(block=False)
 
     def drop_connection(self, event):
         item = self.treectrl_databases.GetSelection()
@@ -107,6 +112,11 @@ class ConnectionViewer(wx.Frame):
                 return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_SINGLE_CONNECTION.MESSAGE'],
                                      APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
                                      wx.OK | wx.ICON_WARNING)
+            with wx.Dialog(APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE'],
+                           APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.CAPTION'],
+                           wx.YES_NO | wx.ICON_WARNING) as dlg:
+                if dlg.ShowModal() == wx.NO_ID:
+                    return
 
         database = self.treectrl_databases.GetItemText(item)
 
@@ -134,6 +144,8 @@ class ConnectionViewer(wx.Frame):
             except:
                 pass
 
+        self.refresh()
+
     def save_changes(self, event):
         app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         cursor = app_conn.cursor()
@@ -150,7 +162,7 @@ class ConnectionViewer(wx.Frame):
 
             # Переименовываем файл если есть изменения в имени файла
             if self.db_info[0] != dbname:
-                os.rename(self.db_info[2] + '/' + self.db_info[0], self.db_info[2] + '/' + dbname)
+                os.rename(os.path.join(self.db_info[2], self.db_info[0]), os.path.join(self.db_info[2], dbname))
 
             # Изменение данных
             cursor.execute(f"""UPDATE t_databases
@@ -161,6 +173,8 @@ class ConnectionViewer(wx.Frame):
             app_conn.commit()
             wx.MessageBox(f'{dbname}:\n' + APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.MESSAGE'],
                           APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.SUCCESS_SAVE_CHANGES.CAPTION'], wx.OK | wx.ICON_INFORMATION)
+
+            self.refresh(block=False)
 
         except sqlite3.Error as e:
             app_conn.rollback()

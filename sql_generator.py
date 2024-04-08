@@ -249,15 +249,15 @@ class SQLGenerator:
             simp_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name))
             curs = simp_conn.cursor()
 
-            table = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, column_type
+            table = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, 'integer-value'
                                      FROM t_cases_info
                                      WHERE table_name = "{self.added_items[0]}"
                                      AND   column_name = "{self.added_items[1]}";""").fetchone()
 
-            generator = generators.get(table[3])(cursor, table)
+            generator = generators.get(table[3])(curs, table)
             datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
 
-            cursor.close()
+            curs.close()
             simp_conn.close()
         else:
             temp = []
@@ -290,9 +290,13 @@ class SQLGenerator:
                 temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2], colnames.split(':')[4]])
 
             for database in databases:
+                if not database[1].startswith('C:'):
+                    database_path = os.path.join(APPLICATION_PATH, database[1])
+                else:
+                    database_path = database[1]
 
                 # Открываем подключения к БД (коннект, имя БД)
-                conn = sqlite3.connect(database[1])
+                conn = sqlite3.connect(database_path)
                 connects.append([conn, database[0]])
                 cursor = conn.cursor()
 

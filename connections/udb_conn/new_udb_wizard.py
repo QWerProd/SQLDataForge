@@ -58,7 +58,7 @@ class UDBCreateMaster(wx.Frame):
                                      APP_TEXT_LABELS['NEW_UDB_WIZARD.NEXT_PAGE_MESSAGE.CAPTION'], wx.OK | wx.ICON_ERROR)
             else:
                 self.dict_db['db_name'] = self.db_name
-                self.dict_db['db_path'] = self.db_path
+                self.dict_db['db_path'] = os.path.join(self.db_path, self.db_name)
                 if self.is_adding_enabled:
                     self.dict_db['db_alias'] = self.db_alias
                     self.dict_db['db_desc'] = self.db_desc
@@ -86,15 +86,13 @@ class UDBCreateMaster(wx.Frame):
             connect = sqlite3.connect(os.path.join(APPLICATION_PATH, self.db_path, self.db_name))
             cursor = connect.cursor()
             create_db = (f"CREATE TABLE \"t_cases_info\" (\n"
-                         f"    \"id\"	INTEGER NOT NULL,\n"
+                         f"    \"id\"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\n"
                          f"    \"posid\"	INTEGER NOT NULL UNIQUE,\n"
                          f"	   \"table_name\"	TEXT NOT NULL,\n"
                          f"	   \"column_name\"	TEXT,\n"
                          f"	   \"column_code\"	TEXT DEFAULT NULL UNIQUE,\n"
-                         f"	   \"column_type\"	TEXT NOT NULL DEFAULT 'TEXT',\n"
-                         f"	   \"gen_key\"	TEXT NOT NULL,\n"
-                         f"    \"is_valid\" TEXT NOT NULL DEFAULT 'Y'\n"
-                         f"    PRIMARY KEY(\"id\")\n"
+                         f"	   \"column_type\"	TEXT NOT NULL DEFAULT 'text-value',\n"
+                         f"	   \"gen_key\"	TEXT NOT NULL\n"
                          f");")
             cursor.execute(create_db)
             connect.commit()
@@ -103,8 +101,7 @@ class UDBCreateMaster(wx.Frame):
                 app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
                 app_curs = app_conn.cursor()
                 app_curs.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
-                                     VALUES (\"{self.dict_db['db_name']}\", \"{self.dict_db['db_path']}\", 
-                                             \"{self.dict_db['db_alias']}\", \"{self.dict_db['db_desc']}\");""")
+                                     VALUES (?, ?, ?, ?)""", (self.dict_db['db_name'], self.dict_db['db_path'], self.dict_db['db_alias'], self.dict_db['db_desc']))
                 app_conn.commit()
                 app_curs.close()
                 app_conn.close()
@@ -114,7 +111,7 @@ class UDBCreateMaster(wx.Frame):
             self.Destroy()
         except sqlite3.Error as e:
             connect.rollback()
-            self.catcher.error_message('E012', 'sqlite_errorname: ' + e.sqlite_errorname)
+            self.catcher.error_message('E012', str(e))
         finally:
             cursor.close()
             connect.close()

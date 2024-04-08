@@ -670,16 +670,21 @@ class MainFrame(wx.Frame):
         if len(added_items) == 0:
             self.query_status = catcher.error_message('E003')
             self.SetCursor(wx.NullCursor)
+            self.query_status_panel.set_status(0)
             self.statusbar.SetStatusText(self.query_status, 0)
         elif table_name == '':
             self.query_status = catcher.error_message('E004')
             self.SetCursor(wx.NullCursor)
+            self.query_status_panel.set_status(0)
             self.statusbar.SetStatusText(self.query_status, 0)
         elif rows_count == '':
             self.query_status = catcher.error_message('E005')
             self.SetCursor(wx.NullCursor)
+            self.query_status_panel.set_status(0)
             self.statusbar.SetStatusText(self.query_status, 0)
         else:
+            query_status_id = 0
+            saved_status_id = 0
             try:
                 rows_count = int(rows_count)
                 if rows_count <= 0:
@@ -765,21 +770,18 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
                                                  + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
                         generate_time) + " с.", 2)
-                    self.query_status_panel.set_status(2)
-                    self.saved_status_panel.set_status(1)
+                    query_status_id = 2
+                    saved_status_id = 1
             except ValueError:
                 self.query_status = catcher.error_message('E010')
-                self.statusbar.SetStatusText(self.query_status, 0)
-                self.query_status_panel.set_status(0)
-                self.saved_status_panel.set_status(0)
+
             except ColumnTypeNotAllowedError as e:
                 catcher.error_message('E024', str(e))
                 self.query_status = str(e)
-                self.statusbar.SetStatusText(self.query_status, 0)
-                self.query_status_panel.set_status(0)
-                self.saved_status_panel.set_status(0)
-
             finally:
+                self.statusbar.SetStatusText(self.query_status, 0)
+                self.query_status_panel.set_status(query_status_id)
+                self.saved_status_panel.set_status(saved_status_id)
                 self.SetCursor(wx.NullCursor)
                 cursor.close()
 
@@ -883,7 +885,10 @@ class MainFrame(wx.Frame):
             if APP_PARAMETERS['IS_ALIAS_UDB_USING'] == 'True':
                 for db_info in self.databases:
                     if db_info[0] == key:
-                        udb_name_label = db_info[1]
+                        if db_info[1] is None:
+                            udb_name_label = key
+                        else:
+                            udb_name_label = db_info[1]
                         break
             else:
                 udb_name_label = key
@@ -926,16 +931,19 @@ class MainFrame(wx.Frame):
     def open_new_connection(self, event):
         with NewConnection(self) as new_conn:
             new_conn.ShowModal()
+        self.refresh()
 
     def open_connection_viewer(self, event, db_name: str = None):
         conn_viewer = ConnectionViewer(db_name)
         conn_viewer.Show()
         conn_viewer.SetFocus()
+        self.refresh()
 
     def open_newudb_master(self, event):
         create_master = UDBCreateMaster(catcher)
         create_master.Show()
         create_master.SetFocus()
+        self.refresh()
 
     def open_settings_frame(self, event):
         with Settings(self) as sett:
@@ -993,6 +1001,7 @@ class MainFrame(wx.Frame):
         tdb_info = TestDBViewer(db_id)
         tdb_info.Show()
         tdb_info.SetFocus()
+        self.refresh()
 
     ############################
 
@@ -1051,7 +1060,7 @@ class MainFrame(wx.Frame):
         ###############################################################
 
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SDForge", size=(800, 600))
+        wx.Frame.__init__(self, None, title="SDForge", size=(1000, 700))
         self.SetMinSize((800, 600))
         self.Maximize()
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))

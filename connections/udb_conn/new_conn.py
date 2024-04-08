@@ -18,7 +18,7 @@ class NewConnection(wx.Dialog):
 
     def file_explore(self, event):
         with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
-                           wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
+                           wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_DB'],
                            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dialog:
             if dialog.ShowModal() == wx.ID_CANCEL:
                 return
@@ -67,7 +67,7 @@ class NewConnection(wx.Dialog):
             self.is_tested = True
 
         except sqlite3.Error as e:
-            catcher.error_message('E012', 'sqlite_errorname: ' + e.sqlite_errorname)
+            catcher.error_message('E012', str(e))
 
     def apply_changes(self, event):
         self.db_name = self.db_name_textctrl.GetValue()
