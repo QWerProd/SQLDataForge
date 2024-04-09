@@ -33,7 +33,7 @@ class Logviewer(wx.Frame):
         return log_data
 
     def get_execution_log(self) -> str:
-        """Возвращает строку со всеми выполнеными запросами (первый запись - последний выполненный запрос)"""
+        """Возвращает строку со всеми выполнеными запросами (первая запись - последний выполненный запрос)"""
         with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
             cursor = app_conn.cursor()
             try:

@@ -81,14 +81,16 @@ class DataController:
             except sqlite3.Error:
                 pass
 
+            curr_db = ''
             for database, path in databases.items():
+                curr_db = database
                 conn = sqlite3.Connection
-                if path.startswith('C:'):
-                    conn = sqlite3.connect(path)
-                else:
-                    conn = sqlite3.connect(os.path.join(BASE_DIR, path))
-                cursor = conn.cursor()
                 try:
+                    if path.startswith('C:'):
+                        conn = sqlite3.connect(path)
+                    else:
+                        conn = sqlite3.connect(os.path.join(BASE_DIR, path))
+                    cursor = conn.cursor()
                     tables = cursor.execute(f"""SELECT table_name, column_name, column_code, column_type
                                                 FROM t_cases_info
                                                 ORDER BY posid;""").fetchall()
@@ -98,6 +100,14 @@ class DataController:
                         list_tables.append(f"{item[0]}:{item[1]}:{item[2]}:{item[3]}")
 
                     all_tables[database] = list_tables
+                except sqlite3.OperationalError as e:
+                    with sqlite3.connect(os.path.join(BASE_DIR, 'app/app.db')) as app_conn:
+                        app_curs = app_conn.cursor()
+                        app_curs.execute(f"""UPDATE t_databases
+                                             SET    is_valid = 'N'
+                                             WHERE  dbname = '{database}';""")
+                        app_conn.commit()
+                        app_curs.close()
                 except sqlite3.Error as e:
                     if e.args[0] == 'no such table: t_cases_info':
                         app_curs = app_conn.cursor()
@@ -106,9 +116,6 @@ class DataController:
                                          f"WHERE dbname = '{database}';")
                         app_conn.commit()
                         all_tables[database] = []
-                finally:
-                    cursor.close()
-                    conn.close()
 
             return all_tables
 

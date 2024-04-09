@@ -70,17 +70,18 @@ class Recovery(wx.Frame):
         try:
             try:
                 os.remove(os.path.join(RECOVERY_PATH, 'app/app.db'))
-            # except PermissionError:
-            #     pass
+            except PermissionError:
+                wx.MessageBox('Complete all processes in the application before resetting the system Database!', 'Permission error', wx.ICON_ERROR)
             except FileNotFoundError:
                 pass
-            app_conn = sqlite3.connect(os.path.join(RECOVERY_PATH, 'app/app.db'))
-            cursor = app_conn.cursor()
-            for script in scripts:
-                print(script)
-                cursor.execute(script)
-                app_conn.commit()
-                pub.sendMessage("recovery_sdb", msg="")
+            with sqlite3.connect(os.path.join(RECOVERY_PATH, 'app/app.db')) as app_conn:
+                cursor = app_conn.cursor()
+                for script in scripts:
+                    print(script)
+                    cursor.execute(script)
+                    app_conn.commit()
+                    pub.sendMessage("recovery_sdb", msg="")
+                cursor.close()
             self.status_statictext.SetLabel(APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE'])
         except sqlite3.Error as e:
             wx.MessageBox('The recovery script is corrupted!\n' + str(e), 'Recovery error', wx.ICON_ERROR)
@@ -96,7 +97,7 @@ class Recovery(wx.Frame):
             # Просмотр кол-ва запросов для progressbar
             with open(os.path.join(RECOVERY_PATH, 'app/sql_scripts/sdb_dump.sql'), encoding='utf-8') as file:
                 file_text = file.read()
-                sql_scripts = file_text.split('/')
+                sql_scripts = re.split('\$script\$', file_text)
                 self.progressbar_max = len(sql_scripts)
                 self.progressbar.SetRange(self.progressbar_max)
                 self.status_statictext.SetLabel("0 - " + str(self.progressbar_max))
