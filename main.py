@@ -1093,11 +1093,11 @@ class MainFrame(wx.Frame):
             self.is_id_column = self.id_column_checkbox.GetValue()
 
             if self.is_id_column:
-                self.insert_column_item(0, '::id:integer-value')
+                self.insert_column_item(0, '::id::integer-value')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
             else:
-                self.delete_column_item('::id:integer-value')
+                self.delete_column_item('::id::integer-value')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')

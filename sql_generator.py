@@ -280,7 +280,7 @@ class SQLGenerator:
                 if id_column:
                     row = []
                     for i in range(increment, self.rows_count + increment):
-                        row.append(i)
+                        row.append(str(i))
                     datadict['id'] = row
                     # self.column_names.append('id')
 
