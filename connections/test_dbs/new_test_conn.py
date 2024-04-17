@@ -22,7 +22,7 @@ class NewTestConnection(wx.Dialog):
 
         def set_connectors(self):
             try:
-                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json'), 'r') as conn_data:
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json'), 'r', encoding='utf-8') as conn_data:
                     data = json.load(conn_data)
 
                 self.connectors = data
@@ -693,7 +693,7 @@ class NewTestConnection(wx.Dialog):
         curr_test_conn = {}
         conn_data = self.page_final.get_conn_data()
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_list = json.load(json_file)
         except (json.decoder.JSONDecodeError, FileNotFoundError, PermissionError) as e:
             return catcher.error_message('E023', str(e))
@@ -726,7 +726,7 @@ class NewTestConnection(wx.Dialog):
                                      wx.ICON_WARNING | wx.OK)
 
         json_list.append(curr_test_conn)
-        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as json_file:
             json.dump(json_list, json_file, sort_keys=True, indent=4)
         self.EndModal(0)
 

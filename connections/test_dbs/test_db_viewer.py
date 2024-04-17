@@ -26,7 +26,7 @@ class TestDBViewer(wx.Frame):
     def set_conn_info(self):
         json_data = []
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
             self.all_connections = json_data
@@ -90,7 +90,7 @@ class TestDBViewer(wx.Frame):
 
         # Читаем JSON и отбираем все подключения
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
         except (json.decoder.JSONDecodeError, FileNotFoundError, PermissionError) as e:
             catcher.error_message('E023', str(e))
@@ -113,7 +113,7 @@ class TestDBViewer(wx.Frame):
                 break
 
         # Перезапись файла JSON
-        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as json_file:
             json_file.truncate()
             json.dump(json_data, json_file, sort_keys=True, indent=4)
 
@@ -145,7 +145,7 @@ class TestDBViewer(wx.Frame):
     def delete_curr_conn(self) -> str:
         json_data = []
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
         except (json.decoder.JSONDecodeError, FileNotFoundError, PermissionError) as e:
             return catcher.error_message('E023', str(e))
@@ -157,7 +157,7 @@ class TestDBViewer(wx.Frame):
                 json_data.pop(i)
                 break
 
-        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w') as json_file:
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as json_file:
             json.dump(json_data, json_file, sort_keys=True, indent=4)
 
         return deleted_conn

@@ -330,9 +330,7 @@ class SQLGenerator:
 
                 cursor = loc_conn.cursor()
 
-                # Creating list of columns
-                # self.column_names.append(table[1])
-
+                # Инициализация необходимого класса коннектора
                 generator = generators.get(table[3])(cursor, table)
                 datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
 
@@ -345,7 +343,7 @@ class SQLGenerator:
         return datadict
 
     def CreateBody(self):
-        # Get dict with data from tables
+        # Получение сгенерируемых данных
         data = self.GenerateValues()
 
         datarow = []

@@ -136,7 +136,7 @@ class MainFrame(wx.Frame):
                 curr_connect = connector
 
             try:
-                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r') as json_file:
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r', encoding='utf-8') as json_file:
                     json_object = json.load(json_file)
             except FileNotFoundError as e:
                 return catcher.error_message('E023', str(e))
@@ -907,7 +907,7 @@ class MainFrame(wx.Frame):
     def set_conn_info(self):
         json_data = []
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json')) as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
             self.all_connections = json_data
