@@ -33,7 +33,7 @@ class ReportGenerator:
         self.template_name = template_name
         self.template_path = template_path
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
-        self.generator = SQLGenerator(self.app_conn, self.rows_count, self.added_items, None, is_simple_mode=False)
+        self.generator = SQLGenerator(self.app_conn, self.rows_count, self.added_items, None, is_simple_mode=False, is_format_columns=False)
 
     def generate_data(self):
         return self.generator.GenerateValues()

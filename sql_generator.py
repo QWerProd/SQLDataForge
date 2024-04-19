@@ -24,6 +24,7 @@ class SQLGenerator:
     columns_info = []
     indexes = []
     column_order = {}
+    is_format_columns = bool
 
     class RGenerator:
         """Базовый класс типа генератора"""
@@ -31,12 +32,20 @@ class SQLGenerator:
         datalist = list
         cursor = sqlite3.Cursor
         table_info = dict
+        is_format_columns = bool
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list):
-            """Инициализация: получение курсора к БД и информации о таблице"""
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+            """Инициализация генератора
+
+            Args:
+                cursor (sqlite3.Cursor): Курсор к БД
+                table (list): Сведения о таблице (имя БД, имя таблицы, имя столбца, код генератора, тип столбца)
+                is_format_columns (bool, optional): Необходимо ли форматировать генерируемые значения. Defaults to True.
+            """
             self.datalist = []
             self.cursor = cursor
             self.table_info = table
+            self.is_format_columns = is_format_columns
 
         def generate_data(self, row_count: int) -> dict:
             """Генерация списка с определенным количеством строк данных"""
@@ -61,23 +70,26 @@ class SQLGenerator:
 
     class RSetGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list):
-            super().__init__(cursor, table)
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+            super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
             data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT {self.table_info[2]}
                                                                     FROM {self.table_info[1]};""").fetchall()))
             for i in range(row_count):
                 row_number = rd.randint(0, len(data) - 1)
-                value = super().format_value(data[row_number])
+                if self.is_format_columns:
+                    value = super().format_value(data[row_number])
+                else:
+                    value = data[row_number]
                 self.datalist.append(value)
 
             return self.datalist
 
     class RValueGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list):
-            super().__init__(cursor, table)
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+            super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
             data = self.cursor.execute(f"""SELECT min_value, max_value
@@ -86,15 +98,18 @@ class SQLGenerator:
             maxvalue = int(data[1])
 
             for i in range(row_count):
-                value = super().format_value(rd.randint(minvalue, maxvalue))
+                if self.is_format_columns:
+                    value = super().format_value(rd.randint(minvalue, maxvalue))
+                else:
+                    value = rd.randint(minvalue, maxvalue)
                 self.datalist.append(value)
 
             return self.datalist
 
     class RDateGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list):
-            super().__init__(cursor, table)
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+            super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
             data = self.cursor.execute(f"""SELECT minvalue, maxvalue, min_day, min_month * 30, min_year * 365, max_day, max_month * 30, max_year * 365
@@ -126,15 +141,19 @@ class SQLGenerator:
 
                 # Генерация даты
                 gen_date = datetime.datetime.strftime(mindate + datetime.timedelta(days=rnd_day), APP_PARAMETERS['FORMAT_DATE'])
-                value = super().format_value(gen_date)
+                if self.is_format_columns:
+                    value = super().format_value(gen_date)
+                else:
+                    value = gen_date
                 self.datalist.append(value)
 
             return self.datalist
 
     class RChainGenerator(RGenerator):
+        """Генератор сбора строки из случайных значений каждого столбца таблицы"""
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list):
-            super().__init__(cursor, table)
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+            super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
             # Получение имен столбцов таблицы
@@ -164,14 +183,17 @@ class SQLGenerator:
                                                    FROM {self.table_info[1]}
                                                    WHERE id = {rd.randint(1, max_val)};""").fetchone()[0]
                     datarow += item
-                value = super().format_value(datarow)
+                if self.is_format_columns:
+                    value = super().format_value(datarow)
+                else:
+                    value = datarow
                 self.datalist.append(value)
 
             return self.datalist
-
+        
 
     def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
-                 table_info: dict = None, indexes: list = None, is_simple_mode: bool = None):
+                 table_info: dict = None, indexes: list = None, is_simple_mode: bool = None, is_format_columns: bool = True):
         self.app_conn = app_conn
 
         self.rows_count = rows_count
@@ -179,6 +201,7 @@ class SQLGenerator:
         self.cols.clear()
         self.columns_info = columns_info
         self.added_items = added_items
+        self.is_format_columns = is_format_columns
         if is_simple_mode is None:
             self.is_simple_mode = True
 
@@ -331,7 +354,7 @@ class SQLGenerator:
                 cursor = loc_conn.cursor()
 
                 # Инициализация необходимого класса коннектора
-                generator = generators.get(table[3])(cursor, table)
+                generator = generators.get(table[3])(cursor, table, self.is_format_columns)
                 datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
 
                 cursor.close()

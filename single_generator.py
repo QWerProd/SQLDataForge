@@ -187,7 +187,7 @@ class SimpleGenerator(wx.Frame):
         if len(open_code.split(':')) == 2:
             ret = []
             self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', self.db_name))
-            generator = SQLGenerator(self.app_conn, count, open_code.split(':'), [open_code.split(':')[1], ])
+            generator = SQLGenerator(self.app_conn, count, open_code.split(':'), [open_code.split(':')[1], ], is_format_columns=False)
             gen_data = generator.GenerateValues()
             for val in gen_data.values():
                 ret = val
