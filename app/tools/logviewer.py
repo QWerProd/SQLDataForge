@@ -72,9 +72,9 @@ class Logviewer(wx.Frame):
         table.cell(0, 0).text = APP_TEXT_LABELS['LOGVIEWER.ERROR_LOG.HEADER.ERROR_CODE']
         table.cell(0, 1).text = APP_TEXT_LABELS['LOGVIEWER.ERROR_LOG.HEADER.ERROR_CAPTION']
         table.cell(0, 2).text = APP_TEXT_LABELS['LOGVIEWER.ERROR_LOG.HEADER.ERROR_CATCHED']
-        for row in range(1, len(error_log_data)):
+        for row in range(len(error_log_data)):
             for col in range(3):
-                cell = table.cell(row, col)
+                cell = table.cell(row+1, col)
                 cell.text = error_log_data[row][col]
 
         doc.add_paragraph()
