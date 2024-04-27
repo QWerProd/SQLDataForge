@@ -482,25 +482,26 @@ class MainFrame(wx.Frame):
 
     def on_connection_tree_activated(self, event):
         get_item = event.GetItem()
-        # ТОЛЬКО Сброс подключения, если выбрано активное подключение
-        if self.curr_conn_item == get_item:
-            self.connection.close()
-            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
-            self.curr_conn_item = None
-            self.connection = None
-            self.connection_status_panel.set_status(0)
-
-            for colitem in self.column_items:
-                colitem.changing_column_type(APP_PARAMETERS['DEFAULT_CONNECTOR'])
-        else:
-            # Сбрасываем прошлое подключение
-            if self.connection is not None:
+        try:
+            # ТОЛЬКО Сброс подключения, если выбрано активное подключение
+            if self.curr_conn_item == get_item:
                 self.connection.close()
-                self.connection = None
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.curr_conn_item = None
+                self.connection = None
                 self.connection_status_panel.set_status(0)
 
-            self.curr_conn_item = get_item
+                for colitem in self.column_items:
+                    colitem.changing_column_type(APP_PARAMETERS['DEFAULT_CONNECTOR'])
+            else:
+                # Сбрасываем прошлое подключение
+                if self.connection is not None:
+                    self.connection.close()
+                    self.connection = None
+                    self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                    self.connection_status_panel.set_status(0)
+
+                self.curr_conn_item = get_item
 
             # Получаем информацию о выбранном тестовом подключении
             curr_item_id = ''
@@ -514,7 +515,8 @@ class MainFrame(wx.Frame):
                 if curr_item_id == conn_info['id']:
                     conn_data = conn_info
                     break
-
+            
+            # Подключение к тБД и изменения в интерфейсе
             self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
             self.connection_status_panel.set_status(1)
@@ -522,80 +524,104 @@ class MainFrame(wx.Frame):
             for colitem in self.column_items:
                 colitem.changing_column_type(conn_data['connector-name'])
 
+        except SetConnectionError as e:
+            return catcher.error_message('E015', str(e) + '\n' + e.addition_info)
+        except SetSSHTunnelError as e:
+            return catcher.error_message('E025', str(e) + '\n' + e.addition_path)
+
     def push_query(self, event):
         try:
             if self.connection.check_connection():
                 query = self.textctrl_sql.GetValue()
                 if query == '':
                     return catcher.error_message('E001')
-                try:
-                    result, error_message = self.connection.execute_query(query)
-                except DestroyedConnectionError as e:
-                    catcher.error_message('E021', str(e))
-                except DestroyedTunnelError as e:
-                    catcher.error_message('E022', str(e))
+                
+                result = self.connection.execute_query(query)
 
-                # Изменения статусов при безошибочной отработке
-                if result != -1:
-                    self.is_transaction = True
-                    wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
-                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
-                                  wx.ICON_INFORMATION | wx.OK)
-                    self.transaction_status_panel.set_status(1)
-                else:
-                    catcher.error_message('E016', 'Error message: ' + str(error_message))
-            else:
-                catcher.error_message('E021')
-                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
-                self.connection_status_panel.set_status(0)
+                self.is_transaction = True
+                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
+                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
+                                wx.ICON_INFORMATION | wx.OK)
+                self.transaction_status_panel.set_status(1)
+
         except AttributeError:
             catcher.error_message('E015')
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.connection_status_panel.set_status(0)
-
+        except DestroyedConnectionError as e:
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+            self.connection_status_panel.set_status(0)
+            return catcher.error_message('E021', str(e) + '\n' + e.addition_info)
+        except DestroyedSSHTunnelError as e:
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+            self.connection_status_panel.set_status(0)
+            return catcher.error_message('E022', str(e) + '\n' + e.addition_info)
+        except OperationalSQLError as e:
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+            self.connection_status_panel.set_status(0)
+            return catcher.error_message('E016', str(e) + '\n' + e.addition_info)
+            
     def commit_transaction(self, event):
         if self.connection is None:
-            catcher.error_message('E019')
+            return catcher.error_message('E019')
         elif self.is_transaction:
-            if self.connection.check_connection():
-                result, count_query, transaction_time = self.connection.commit()
-                if result != -1:
+            try:
+                if self.connection.check_connection():
+                    result, count_query, transaction_time = self.connection.commit()
+                    
                     self.is_transaction = False
                     wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
-                                                                                                          round(transaction_time, 2)),
-                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
-                                  wx.ICON_INFORMATION | wx.OK)
+                                                                                                        round(transaction_time, 2)),
+                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
+                                wx.ICON_INFORMATION | wx.OK)
                     self.transaction_status_panel.set_status(0)
-                else:
-                    catcher.error_message('E017', 'Error message: ' + count_query)
-            else:
-                catcher.error_message('E015')
+
+            except DestroyedConnectionError as e:
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
                 self.connection_status_panel.set_status(0)
+                return catcher.error_message('E021', str(e) + '\n' + e.addition_info)
+            except DestroyedSSHTunnelError as e:
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
+                return catcher.error_message('E022', str(e) + '\n' + e.addition_info)
+            except OperationalSQLError as e:
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
+                return catcher.error_message('E016', str(e) + '\n' + e.addition_info)
+        
         else:
-            catcher.error_message('E020')
+            return catcher.error_message('E020')
 
     def rollback_transaction(self, event):
         if self.connection is None:
-            catcher.error_message('E019')
+            return catcher.error_message('E019')
         elif self.is_transaction:
-            if self.connection.check_connection():
-                result, count_query, transaction_time = self.connection.rollback()
-                if result != -1:
+            try: 
+                if self.connection.check_connection():
+                    result, count_query, transaction_time = self.connection.rollback()
+
                     self.is_transaction = False
                     wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
-                                                                                                          round(transaction_time, 2)),
-                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
-                                  wx.ICON_INFORMATION | wx.OK)
+                                                                                                        round(transaction_time, 2)),
+                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
+                                wx.ICON_INFORMATION | wx.OK)
                     self.transaction_status_panel.set_status(0)
-                else:
-                    catcher.error_message('E018', 'Error message: ' + count_query)
-            else:
-                catcher.error_message('E015')
+
+            except DestroyedConnectionError as e:
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
                 self.connection_status_panel.set_status(0)
+                return catcher.error_message('E021', '\n' + str(e) + '\n' + e.addition_info)
+            except DestroyedSSHTunnelError as e:
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
+                return catcher.error_message('E022', '\n' + str(e) + '\n' + e.addition_info)
+            except OperationalSQLError as e:
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection_status_panel.set_status(0)
+                return catcher.error_message('E016', '\n' + str(e) + '\n' + e.addition_info)
+        
         else:
-            catcher.error_message('E020')
+            return catcher.error_message('E020')
 
     # Методы работы со столбцами
     ############################

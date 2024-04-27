@@ -3,6 +3,7 @@ import wx
 import os
 import json
 import hashlib
+from sshtunnel import HandlerSSHTunnelForwarderError
 
 from connections.test_dbs.type_connectors import *
 from app_parameters import APP_TEXT_LABELS, APPLICATION_PATH
@@ -506,9 +507,7 @@ class NewTestConnection(wx.Dialog):
             return self.conn_info
 
         def test_connection(self, event=None):
-            conn_type = self.connector['connection-type']
             conn_name = self.connector['connector-name']
-            connector = BaseConnector
             result = bool
 
             try:
@@ -516,9 +515,10 @@ class NewTestConnection(wx.Dialog):
                 													         self.conn_info.get('database-username', '') + ':' + self.conn_info.get('database-password', ''),
                 													         self.conn_info.get('ssh-path', ''),
                 													         self.conn_info.get('ssh-user', '') + ':' + self.conn_info.get('ssh-pass', ''))
-            except BaseException as e:
-                return wx.MessageBox(e.args[0], APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.TEST_ERROR.CAPTION'],
-                                     wx.ICON_ERROR | wx.OK)
+            except SetSSHTunnelError as e:
+                catcher.error_message('E022', e.args[2])
+            except SetConnectionError as e:
+                catcher.error_message('E021', e.args[2])
 
             if result:
                 return wx.MessageBox(APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.TEST_CONN_TRUE.MESSAGE'],

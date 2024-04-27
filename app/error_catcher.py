@@ -52,7 +52,7 @@ class ErrorCatcher:
         else:
             message = code + ': ' + err_message[1]
             if addon != '':
-                message += '\n' + addon
+                message += '\n\n' + addon
             tkm.showerror(err_message[0], message)
             self.put_log(code)
             return code
