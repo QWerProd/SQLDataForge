@@ -89,6 +89,7 @@ class Settings(wx.Dialog):
 
             for entry in entries:
                 menu_entry_panel = None
+                # Это конечно печально, но иначе пока не придумал
                 if entry[1] == 'CheckboxPoint':
                     menu_entry_panel = CheckboxPoint(self.settings_item_panel, entry[2])
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
@@ -130,6 +131,12 @@ class Settings(wx.Dialog):
                     self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
                 elif entry[1] == 'MaskedTextEntry':
                     menu_entry_panel = MaskedTextEntry(self.settings_item_panel, entry[2])
+                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
+                elif entry[1] == 'FileTextEntry':
+                    menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2], entry[3], True)
+                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
+                elif entry[1] == 'PathTextEntry':
+                    menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2])
                     self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
 
                 if menu_name in self.changed_params.keys():
@@ -233,7 +240,7 @@ class Settings(wx.Dialog):
         return ret_code
 
     def __init__(self, parent: wx.Frame):
-        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(700, 500))
+        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(800, 500))
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))

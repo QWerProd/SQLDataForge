@@ -172,7 +172,8 @@ class ReportWizard(wx.Frame):
         template_name = str
 
         def explore_path(self, event):
-            with wx.DirDialog(None, APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DIR_DIALOG'], ) as dir_dialog:
+            with wx.DirDialog(None, APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DIR_DIALOG'], 
+                              defaultPath=APP_PARAMETERS['PATH_FOR_REPORTS']) as dir_dialog:
                 if dir_dialog.ShowModal() == wx.ID_CANCEL:
                     return
 

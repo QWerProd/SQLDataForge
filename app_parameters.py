@@ -48,7 +48,9 @@ APP_PARAMETERS = {
     'SQL_TYPES_KEYWORDS': "text character char varchar integer int bigint numeric real float decimal"
                           " double date timestamp bool",
     'STC_COLOUR_TYPES': str,
-    'KEY_TDB_VIEWER': str
+    'KEY_TDB_VIEWER': str,
+    'PATH_FOR_REPORTS': str,
+    'PATH_FOR_SCRIPTS': str
 }
 
 APP_LOCALES = {

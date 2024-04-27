@@ -1,8 +1,10 @@
 import wx
 import re
+import os
+from wx.core import VERTICAL
 import wx.stc
 from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin, TextEditMixin
-from app_parameters import APP_PARAMETERS
+from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS
 
 
 class SimpleEntry(wx.Panel):
@@ -292,3 +294,54 @@ class MaskedTextEntry(SimpleEntry):
     def set_value(self, value):
         self.textctrl.SetValue(str(value))
         self.param = value
+
+
+class PathFileTextEntry(SimpleEntry):
+
+    path_to_file = bool
+    wildcard = str
+
+    def __init__(self, parent: wx.Panel, title: str, wildcard: str = None, path_to_file: bool = False):
+        super().__init__(parent, title, sizer_mode=wx.HORIZONTAL)
+        self.path_to_file = path_to_file
+        self.wildcard = wildcard
+
+        statictext = wx.StaticText(self, label=title)
+        self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.textctrl = wx.TextCtrl(self, size=(200, 24))
+        self.textctrl.Bind(wx.EVT_TEXT, self.change_param)
+        self.sizer.Add(self.textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+        self.button = wx.Button(self, label='...', size=(25, 24))
+        if self.path_to_file:
+            self.button.Bind(wx.EVT_BUTTON, self.explore_file)
+        else:
+            self.button.Bind(wx.EVT_BUTTON, self.explore_path)
+        self.sizer.Add(self.button, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 15)
+
+        self.Layout()
+
+    def change_param(self, event):
+        self.param = self.textctrl.GetValue()
+
+    def set_value(self, value):
+        self.textctrl.SetValue(str(value))
+        self.param = value
+
+    def explore_path(self, event):
+        with wx.DirDialog(self, APP_TEXT_LABELS['NEW_UDB_WIZARD.FIRST_PAGE.DIR_DIALOG'],
+                          style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST) as dialog:
+            if dialog.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            self.param = dialog.GetPath()
+    
+    def explore_file(self, event):
+        with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
+                           wildcard=self.wildcard, style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as dialog:
+            if dialog.ShowModal() == wx.ID_CANCEL:
+                return
+            
+            self.param = os.path.join(dialog.GetPath(), dialog.GetFilename())
+

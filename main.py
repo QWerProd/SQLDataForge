@@ -819,6 +819,7 @@ class MainFrame(wx.Frame):
         else:
             if file_path is None or file_path == '':
                 with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_SAVE'],
+                                   defaultDir=APP_PARAMETERS['PATH_FOR_SCRIPTS'],
                                    wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
                                    style=wx.FD_SAVE) as file_dialog:
                     if file_dialog.ShowModal() == wx.ID_CANCEL:
