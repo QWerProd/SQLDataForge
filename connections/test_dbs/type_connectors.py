@@ -506,8 +506,7 @@ class MySQLConnector(BaseConnector):
                                                           port=db_port,
                                                           database=database)
             except mysql.connector.Error as e:
-                catcher.error_message('E021', str(e))
-                raise DestroyedConnectionError
+                raise SetConnectionError(self.db_path, 'mysql', addition_info=str(e))
 
 # Доступные типы коннекторов
 avaliable_connectors = {
