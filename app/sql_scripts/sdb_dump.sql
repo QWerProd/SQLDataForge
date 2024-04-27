@@ -780,7 +780,12 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('ERROR_LOG_FILE.DOCX.HEADING','en','Error log report from SQLDataForge'),
 	 ('EXECUTION_LOG_FILE.DOCX.HEADING','en','Execution log report from SQLDataForge'),
 	 ('E024.CAPTION','en','Uncorrect column type'),
-	 ('E024.MESSAGE','en','An unavailable data type was specified for the column!');
+	 ('E024.MESSAGE','en','An unavailable data type was specified for the column!'),
+	 ('E025.CAPTION','ru','Отключение тоннеля SSH'),
+	 ('E025.MESSAGE','ru','Подключение через тоннель SSH было сброшено!'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_REPORTS','ru','Путь сохранения отчетов/логов:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_SCRIPTS','ru','Путь сохранения SQL-скриптов:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATHS','ru','Директории и файлы');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -806,7 +811,9 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E021','E021.CAPTION','E021.MESSAGE'),
 	 ('E022','E022.CAPTION','E022.MESSAGE'),
 	 ('E023','E023.CAPTION','E023.MESSAGE'),
-	 ('E024','E024.CAPTION','E024.MESSAGE');
+	 ('E024','E024.CAPTION','E024.MESSAGE'),
+	 ('E025','E025.CAPTION','E025.MESSAGE'),
+	 ('E026','E026.CAPTION','E026.MESSAGE');
 $script$
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
@@ -838,7 +845,9 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('IS_CLOSING_REPORTS_AFTER_GEN','False','SYSTEM',NULL,0),
 	 ('DEFAULT_CONNECTOR','SQLite','SYSTEM',NULL,2),
 	 ('STC_COLOUR_TYPES','#00764f','SYSTEM',NULL,1),
-	 ('KEY_TDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER',0)
+	 ('KEY_TDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER',0),
+	 ('PATH_FOR_REPORTS','','SYSTEM',NULL,0),
+	 ('PATH_FOR_SCRIPTS','','SYSTEM',NULL,0);
 $script$
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
@@ -869,7 +878,10 @@ INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_l
 	 (27,5,5,'CheckboxPoint','APP.SETTINGS.SYSTEM.GENERAL.IS_CLOSING_REPORTS_AFTER_GEN',NULL,NULL,'Y'),
 	 (28,8,1,'SelectorBox','APP.SETTINGS.SYSTEM.DEFAULT.CONNECTOR','SQLite:PostgreSQL:MySQL','','Y'),
 	 (NULL,8,0,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.HEADER',NULL,NULL,'Y'),
-	 (29,3,6,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES',NULL,NULL,'Y');
+	 (29,3,6,'HEXEnter','APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_TYPES',NULL,NULL,'Y'),
+	 (31,8,3,'PathTextEntry','APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_REPORTS',NULL,NULL,'Y'),
+	 (32,8,4,'PathTextEntry','APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_SCRIPTS',NULL,NULL,'Y'),
+	 (NULL,8,2,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.PATHS',NULL,NULL,'Y');
 $script$
 INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES
 	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','simple','random.randint($1, $2)','Y'),
