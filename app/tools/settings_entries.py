@@ -309,7 +309,7 @@ class PathFileTextEntry(SimpleEntry):
         statictext = wx.StaticText(self, label=title)
         self.sizer.Add(statictext, 1, wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.textctrl = wx.TextCtrl(self, size=(200, 24))
+        self.textctrl = wx.TextCtrl(self, size=(250, 22))
         self.textctrl.Bind(wx.EVT_TEXT, self.change_param)
         self.sizer.Add(self.textctrl, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
@@ -336,6 +336,7 @@ class PathFileTextEntry(SimpleEntry):
                 return
             
             self.param = dialog.GetPath()
+            self.textctrl.SetValue(self.param)
     
     def explore_file(self, event):
         with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
@@ -344,4 +345,5 @@ class PathFileTextEntry(SimpleEntry):
                 return
             
             self.param = os.path.join(dialog.GetPath(), dialog.GetFilename())
+            self.textctrl.SetValue(self.param)
 

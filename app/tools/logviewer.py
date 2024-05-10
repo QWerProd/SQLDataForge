@@ -94,7 +94,7 @@ class Logviewer(wx.Frame):
             try:
                 cursor.execute("DELETE FROM t_error_log;")
             except sqlite3.Error as e:
-                catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname + 'n' + str(e))
+                self.catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname + 'n' + str(e))
             finally:
                 cursor.close()
 
@@ -140,7 +140,7 @@ class Logviewer(wx.Frame):
             try:
                 cursor.execute("DELETE FROM t_execution_log;")
             except sqlite3.Error as e:
-                catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname + 'n' + str(e))
+                self.catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname + 'n' + str(e))
             finally:
                 cursor.close()
 
