@@ -539,15 +539,15 @@ class MainFrame(wx.Frame):
                 result = self.connection.execute_query(query)
 
                 self.is_transaction = True
-                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
+                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result[0]),
                                 APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
                                 wx.ICON_INFORMATION | wx.OK)
                 self.transaction_status_panel.set_status(1)
 
         except AttributeError:
-            catcher.error_message('E015')
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.connection_status_panel.set_status(0)
+            return catcher.error_message('E015')
         except DestroyedConnectionError as e:
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.connection_status_panel.set_status(0)
@@ -938,7 +938,13 @@ class MainFrame(wx.Frame):
                 json_data = json.load(json_file)
 
             self.all_connections = json_data
-        except FileNotFoundError as e:
+
+        except FileNotFoundError:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as new_file:
+                file_input = []
+                json.dump(file_input, new_file, sort_keys=True, indent=4)
+
+        except PermissionError as e:
             return catcher.error_message('E023', str(e))
 
     def set_connections_tree_items(self):

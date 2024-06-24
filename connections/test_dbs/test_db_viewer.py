@@ -24,13 +24,21 @@ class TestDBViewer(wx.Frame):
     }
 
     def set_conn_info(self):
+        #  Reading the test connection file
+
         json_data = []
         try:
             with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
             self.all_connections = json_data
-        except FileNotFoundError as e:
+        
+        except FileNotFoundError:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as new_file:
+                file_input = []
+                json.dump(file_input, new_file, sort_keys=True, indent=4)
+
+        except PermissionError as e:
             return catcher.error_message('E023', str(e))
 
     def set_connections_tree_items(self):
@@ -114,7 +122,7 @@ class TestDBViewer(wx.Frame):
 
         # Перезапись файла JSON
         with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as json_file:
-            json_file.truncate()
+            # json_file.truncate()
             json.dump(json_data, json_file, sort_keys=True, indent=4)
 
         return wx.MessageBox(APP_TEXT_LABELS['TEST_DB_VIEWER.MESSAGE_BOX.SAVED.MESSAGE'].format(curr_conn_info['database-name']),
@@ -167,7 +175,7 @@ class TestDBViewer(wx.Frame):
                           style=wx.CAPTION | wx.CLOSE_BOX | wx.FRAME_NO_TASKBAR)
         self.SetMinSize((800, 650))
         self.SetMaxSize((1000, 850))
-        self.SetBackgroundColour(wx.Colour(255, 255, 255))
+        #self.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.all_connections = []
         self.conn_items = {}

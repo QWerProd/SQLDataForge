@@ -181,3 +181,6 @@ inserting_data.py
 
 # All scripts
 .sh
+
+# Dynamic JSON's
+test_conns.json
