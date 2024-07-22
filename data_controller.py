@@ -155,7 +155,7 @@ class DataController:
             gens = {}
             curs = app_conn.cursor()
             try:
-                data = curs.execute(f"SELECT sg.gen_code, lt.text, sg.gen_type "
+                data = curs.execute(f"SELECT sg.gen_code, lt.text, 'simple'"
                                     f"FROM t_simple_gen as sg,"
                                     f"     t_lang_text as lt "
                                     f"WHERE sg.is_valid = 'Y' "

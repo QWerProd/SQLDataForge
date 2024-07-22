@@ -258,11 +258,14 @@ class SQLGenerator:
 
         return index
 
-    def GenerateValues(self) -> dict:
+    def GenerateValues(self, rows_count: int = None) -> dict:
         simp_conn = sqlite3.Connection
         list_of_dbs = []
         connects = []
         datadict = {}
+
+        if rows_count is not None:
+            self.rows_count = rows_count
 
         # Установка колонок
         if self.is_simple_mode:

@@ -181,6 +181,7 @@ inserting_data.py
 
 # All scripts
 .sh
+dump_appdb.*
 
 # Dynamic JSON's
 connections\test_dbs\test_conns.json

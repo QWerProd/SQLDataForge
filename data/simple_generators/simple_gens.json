@@ -1,0 +1,14 @@
+[
+    {
+        "gen_code": "rand_uuid",
+        "module_name": "sg_uuid",
+        "class_name": "GeneratorUUID",
+        "required_params": 2
+    },
+    {
+        "gen_code": "rand_number",
+        "module_name": "sg_number",
+        "class_name": "GenerateNumber",
+        "required_params": 2
+    }
+]

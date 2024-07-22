@@ -5,8 +5,10 @@ import wx.stc
 
 from data_controller import DataController
 from app.error_catcher import ErrorCatcher
-from sql_generator import SQLGenerator
+# from sql_generator import SQLGenerator
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
+from data.simple_generators.simple_gen import AcceleratorSimpleGenerator, RequiredDataMissedError, InvalidParamsError
+from data.simple_generators.simple_gen_inputs import LabeledTextCtrl, SelectFromDB, LabeledComboBox
 
 # Библиотеки для генераторов
 import random
@@ -23,76 +25,6 @@ class SimpleGenerator(wx.Frame):
 
     open_code = str
     db_name = str
-
-    class LabeledTextCtrl(wx.Panel):
-
-        label = str
-
-        def get_value(self) -> str: return self.input_textctrl.GetValue()
-
-        def clear_value(self): self.input_textctrl.Clear()
-
-        def __init__(self, parent: wx.Panel, label: str):
-            super().__init__(parent)
-            self.label = label
-            self.sizer = wx.BoxSizer(wx.VERTICAL)
-            self.SetSizer(self.sizer)
-
-            label_statictext = wx.StaticText(self, label=label)
-            self.sizer.Add(label_statictext, 0, wx.BOTTOM, 5)
-
-            self.input_textctrl = wx.TextCtrl(self)
-            self.sizer.Add(self.input_textctrl, 0, wx.EXPAND)
-
-            self.Layout()
-
-    class SelectFromDB(wx.Panel):
-
-        row_count = int
-
-        db_name = str
-        column_info = str
-        column_name = str
-
-        db_data = list
-
-        def get_column_name(self) -> str: return self.col_name
-
-        def get_random_value(self) -> str:
-            rnd_item = random.randint(0, self.row_count)
-            return self.db_data[rnd_item]
-
-        def __init__(self, parent: wx.Panel, db_name: str, column_info: str):
-            super().__init__(parent)
-            self.sizer = wx.BoxSizer(wx.VERTICAL)
-            self.SetSizer(self.sizer)
-
-            self.db_name = db_name
-            self.column_info = column_info
-
-            with sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name)) as conn:
-                curs = conn.cursor()
-                self.col_name = curs.execute(f"""SELECT column_code FROM t_cases_info 
-                                                      WHERE table_name = '{self.column_info.split(':')[0]}'
-                                                      AND   column_name = '{self.column_info.split(':')[1]}';""").fetchone()[0]
-
-                data = curs.execute(f"""SELECT \"{self.column_info.split(':')[1]}\"
-                                             FROM \"{self.column_info.split(':')[0]}\";""").fetchall()
-                self.db_data = [item[0] for item in data]
-
-                self.row_count = curs.execute(f"""SELECT COUNT(\"{self.column_info.split(':')[1]}\")
-                                                       FROM \"{self.column_info.split(':')[0]}\";""").fetchone()[0]
-                curs.close()
-
-            header_statictext = wx.StaticText(self,
-                                              label=APP_TEXT_LABELS['SINGLE_GENERATOR.SELECT_DB.SELECT_COUNT'] + str(
-                                                  self.row_count))
-            self.sizer.Add(header_statictext, 0, wx.ALL, 5)
-
-            self.select_listctrl = wx.ListBox(self, choices=self.db_data)
-            self.sizer.Add(self.select_listctrl, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 5)
-
-            self.Layout()
 
     def set_treectrl_items(self):
         root = self.items_treectrl.AddRoot('')
@@ -135,10 +67,11 @@ class SimpleGenerator(wx.Frame):
             db_name = DataController.GetDBFromTables([table_name])
 
             # Возможно когда нибудь я придумаю какой интерфейс реализовать...
-            entry_item = SimpleGenerator.SelectFromDB(self.data_panel, db_name[0], open_code)
+            entry_item = SelectFromDB(self.data_panel, db_name[0], open_code)
             self.db_name = db_name[0]
             entry_item.Hide()
             # Но пока ничего такого не будет :)
+            # UPD: тут будут параметры, очень не скоро
             label = entry_item.get_column_name()
             data_field_prod = wx.StaticText(self.data_panel,
                                             label=APP_TEXT_LABELS['SINGLE_GENERATOR.GO_GENERATE'] + f' \n"{label}"!')
@@ -150,11 +83,17 @@ class SimpleGenerator(wx.Frame):
         else:
             with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
                 curs = app_conn.cursor()
-                gen_items_info = curs.execute(f"""SELECT lt.text, se.entry_type, lt2.text
-                                                  FROM t_simple_gen_entries as se,
-                                                       t_simple_gen as s,
-                                                       t_lang_text as lt,
-                                                       t_lang_text as lt2
+                gen_items_info = curs.execute(f"""SELECT 
+                                                    lt.text, 
+                                                    se.entry_type,
+                                                    lt2.text,
+                                                    se.choosed_items,
+                                                    se.labeled_items
+                                                  FROM 
+                                                    t_simple_gen_entries as se,
+                                                    t_simple_gen as s,
+                                                    t_lang_text as lt,
+                                                    t_lang_text as lt2
                                                   WHERE se.id_field = s.id
                                                   AND   s.gen_code = '{open_code}'
                                                   AND   se.entry_name = lt.label
@@ -169,66 +108,43 @@ class SimpleGenerator(wx.Frame):
                 if gen_name == '':
                     gen_name = item_info[2]
                 if item_info[1] == 'TextCtrl':
-                    entry_field = SimpleGenerator.LabeledTextCtrl(self.data_panel, item_info[0])
+                    entry_field = LabeledTextCtrl(self.data_panel, item_info[0])
                     self.curr_data_fields.append(entry_field)
-                    self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 20)
+                    self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15)
+                    self.data_panel.Layout()
+                elif item_info[1] == 'ComboBox':
+                    entry_field = LabeledComboBox(self.data_panel, item_info[0], str(item_info[3]).split(':'), str(item_info[4]).split(':'))
+                    self.curr_data_fields.append(entry_field)
+                    self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15)
                     self.data_panel.Layout()
 
             return gen_name
 
     def start_generate(self, event):
         count = int(self.items_count_textctrl.GetValue())
-        result = self.generate(self.open_code, count)
+
+        # result = self.generate(self.open_code, count)
+
+        gen_type = 'user_db' if len(self.open_code.split(':')) == 2 else 'user_input'
+
+        params = []
+        if gen_type == 'user_input':
+            for data_field in self.curr_data_fields:
+                value = data_field.get_value()
+                params.append(value)
+
+        # Объявление генератора и собственно генерация + обертка
+        generator = AcceleratorSimpleGenerator(gen_type, self.open_code, params)
+
+        try:
+            result = generator.generate(count)
+        except RequiredDataMissedError as e:
+            return self.catcher.error_message('E027', str(e.args))
+        except InvalidParamsError:
+            return self.catcher.error_message('E028')
+        
         if result is not None:
             self.output_textctrl.SetValue('\n'.join(result))
-
-    def generate(self, open_code: str, count: int) -> list:
-        exec_code = str
-        if len(open_code.split(':')) == 2:
-            ret = []
-            self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', self.db_name))
-            generator = SQLGenerator(self.app_conn, count, open_code.split(':'), [open_code.split(':')[1], ], is_format_columns=False)
-            gen_data = generator.GenerateValues()
-            for val in gen_data.values():
-                ret = val
-            return ret
-        else:
-            conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
-            curs = conn.cursor()
-            try:
-                exec_code = curs.execute(f"""SELECT generator FROM t_simple_gen WHERE gen_code = '{open_code}';""").fetchone()[0]
-
-                values = []
-                for item in self.curr_data_fields:
-                    val = item.get_value()
-                    values.append(val)
-                    temp = int(val)
-
-                if values[0] >= values[1]:
-                    raise ValueError
-
-                iter = 1
-                for value in values:
-                    if f'${iter}' in exec_code:
-                        exec_code = exec_code.replace(f'${iter}', str(value))
-                        iter += 1
-
-                ret = []
-                for i in range(count):
-                    temp = eval(exec_code)
-                    ret.append(str(temp))
-
-                return ret
-            except sqlite3.Error:
-                self.catcher.error_message('E014')
-                exit(14)
-            except (TypeError, ValueError):
-                wx.MessageBox(APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.MESSAGE'],
-                              APP_TEXT_LABELS['SINGLE_GENERATOR.MESSAGE_BOX.ERROR_GENERATE.CAPTION'],
-                              wx.OK | wx.ICON_ERROR)
-            finally:
-                curs.close()
-                conn.close()
 
     def open_wrapper_frame(self, event):
         wrapper_frame = WrappingFrame(self, self.data_items)
@@ -246,10 +162,10 @@ class SimpleGenerator(wx.Frame):
 
     def __init__(self, catcher: ErrorCatcher, open_code: str = None):
         wx.Frame.__init__(self, None, title=APP_TEXT_LABELS['SINGLE_GENERATOR.TITLE'], size=(700, 325),
-                          style=wx.CAPTION | wx.CLOSE_BOX)
+                          style=wx.CAPTION | wx.CLOSE_BOX | wx.TAB_TRAVERSAL | wx.RESIZE_BORDER)
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.SetMinSize((700, 325))
-        self.SetMaxSize((700, 400))
+        self.SetMaxSize((1000, 500))
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         self.open_code = open_code
         self.catcher = catcher
