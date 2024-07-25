@@ -86,58 +86,60 @@ class Settings(wx.Dialog):
                                        AND   (lt.lang = '{APP_PARAMETERS['APP_LANGUAGE']}' OR lt.lang IS NULL)
                                        AND   (lt2.lang = '{APP_PARAMETERS['APP_LANGUAGE']}' OR lt2.lang IS NULL)
                                        ORDER BY sip.posid;""").fetchall()
-
+            addlist = []
             for entry in entries:
                 menu_entry_panel = None
                 # Это конечно печально, но иначе пока не придумал
-                if entry[1] == 'CheckboxPoint':
-                    menu_entry_panel = CheckboxPoint(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'RadioSelect':
-                    menu_entry_panel = RadioSelect(self.settings_item_panel, entry[2], entry[3])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL, 2)
-                elif entry[1] == 'SelectorBox':
-                    if entry[5] is None:
-                        menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'))
-                    else:
-                        menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'), entry[5].split(':'))
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'HEXEnter':
-                    menu_entry_panel = HEXEnter(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'HeaderGroup':
-                    menu_entry_panel = HeaderGroup(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 5)
-                elif entry[1] == 'SpinNumber':
-                    menu_entry_panel = SpinNumber(self.settings_item_panel, entry[2], list(entry[3].split(':')))
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'CodeRedactor':
-                    menu_entry_panel = CodeRedactor(self.settings_item_panel, entry[3])
-                    self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
-                elif entry[1] == 'TableSystemColumns':
-                    title_columns = entry[2].split(':')
-                    curs = self.app_conn.cursor()
-                    # Подстановка текущего значения языка приложения
-                    query = entry[3].replace('$0', APP_PARAMETERS['APP_LANGUAGE'])
 
-                    # Подстановка остальных значений
-                    if entry[5] is not None:
-                        items = str(entry[5]).split(':')
-                        for i in range(len(items)):
-                            query = query.replace(f'${i + 1}', APP_PARAMETERS[items[i]])
+                match entry[1]:
+                    case 'CheckboxPoint':
+                        menu_entry_panel = CheckboxPoint(self.settings_item_panel, entry[2])
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'RadioSelect':
+                        menu_entry_panel = RadioSelect(self.settings_item_panel, entry[2], entry[3])
+                        addlist.append([menu_entry_panel, 0, wx.ALL, 2])
+                    case 'SelectorBox':
+                        if entry[5] is None:
+                            menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'))
+                        else:
+                            menu_entry_panel = SelectorBox(self.settings_item_panel, entry[2], entry[3].split(':'), entry[5].split(':'))
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'HEXEnter':
+                        menu_entry_panel = HEXEnter(self.settings_item_panel, entry[2])
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'HeaderGroup':
+                        menu_entry_panel = HeaderGroup(self.settings_item_panel, entry[2])
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 5])
+                    case 'SpinNumber':
+                        menu_entry_panel = SpinNumber(self.settings_item_panel, entry[2], list(entry[3].split(':')))
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'CodeRedactor':
+                        menu_entry_panel = CodeRedactor(self.settings_item_panel, entry[3])
+                        addlist.append([menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5])
+                    case 'TableSystemColumns':
+                        title_columns = entry[2].split(':')
+                        curs = self.app_conn.cursor()
+                        # Подстановка текущего значения языка приложения
+                        query = entry[3].replace('$0', APP_PARAMETERS['APP_LANGUAGE'])
 
-                    data_rows = curs.execute(query).fetchall()
-                    menu_entry_panel = TableSystemColumns(self.settings_item_panel, title_columns, data_rows)
-                    self.settings_item_sizer.Add(menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5)
-                elif entry[1] == 'MaskedTextEntry':
-                    menu_entry_panel = MaskedTextEntry(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'FileTextEntry':
-                    menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2], entry[3], True)
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
-                elif entry[1] == 'PathTextEntry':
-                    menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2])
-                    self.settings_item_sizer.Add(menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2)
+                        # Подстановка остальных значений
+                        if entry[5] is not None:
+                            items = str(entry[5]).split(':')
+                            for i in range(len(items)):
+                                query = query.replace(f'${i + 1}', APP_PARAMETERS[items[i]])
+
+                        data_rows = curs.execute(query).fetchall()
+                        menu_entry_panel = TableSystemColumns(self.settings_item_panel, title_columns, data_rows)
+                        addlist.append([menu_entry_panel, 1, wx.ALL | wx.EXPAND, 5])
+                    case 'MaskedTextEntry':
+                        menu_entry_panel = MaskedTextEntry(self.settings_item_panel, entry[2])
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'FileTextEntry':
+                        menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2], entry[3], True)
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
+                    case 'PathTextEntry':
+                        menu_entry_panel = PathFileTextEntry(self.settings_item_panel, entry[2])
+                        addlist.append([menu_entry_panel, 0, wx.ALL | wx.EXPAND, 2])
 
                 if menu_name in self.changed_params.keys():
                     if entry[0] in self.changed_params[menu_name].keys():
@@ -146,7 +148,7 @@ class Settings(wx.Dialog):
                 if not is_changed:
                     menu_entry_panel.set_value(entry[4])
                 self.curr_param_items.append((entry[0], menu_entry_panel))
-
+            self.settings_item_sizer.AddMany(addlist)
             self.settings_item_panel.Layout()
 
     def set_params(self, next_menu_name: str = None):
