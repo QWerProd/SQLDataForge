@@ -30,6 +30,7 @@ class SimpleDataFromInputGenerator:
     gen_code: str
     generator_class: object
     req_params: int
+    validate: bool
     
     def __init__(self, gen_code: str) -> None:
         self.gen_code = gen_code
@@ -47,11 +48,19 @@ class SimpleDataFromInputGenerator:
                                               fromlist=(class_name,))
                 self.generator_class = getattr(imported_module, class_name)
                 self.req_params = gen_object['required_params']
+                self.validate = gen_object['validate']
                 break
 
     def generate(self, rows_count: int, params: list = []) -> list:
         if self.req_params != len(params):
             raise RequiredDataMissedError(str(self.req_params), str(len(params)))
+        
+        is_valid = True
+        if self.validate:
+            is_valid = self.generator_class.validate(*params)
+        
+        if not is_valid:
+            raise ValidationParamsError()
 
         ret = []
         try:
@@ -83,6 +92,10 @@ class AcceleratorSimpleGenerator:
         return self.generator.generate(row_count, self.params)
 
 
+############################################################
+### Exceptions
+############################################################
+
 class RequiredDataMissedError(BaseException):
 
     req_entries: str
@@ -103,3 +116,11 @@ class InvalidParamsError(BaseException):
 
     def __str__(self) -> str:
         return 'the entered data does not match the required type'
+    
+
+class ValidationParamsError(BaseException):
+    def __init__(self) -> None:
+        super().__init__()
+    
+    def __str__(self) -> str:
+        return 'set of parameters has not passed the validation before generation'

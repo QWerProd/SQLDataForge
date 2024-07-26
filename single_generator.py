@@ -5,9 +5,10 @@ import wx.stc
 
 from data_controller import DataController
 from app.error_catcher import ErrorCatcher
-# from sql_generator import SQLGenerator
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
-from data.simple_generators.simple_gen import AcceleratorSimpleGenerator, RequiredDataMissedError, InvalidParamsError
+from data.simple_generators.simple_gen import (
+     AcceleratorSimpleGenerator, RequiredDataMissedError, InvalidParamsError, ValidationParamsError
+)
 from data.simple_generators.simple_gen_inputs import (
     LabeledTextCtrl, LabeledComboBox, LabeledSpinCtrl, LabeledCheckBox, LabeledDataCtrl,
     SelectFromDB
@@ -157,6 +158,8 @@ class SimpleGenerator(wx.Frame):
             return self.catcher.error_message('E027', str(e.args))
         except InvalidParamsError:
             return self.catcher.error_message('E028')
+        except ValidationParamsError:
+            return self.catcher.error_message('E029')
         
         if result is not None:
             self.output_textctrl.SetValue('\n'.join(result))
