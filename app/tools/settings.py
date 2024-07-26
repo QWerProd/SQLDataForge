@@ -148,6 +148,7 @@ class Settings(wx.Dialog):
                 if not is_changed:
                     menu_entry_panel.set_value(entry[4])
                 self.curr_param_items.append((entry[0], menu_entry_panel))
+                
             self.settings_item_sizer.AddMany(addlist)
             self.settings_item_panel.Layout()
 

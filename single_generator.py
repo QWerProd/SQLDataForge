@@ -8,7 +8,10 @@ from app.error_catcher import ErrorCatcher
 # from sql_generator import SQLGenerator
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 from data.simple_generators.simple_gen import AcceleratorSimpleGenerator, RequiredDataMissedError, InvalidParamsError
-from data.simple_generators.simple_gen_inputs import LabeledTextCtrl, SelectFromDB, LabeledComboBox
+from data.simple_generators.simple_gen_inputs import (
+    LabeledTextCtrl, LabeledComboBox, LabeledSpinCtrl, LabeledCheckBox, LabeledDataCtrl,
+    SelectFromDB
+)
 
 # Библиотеки для генераторов
 import random
@@ -87,8 +90,8 @@ class SimpleGenerator(wx.Frame):
                                                     lt.text, 
                                                     se.entry_type,
                                                     lt2.text,
-                                                    se.choosed_items,
-                                                    se.labeled_items
+                                                    se.first_param,
+                                                    se.second_param
                                                   FROM 
                                                     t_simple_gen_entries as se,
                                                     t_simple_gen as s,
@@ -104,26 +107,38 @@ class SimpleGenerator(wx.Frame):
                 curs.close()
 
             gen_name = ''
+            addlist = []
             for item_info in gen_items_info:
                 if gen_name == '':
                     gen_name = item_info[2]
-                if item_info[1] == 'TextCtrl':
-                    entry_field = LabeledTextCtrl(self.data_panel, item_info[0])
-                    self.curr_data_fields.append(entry_field)
-                    self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15)
-                    self.data_panel.Layout()
-                elif item_info[1] == 'ComboBox':
-                    entry_field = LabeledComboBox(self.data_panel, item_info[0], str(item_info[3]).split(':'), str(item_info[4]).split(':'))
-                    self.curr_data_fields.append(entry_field)
-                    self.data_sizer.Add(entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15)
-                    self.data_panel.Layout()
+                
+                entry_field = None
+                match item_info[1]:
+                    case 'TextCtrl':
+                        entry_field = LabeledTextCtrl(self.data_panel, item_info[0])
+                        addlist.append([entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15])
+                    case 'ComboBox':
+                        entry_field = LabeledComboBox(self.data_panel, item_info[0], str(item_info[3]).split(':'), str(item_info[4]).split(':'))
+                        addlist.append([entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15])
+                    case 'SpinCtrl':
+                        entry_field = LabeledSpinCtrl(self.data_panel, item_info[0], int(item_info[3]), int(item_info[4]))
+                        addlist.append([entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15])
+                    case 'CheckBox':
+                        entry_field = LabeledCheckBox(self.data_panel, item_info[0])
+                        addlist.append([entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15])
+                    case 'DateCtrl':
+                        entry_field = LabeledDataCtrl(self.data_panel, item_info[0])
+                        addlist.append([entry_field, 1, wx.EXPAND | wx.LEFT | wx.TOP | wx.RIGHT, 15])
+                
+                self.curr_data_fields.append(entry_field)
+
+            self.data_sizer.AddMany(addlist)    
+            self.data_panel.Layout()
 
             return gen_name
 
     def start_generate(self, event):
         count = int(self.items_count_textctrl.GetValue())
-
-        # result = self.generate(self.open_code, count)
 
         gen_type = 'user_db' if len(self.open_code.split(':')) == 2 else 'user_input'
 

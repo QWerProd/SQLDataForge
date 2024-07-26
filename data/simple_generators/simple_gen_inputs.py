@@ -1,7 +1,10 @@
 import wx
 import os
+import wx.adv
 import sqlite3
 import random
+
+from wx.core import HORIZONTAL, VERTICAL
 from app_parameters import APPLICATION_PATH, APP_TEXT_LABELS
 
 
@@ -19,7 +22,7 @@ class BaseSimpleGenInput(wx.Panel):
     @value.setter
     def value(self, value) -> str: self.__value = value
 
-    def get_value(self) -> str: return self.value
+    def get_value(self) -> str: return str(self.value)
 
     
     def __init__(self, parent: wx.Window, sizer_mode: wx.VERTICAL|wx.HORIZONTAL = wx.VERTICAL):
@@ -76,6 +79,78 @@ class LabeledComboBox(BaseSimpleGenInput):
         choosed_item = self.input_combobox.GetValue()
         index = self.labeled_items.index(choosed_item)
         self.value = self.choosed_items[index]
+
+
+class LabeledSpinCtrl(BaseSimpleGenInput):
+    
+    label: str
+    min_value: int
+    max_value: int
+
+    def __init__(self, parent: wx.Window, label: str, min_value: int, max_value: int):
+        super().__init__(parent)
+        self.label = label
+        self.min_value = min_value
+        self.max_value = max_value
+        self.value = self.min_value
+
+        label_statictext = wx.StaticText(self, label=self.label)
+        self.sizer.Add(label_statictext, 0, wx.BOTTOM, 5)
+
+        self.input_spinctrl = wx.SpinCtrl(self, min=self.min_value, max=self.max_value, initial=self.min_value)
+        self.input_spinctrl.Bind(wx.EVT_SPINCTRL, self.change_value)
+        self.sizer.Add(self.input_spinctrl, 0, wx.EXPAND)
+
+        self.Layout()
+
+    def change_value(self, event):
+        current_value = self.input_spinctrl.GetValue()
+        self.value = current_value
+
+    
+class LabeledCheckBox(BaseSimpleGenInput):
+
+    label: str
+
+    def __init__(self, parent: wx.Window, label: str):
+        super().__init__(parent, wx.HORIZONTAL)
+        self.label = label
+        self.value = 'False'
+
+        self.input_checkbox = wx.CheckBox(self, label=self.label)
+        self.input_checkbox.Bind(wx.EVT_CHECKBOX, self.change_value)
+        self.sizer.Add(self.input_checkbox, 0, wx.EXPAND)
+
+        self.Layout()
+
+    def change_value(self, event):
+        bool_value = self.input_checkbox.GetValue()
+        self.value = str(bool_value)
+
+
+class LabeledDataCtrl(BaseSimpleGenInput):
+
+    label: str
+
+    def __init__(self, parent: wx.Window, label: str):
+        super().__init__(parent)
+        self.label = label
+
+        label_statictext = wx.StaticText(self, label=self.label)
+        self.sizer.Add(label_statictext, 0, wx.BOTTOM, 5)
+
+        self.datectrl = wx.adv.DatePickerCtrl(self)
+        self.datectrl.Bind(wx.adv.EVT_DATE_CHANGED, self.change_value)
+        self.sizer.Add(self.datectrl, 0, wx.EXPAND)
+
+        wxdate = self.datectrl.GetValue()
+        self.value = wxdate.FormatISODate()
+        self.Layout()
+
+    def change_value(self, event):
+        datetime = self.datectrl.GetValue()
+        date = datetime.FormatISODate()
+        self.value = date
 
 
 class SelectFromDB(wx.Panel):

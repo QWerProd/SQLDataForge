@@ -8,7 +8,19 @@
     {
         "gen_code": "rand_number",
         "module_name": "sg_number",
-        "class_name": "GenerateNumber",
+        "class_name": "GeneratorNumber",
+        "required_params": 2
+    },
+    {
+        "gen_code": "rand_password",
+        "module_name": "sg_password",
+        "class_name": "GeneratorPassword",
+        "required_params": 2
+    },
+    {
+        "gen_code": "rand_date",
+        "module_name": "sg_date",
+        "class_name": "GeneratorDate",
         "required_params": 2
     }
 ]

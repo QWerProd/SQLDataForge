@@ -1,6 +1,6 @@
 import random
 
-class GenerateNumber:
+class GeneratorNumber:
 
     @staticmethod
     def generate(*args):

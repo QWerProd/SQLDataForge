@@ -137,7 +137,7 @@ class SQLGenerator:
 
                 # Выбор рандомного дня из промежутка
                 days = (datetime.datetime(maxdate.year, maxdate.month, maxdate.day) - datetime.datetime(mindate.year, mindate.month, mindate.day)).days
-                rnd_day = rd.randint(1, days)
+                rnd_day = rd.randint(0, days)
 
                 # Генерация даты
                 gen_date = datetime.datetime.strftime(mindate + datetime.timedelta(days=rnd_day), APP_PARAMETERS['FORMAT_DATE'])
