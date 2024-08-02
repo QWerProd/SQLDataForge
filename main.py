@@ -774,15 +774,13 @@ class MainFrame(wx.Frame):
                         query += builder.BuildQuery(self.is_create_table)
                         build_time = datetime.now() - start_build_time
                         self.textctrl_sql.SetValue(query)
+
+                        # Обновление статусов
                         self.is_generated = True
                         self.is_saved = False
                         self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
                         self.statusbar.SetStatusText(self.query_status, 0)
                         generate_time = datetime.now() - start_generate_time
-
-                        # Тестовый вывод времени генерации
-                        # print(f"Кол-во строк: {rows_count}, кол-во столбцов: {len(colinfo)}")
-                        # print("Время генерации запроса: " + str(round(generate_time.total_seconds(), 4)))
 
                         # Запись запроса в лог
                         cursor = app_conn.cursor()

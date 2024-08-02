@@ -1,5 +1,6 @@
 import re
 import os
+import uuid
 
 from data_controller import DataController as DC
 from app_parameters import APP_PARAMETERS, APPLICATION_PATH
@@ -25,29 +26,33 @@ class SQLGenerator:
     indexes = []
     column_order = {}
     is_format_columns = bool
+    session_uuid = ""
 
     class RGenerator:
         """Базовый класс типа генератора"""
 
-        datalist = list
-        cursor = sqlite3.Cursor
-        table_info = dict
-        is_format_columns = bool
+        datalist: list
+        cursor: sqlite3.Cursor
+        table_info: dict
+        is_format_columns: bool
+        session_uuid: str
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
             """Инициализация генератора
 
             Args:
                 cursor (sqlite3.Cursor): Курсор к БД
                 table (list): Сведения о таблице (имя БД, имя таблицы, имя столбца, код генератора, тип столбца)
                 is_format_columns (bool, optional): Необходимо ли форматировать генерируемые значения. Defaults to True.
+                session_uuid (str): UUID сессии генерации
             """
             self.datalist = []
             self.cursor = cursor
             self.table_info = table
             self.is_format_columns = is_format_columns
+            self.session_uuid = session_uuid
 
-        def generate_data(self, row_count: int) -> dict:
+        def generate_data(self, row_count: int) -> list:
             """Генерация списка с определенным количеством строк данных"""
             pass
 
@@ -70,7 +75,7 @@ class SQLGenerator:
 
     class RSetGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
             super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
@@ -88,7 +93,7 @@ class SQLGenerator:
 
     class RValueGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
             super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
@@ -108,7 +113,7 @@ class SQLGenerator:
 
     class RDateGenerator(RGenerator):
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
             super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
@@ -152,7 +157,7 @@ class SQLGenerator:
     class RChainGenerator(RGenerator):
         """Генератор сбора строки из случайных значений каждого столбца таблицы"""
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True):
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
             super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
@@ -190,7 +195,27 @@ class SQLGenerator:
                 self.datalist.append(value)
 
             return self.datalist
-        
+    
+    class RowIDSetGenerator(RGenerator):
+
+        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
+            rowid_seed = session_uuid.join((table[0], table[1]))
+            super().__init__(cursor, table, is_format_columns, rowid_seed)
+
+        def generate_data(self, row_count: int) -> list:
+            data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT {self.table_info[2]}
+                                                                    FROM {self.table_info[1]};""").fetchall()))
+            
+            rd.seed(self.session_uuid)
+            for i in range(row_count):
+                row_number = rd.randint(0, len(data) - 1)
+                if self.is_format_columns:
+                    value = super().format_value(data[row_number])
+                else:
+                    value = data[row_number]
+                self.datalist.append(value)
+
+            return self.datalist
 
     def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
                  table_info: dict = None, indexes: list = None, is_simple_mode: bool = None, is_format_columns: bool = True):
@@ -223,6 +248,9 @@ class SQLGenerator:
         for item in added_items:
             self.column_order[item] = i
             i += 1
+
+        # Генерация UUID для конкретной сессии генерации данных
+        self.session_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.datetime.now())))
 
     def CreateHeader(self):
         self.queryrow1 += 'INSERT INTO ' + self.table_name
@@ -357,7 +385,7 @@ class SQLGenerator:
                 cursor = loc_conn.cursor()
 
                 # Инициализация необходимого класса коннектора
-                generator = generators.get(table[3])(cursor, table, self.is_format_columns)
+                generator = generators.get(table[3])(cursor, table, self.is_format_columns, self.session_uuid)
                 datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
 
                 cursor.close()
@@ -428,5 +456,6 @@ generators = {
     'RSet': SQLGenerator.RSetGenerator,
     'RValue': SQLGenerator.RValueGenerator,
     'RDate': SQLGenerator.RDateGenerator,
-    'RChain': SQLGenerator.RChainGenerator
+    'RChain': SQLGenerator.RChainGenerator,
+    'RIDSet': SQLGenerator.RowIDSetGenerator
 }
