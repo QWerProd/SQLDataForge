@@ -80,7 +80,8 @@ class SQLGenerator:
 
         def generate_data(self, row_count: int) -> list:
             data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT {self.table_info[2]}
-                                                                    FROM {self.table_info[1]};""").fetchall()))
+                                                                    FROM {self.table_info[1]}
+                                                                    WHERE {self.table_info[2]} IS NOT NULL;""").fetchall()))
             for i in range(row_count):
                 row_number = rd.randint(0, len(data) - 1)
                 if self.is_format_columns:
