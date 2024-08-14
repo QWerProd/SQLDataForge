@@ -47,16 +47,18 @@ CREATE TABLE IF NOT EXISTS "t_simple_gen" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"gen_code"	TEXT NOT NULL,
 	"gen_name"	TEXT,
-	"gen_type"	TEXT NOT NULL,
-	"generator"	TEXT DEFAULT NULL,
 	"is_valid"	TEXT NOT NULL DEFAULT 'Y');
 $script$
 CREATE TABLE IF NOT EXISTS "t_simple_gen_entries" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 	"id_field"	INTEGER NOT NULL,
+	"id_parent"	INTEGER DEFAULT NULL,
 	"posid"	INTEGER NOT NULL,
 	"entry_name"	TEXT NOT NULL,
-	"entry_type"	TEXT NOT NULL);
+	"entry_type"	TEXT NOT NULL,
+	"first_param"	TEXT DEFAULT NULL,
+	"second_param"	TEXT DEFAULT NULL,
+	"value_activating"	TEXT DEFAULT NULL);
 $script$
 CREATE TABLE IF NOT EXISTS "t_error_log" (
 	"id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -785,7 +787,72 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E025.MESSAGE','ru','Подключение через тоннель SSH было сброшено!'),
 	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_REPORTS','ru','Путь сохранения отчетов/логов:'),
 	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_SCRIPTS','ru','Путь сохранения SQL-скриптов:'),
-	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATHS','ru','Директории и файлы');
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATHS','ru','Директории и файлы'),
+	 ('APP.SIMPLE_GEN.RAND_UUID','ru','UUID'),
+	 ('E027.CAPTION','ru','Недостаток параметров'),
+	 ('E027.MESSAGE','ru','Заполните все поля для генерации данных!'),
+	 ('E028.CAPTION','ru','Некорретный тип данных'),
+	 ('E028.MESSAGE','ru','Введенные данные не соответствуют необходимому типу данных!'),
+	 ('APP.SIMPLE_GEN.RAND_UUID.VERSION','ru','Версия генератора:'),
+	 ('APP.SIMPLE_GEN.RAND_UUID.VERSION.NAMESPACE','ru','Текстовый параметр:'),
+	 ('E025.CAPTION','en','Disabling the SSH tunnel'),
+	 ('E025.MESSAGE','en','The SSH tunnel connection has been reset!'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_REPORTS','en','The way to save reports/logs:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_SCRIPTS','en','The way to save SQL-scripts:'),
+	 ('APP.SETTINGS.SYSTEM.DEFAULT.PATHS','en','Directories'),
+	 ('APP.SIMPLE_GEN.RAND_UUID','en','UUID'),
+	 ('E027.CAPTION','en','Not enough parameters'),
+	 ('E027.MESSAGE','en','Fill in all the fields to generate the data!'),
+	 ('E028.CAPTION','en','Uncorrect parameter type'),
+	 ('E028.MESSAGE','en','The entered data does not match the required data type!'),
+	 ('APP.SIMPLE_GEN.RAND_UUID.VERSION','en','Generator version:'),
+	 ('APP.SIMPLE_GEN.RAND_UUID.VERSION.NAMESPACE','en','Text parameter:'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD','ru','Пароль'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD.LENGTH','ru','Длина пароля:'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD.IS_DIGITS','ru','Использовать цифры'),
+	 ('APP.SIMPLE_GEN.RAND_DATE.MIN_DATE','ru','Начальная дата:'),
+	 ('APP.SIMPLE_GEN.RAND_DATE.MAX_DATE','ru','Конечная дата:'),
+	 ('E029.CAPTION','ru','Ошибка валидации'),
+	 ('E029.MESSAGE','ru','Валидация входных параметров генератора провалена! Проверьте значения параметров!'),
+	 ('UDB_FILLING_MASTER.TITLE','ru','Мастер заполнения пБД'),
+	 ('UDB_FILLING_MASTER.INFORMATION','ru','Данный мастер позволяет добавить новый столбец для источника данных.'),
+	 ('MAIN.MAIN_MENU.TOOLS.FILLING_UDB','ru','Заполнение пБД'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_FILLING_UDB','ru','Открыть мастер заполнения пБД'),
+	 ('UDB_FILLING_MASTER.CHOOSE_UDB_PAGE.HEADER','ru','Выберите добавленную пБД для заполнения:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.HEADER','ru','Заполните информацию о колонке источника данных:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.COLUMN_NAME','ru','Имя столбца:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.COLUMN_CODE','ru','Код столбца:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION','ru','Информация о новом столбце'),
+	 ('UDB_FILLING_MASTER.COLUMN_POSID','ru','Последовательность:'),
+	 ('UDB_FILLING_MASTER.COLUMN_DATATYPE','ru','Тип данных:'),
+	 ('UDB_FILLING_MASTER.GENERATOR_TYPE','ru','Тип генератора:'),
+	 ('UDB_FILLING_MASTER.RSET_PAGE.HEADER','ru','Введите список возможных значений (с разделением в виде переноса строки):');
+INSERT INTO t_lang_text (label,lang,text) VALUES
+	 ('UDB_FILLING_MASTER.RVALUE_PAGE.HEADER','ru','Введите минимальное и максимальное значение для генерации числа:'),
+	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.CAPTION','ru','Заполнение завершено'),
+	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.MESSAGE','ru','Данные для нового столбца в пБД успешно записаны! Список столбцов пБД обновлен!'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD','en','Password'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD.LENGTH','en','Password length:'),
+	 ('APP.SIMPLE_GEN.RAND_PASSWORD.IS_DIGITS','en','Use numbers'),
+	 ('APP.SIMPLE_GEN.RAND_DATE.MIN_DATE','en','Start date:'),
+	 ('APP.SIMPLE_GEN.RAND_DATE.MAX_DATE','en','End date:'),
+	 ('E029.CAPTION','en','Validation error'),
+	 ('E029.MESSAGE','en','Validation of the generator input parameters has failed! Check the parameter values!'),
+	 ('UDB_FILLING_MASTER.TITLE','en','Wizard of uDB filling'),
+	 ('UDB_FILLING_MASTER.INFORMATION','en','uDB filling'),
+	 ('APP.SETTINGS.SYSTEM.HOTKEYS.KEY_FILLING_UDB','en','Open the wizard of uDB filling'),
+	 ('UDB_FILLING_MASTER.CHOOSE_UDB_PAGE.HEADER','en','Select the added uDB to fill in:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.HEADER','en','Fill in the information about the column of the data source:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.COLUMN_NAME','en','Column name:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION.COLUMN_CODE','en','Column code:'),
+	 ('UDB_FILLING_MASTER.COLUMN_INFORMATION','en','Information about new column'),
+	 ('UDB_FILLING_MASTER.COLUMN_POSID','en','Position ID:'),
+	 ('UDB_FILLING_MASTER.COLUMN_DATATYPE','en','Datatype:'),
+	 ('UDB_FILLING_MASTER.GENERATOR_TYPE','en','Generator type:'),
+	 ('UDB_FILLING_MASTER.RSET_PAGE.HEADER','en','Enter a list of possible values (separated by a line break):'),
+	 ('UDB_FILLING_MASTER.RVALUE_PAGE.HEADER','en','Enter the minimum and maximum values to generate the number:'),
+	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.CAPTION','en','Filling is done'),
+	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.MESSAGE','en','The data for the new column in the uDB has been successfully written! The list of uDB columns has been updated!');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -813,7 +880,10 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E023','E023.CAPTION','E023.MESSAGE'),
 	 ('E024','E024.CAPTION','E024.MESSAGE'),
 	 ('E025','E025.CAPTION','E025.MESSAGE'),
-	 ('E026','E026.CAPTION','E026.MESSAGE');
+	 ('E026','E026.CAPTION','E026.MESSAGE'),
+	 ('E027','E027.CAPTION','E027.MESSAGE'),
+	 ('E028','E028.CAPTION','E028.MESSAGE'),
+	 ('E029','E029.CAPTION','E029.MESSAGE');
 $script$
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),
@@ -847,7 +917,8 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('STC_COLOUR_TYPES','#00764f','SYSTEM',NULL,1),
 	 ('KEY_TDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER',0),
 	 ('PATH_FOR_REPORTS','','SYSTEM',NULL,0),
-	 ('PATH_FOR_SCRIPTS','','SYSTEM',NULL,0);
+	 ('PATH_FOR_SCRIPTS','','SYSTEM',NULL,0),
+	 ('KEY_FILLING_UDB','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_FILLING_UDB',0);
 $script$
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
@@ -883,11 +954,20 @@ INSERT INTO t_settings_items_params (id_param,id_parent,posid,entry_type,entry_l
 	 (32,8,4,'PathTextEntry','APP.SETTINGS.SYSTEM.DEFAULT.PATH_FOR_SCRIPTS',NULL,NULL,'Y'),
 	 (NULL,8,2,'HeaderGroup','APP.SETTINGS.SYSTEM.DEFAULT.PATHS',NULL,NULL,'Y');
 $script$
-INSERT INTO t_simple_gen (gen_code,gen_name,gen_type,generator,is_valid) VALUES
-	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','simple','random.randint($1, $2)','Y'),
-	 ('rand_date','APP.SIMPLE_GEN.RAND_DATE','simple',NULL,'N');
+INSERT INTO t_simple_gen (gen_code,gen_name,is_valid) VALUES
+	 ('rand_number','APP.SIMPLE_GEN.RAND_NUMBER','Y'),
+	 ('rand_date','APP.SIMPLE_GEN.RAND_DATE','Y'),
+	 ('rand_uuid','APP.SIMPLE_GEN.RAND_UUID','Y'),
+	 ('rand_password','APP.SIMPLE_GEN.RAND_PASSWORD','Y');
 $script$
-INSERT INTO t_simple_gen_entries (id_field,posid,entry_name,entry_type) VALUES
-	 (1,1,'APP.SIMPLE_GEN.RAND_NUMBER.MINVALUE','TextCtrl'),
-	 (1,2,'APP.SIMPLE_GEN.RAND_NUMBER.MAXVALUE','TextCtrl');
+INSERT INTO t_simple_gen_entries (id_field,id_parent,posid,entry_name,entry_type,first_param,second_param,value_activating) VALUES
+	 (1,NULL,1,'APP.SIMPLE_GEN.RAND_NUMBER.MINVALUE','TextCtrl',NULL,NULL,NULL),
+	 (1,NULL,2,'APP.SIMPLE_GEN.RAND_NUMBER.MAXVALUE','TextCtrl',NULL,NULL,NULL),
+	 (3,NULL,1,'APP.SIMPLE_GEN.RAND_UUID.VERSION','ComboBox','1:3:4:5',NULL,NULL),
+	 (3,3,2,'APP.SIMPLE_GEN.RAND_UUID.VERSION.NAMESPACE','TextCtrl',NULL,NULL,'3:5'),
+	 (4,NULL,1,'APP.SIMPLE_GEN.RAND_PASSWORD.LENGTH','SpinCtrl','4','28',NULL),
+	 (4,NULL,2,'APP.SIMPLE_GEN.RAND_PASSWORD.IS_DIGITS','CheckBox',NULL,NULL,NULL),
+	 (2,NULL,1,'APP.SIMPLE_GEN.RAND_DATE.MIN_DATE','DateCtrl',NULL,NULL,NULL),
+	 (2,NULL,2,'APP.SIMPLE_GEN.RAND_DATE.MAX_DATE','DateCtrl',NULL,NULL,NULL);
+
 $script$
