@@ -24,6 +24,7 @@ from connections.test_dbs.test_db_viewer import TestDBViewer
 from connections.test_dbs.type_connectors import *
 from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
+from app.tools.udb_filling_master import UDBFillingMaster
 from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
@@ -1012,6 +1013,11 @@ class MainFrame(wx.Frame):
         logviewer.Show()
         logviewer.SetFocus()
 
+    def open_filling_udb_wizard(self, event):
+        filler_udb = UDBFillingMaster(catcher)
+        filler_udb.Show()
+        filler_udb.SetFocus()
+
     def open_app_info(self, event):
         about_app = AboutApp()
         about_app.Show()
@@ -1295,6 +1301,13 @@ class MainFrame(wx.Frame):
         logviewer_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/history.png')))
         self.Bind(wx.EVT_MENU, self.open_logviewer, logviewer_menuitem)
         self.tools_menu.Append(logviewer_menuitem)
+        self.tools_menu.AppendSeparator()
+        filling_udb_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
+                                           APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.FILLING_UDB'] + '\t' + APP_PARAMETERS[
+                                             'KEY_FILLING_UDB'])
+        filling_udb_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/import.png')))
+        self.Bind(wx.EVT_MENU, self.open_filling_udb_wizard, filling_udb_menuitem)
+        self.tools_menu.Append(filling_udb_menuitem)
         self.tools_menu.AppendSeparator()
         settings_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.SETTINGS'] + '\t' + APP_PARAMETERS[

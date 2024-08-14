@@ -50,7 +50,8 @@ APP_PARAMETERS = {
     'STC_COLOUR_TYPES': str,
     'KEY_TDB_VIEWER': str,
     'PATH_FOR_REPORTS': str,
-    'PATH_FOR_SCRIPTS': str
+    'PATH_FOR_SCRIPTS': str,
+    'KEY_FILLING_UDB': str
 }
 
 APP_LOCALES = {

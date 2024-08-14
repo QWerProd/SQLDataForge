@@ -800,15 +800,18 @@ class NewTestConnection(wx.Dialog):
 
         self.page_init = NewTestConnection.ChooseConnectorTypePanel(self.main_panel)
         self.curr_page_panel = self.page_init
+
         self.page_local = NewTestConnection.ConnectDBLocalFile(self.main_panel)
         self.page_server = NewTestConnection.ConnectDBServer(self.main_panel)
         self.page_internal = NewTestConnection.InternalConnectInformation(self.main_panel)
         self.page_final = NewTestConnection.ConfirmationConnect(self.main_panel)
+
         self.main_sizer.Add(self.page_init, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_local, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_server, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_internal, 1, wx.EXPAND)
         self.main_sizer.Add(self.page_final, 1, wx.EXPAND)
+        
         self.page_local.Hide()
         self.page_server.Hide()
         self.page_internal.Hide()
