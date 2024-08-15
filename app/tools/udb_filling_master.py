@@ -1,6 +1,5 @@
 import wx
 import os
-import sys
 import sqlite3
 
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
@@ -111,31 +110,55 @@ class UDBFillingMaster(wx.Frame):
         # Если таблица НЕ создана
         if is_created is None:
 
-            # Создание таблицы со столбцами
-            query_create_table = f"""CREATE TABLE "{self.column_info['table_name']}" """ 
-            column_rows = []
-            for key in self.column_values.keys():
-                column_row = f'"{key}" TEXT'
-                column_rows.append(column_row)
-            query_create_table += '( "id" INTEGER NOT NULL, ' + ', '.join(column_rows) + ', PRIMARY KEY("id" AUTOINCREMENT));'
-            pdb_curs.execute(query_create_table)
+            # Создание таблицы СРАЗУ со столбцами
+            try:
+                query_create_table = f"""CREATE TABLE "{self.column_info['table_name']}" """ 
+                column_rows = []
+                for key in self.column_values.keys():
+                    column_row = f'"{key}" TEXT'
+                    column_rows.append(column_row)
+                query_create_table += '( "id" INTEGER NOT NULL, ' + ', '.join(column_rows) + ', PRIMARY KEY("id" AUTOINCREMENT));'
+                pdb_curs.execute(query_create_table)
+
+            except sqlite3.OperationalError as e:
+                return self.catcher.error_message('E030', str(e))
 
         # Если таблица уже существует и нужно просто добавить столбец
         else:
-            for key in self.column_values.keys():
-                query_create_column = f"""ALTER TABLE "{self.column_info['table_name']}" 
-                                          ADD COLUMN "{key}" TEXT;"""
-                pdb_curs.execute(query_create_column)
+            try:
+                for key in self.column_values.keys():
+                    query_create_column = f"""ALTER TABLE "{self.column_info['table_name']}" 
+                                            ADD COLUMN "{key}" TEXT;"""
+                    pdb_curs.execute(query_create_column)
+
+            except sqlite3.OperationalError as e:
+                return self.catcher.error_message('E030', str(e))
 
         # Обработка данных для вставки
         for key, value in self.column_values.items():
 
-            # Сборка вертикальной матрицы значений с одной колонкой для вставки
-            values = [(x,) for x in value]
+            # Получаем максимальное значение ID для определения операции
+            max_id = pdb_curs.execute(f"""SELECT COALESCE(MAX(id), 0) FROM {self.column_info['table_name']};""").fetchone()[0]
 
-            # Вставка данных
-            pdb_curs.executemany(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
-                                     VALUES (?);""", values)
+            for i, val in enumerate(value, start=1):
+
+                # Если строка с таким ID уже есть в таблице -> Изменяем строку с этим ID
+                if i <= max_id:
+                    pdb_curs.execute(f"""UPDATE "{self.column_info['table_name']}"
+                                         SET "{key}" = '{val}'
+                                         WHERE id = {i};""")
+                
+                # Если строки с этим ID нет (новая строка) -> Вставляем новую строку
+                else:
+                    pdb_curs.execute(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
+                                         VALUES ('{val}');""")
+
+            # # Сборка вертикальной матрицы значений с одной колонкой для вставки
+            # values = [(x,) for x in value]
+
+            # # Вставка данных
+            # pdb_curs.executemany(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
+            #                          VALUES (?);""", values)
         
         # Запись нового столбца
         pdb_curs.execute(f"""INSERT INTO t_cases_info(posid, table_name, column_name, column_code, column_type, gen_key)
@@ -409,13 +432,13 @@ class UDBFillingMaster(wx.Frame):
             minvalue_statictext = wx.StaticText(self.input_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_NUMBER.MINVALUE'])
             self.input_sizer.Add(minvalue_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-            self.minvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-sys.maxsize, max=sys.maxsize)
+            self.minvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-32768, max=32767)
             self.input_sizer.Add(self.minvalue_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
 
             maxvalue_statictext = wx.StaticText(self.input_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_NUMBER.MAXVALUE'])
             self.input_sizer.Add(maxvalue_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-            self.maxvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-sys.maxsize, max=sys.maxsize, initial=1)
+            self.maxvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-32768, max=32767, initial=1)
             self.input_sizer.Add(self.maxvalue_spinctrl, 1, wx.ALIGN_CENTER_VERTICAL)
 
             self.data_sizer.Add(self.input_panel, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 20)
