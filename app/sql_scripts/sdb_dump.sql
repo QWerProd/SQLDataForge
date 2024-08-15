@@ -827,6 +827,7 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('UDB_FILLING_MASTER.COLUMN_DATATYPE','ru','Тип данных:'),
 	 ('UDB_FILLING_MASTER.GENERATOR_TYPE','ru','Тип генератора:'),
 	 ('UDB_FILLING_MASTER.RSET_PAGE.HEADER','ru','Введите список возможных значений (с разделением в виде переноса строки):');
+$script$
 INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('UDB_FILLING_MASTER.RVALUE_PAGE.HEADER','ru','Введите минимальное и максимальное значение для генерации числа:'),
 	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.CAPTION','ru','Заполнение завершено'),
@@ -852,7 +853,15 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('UDB_FILLING_MASTER.RSET_PAGE.HEADER','en','Enter a list of possible values (separated by a line break):'),
 	 ('UDB_FILLING_MASTER.RVALUE_PAGE.HEADER','en','Enter the minimum and maximum values to generate the number:'),
 	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.CAPTION','en','Filling is done'),
-	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.MESSAGE','en','The data for the new column in the uDB has been successfully written! The list of uDB columns has been updated!');
+	 ('UDB_FILLING_MASTER.FINISH_MESSAGE.MESSAGE','en','The data for the new column in the uDB has been successfully written! The list of uDB columns has been updated!'),
+	 ('E030.CAPTION','ru','Ошибка редактирования объекта БД'),
+	 ('E030.MESSAGE','ru','При внесении изменений в БД была выброшена следующая ошибка:'),
+	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.MESSAGE','ru','Некорректно заполнены поля ввода для вставки данных в пБД!'),
+	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.CAPTION','ru','Ошибка ввода'),
+	 ('E030.CAPTION','en','Error editing the DB object'),
+	 ('E030.MESSAGE','en','When making changes to the database, the following error was thrown:'),
+	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.MESSAGE','en','The input fields for inserting data into uDB are filled in incorrectly!'),
+	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.CAPTION','en','Input error');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -969,5 +978,4 @@ INSERT INTO t_simple_gen_entries (id_field,id_parent,posid,entry_name,entry_type
 	 (4,NULL,2,'APP.SIMPLE_GEN.RAND_PASSWORD.IS_DIGITS','CheckBox',NULL,NULL,NULL),
 	 (2,NULL,1,'APP.SIMPLE_GEN.RAND_DATE.MIN_DATE','DateCtrl',NULL,NULL,NULL),
 	 (2,NULL,2,'APP.SIMPLE_GEN.RAND_DATE.MAX_DATE','DateCtrl',NULL,NULL,NULL);
-
 $script$

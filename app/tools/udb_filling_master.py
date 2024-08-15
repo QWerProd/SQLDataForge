@@ -64,6 +64,14 @@ class UDBFillingMaster(wx.Frame):
             case 1:
                 self.column_info = self.curr_page_panel.get_column_info()
                 self.pdb_path = self.curr_page_panel.get_pdb_path()
+
+                # Валидации заполнения данных
+                for value in self.column_info.values():
+                    if value == '':
+                        return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.MESSAGE'],
+                                             APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.CAPTION'],
+                                             wx.OK_DEFAULT | wx.ICON_WARNING)
+
                 match self.column_info['gen_type']:
                     case "RSet":
                         next_page = self.page3_RSet
@@ -71,8 +79,15 @@ class UDBFillingMaster(wx.Frame):
                         next_page = self.page3_RValue
                 next_page.set_column_info(self.column_info)
             case 2:
-                next_page = self.page4
                 self.column_values = self.curr_page_panel.get_values()
+
+                # Валидация введенных данных на вставку
+                if not self.curr_page_panel.validate():
+                    return wx.MessageBox(APP_TEXT_LABELS['UDB_FILLING_MASTER.COLUMN_VALIDATE.MESSAGE'],
+                                         APP_TEXT_LABELS['UDB_FILLING_MASTER.COLUMN_VALIDATE.CAPTION'],
+                                         wx.OK_DEFAULT | wx.ICON_WARNING)
+                
+                next_page = self.page4
                 next_page.set_info(self.column_info, self.column_values)
                 next_page.set_confirmation_info()
                 
@@ -380,6 +395,10 @@ class UDBFillingMaster(wx.Frame):
             text = self.values_textctrl.GetValue()
             column_values[self.column_info['column_name']] = text.split('\n')
             return column_values
+        
+        def validate(self) -> bool: 
+            values = self.get_values()
+            return True if len(values[self.column_info['column_name']]) > 0 else False
 
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
@@ -414,6 +433,11 @@ class UDBFillingMaster(wx.Frame):
             column_values['min_value'] = [minvalue,]
             column_values['max_value'] = [maxvalue,]
             return column_values
+        
+        def validate(self) -> bool: 
+            values = self.get_values()
+            return True if (int(values['min_value'][0]) < int(values['max_value']) and
+                            values['min_value'] != '' and values['max_value'] != '') else False
 
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
