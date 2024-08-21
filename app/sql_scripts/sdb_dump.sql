@@ -861,7 +861,17 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('E030.CAPTION','en','Error editing the DB object'),
 	 ('E030.MESSAGE','en','When making changes to the database, the following error was thrown:'),
 	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.MESSAGE','en','The input fields for inserting data into uDB are filled in incorrectly!'),
-	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.CAPTION','en','Input error');
+	 ('UDB_FILLING_MASTER.COLUMN_VALIDATE.CAPTION','en','Input error'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.HEADER','ru','Введите диапазон дат, а также значения вычета (годы, месяцы, дни) от указанных дат:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.TODAY_DATE','ru','Текущая дата'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.YEAR','ru','Года:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.MONTH','ru','Месяцы:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.DAY','ru','Дни:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.HEADER','en','Enter the date range, as well as the deduction values (years, months, days) from the specified dates:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.TODAY_DATE','en','Current date'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.YEAR','en','Years:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.MONTH','en','Months:'),
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.DAY','en','Days:');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),

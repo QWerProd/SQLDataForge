@@ -1,6 +1,8 @@
 import wx
 import os
+import wx.adv
 import sqlite3
+import datetime
 
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 from app.error_catcher import ErrorCatcher
@@ -77,6 +79,11 @@ class UDBFillingMaster(wx.Frame):
                         next_page = self.page3_RSet
                     case "RValue":
                         next_page = self.page3_RValue
+                    case "RIDSet":
+                        next_page = self.page3_RSet
+                    case "RDate":
+                        next_page = self.page3_RDate
+
                 next_page.set_column_info(self.column_info)
             case 2:
                 self.column_values = self.curr_page_panel.get_values()
@@ -130,7 +137,8 @@ class UDBFillingMaster(wx.Frame):
                 query_create_table = f"""CREATE TABLE "{self.column_info['table_name']}" """ 
                 column_rows = []
                 for key in self.column_values.keys():
-                    column_row = f'"{key}" TEXT'
+                    col_name, col_type = key.split(':')
+                    column_row = f'"{col_name}" {col_type}'
                     column_rows.append(column_row)
                 query_create_table += '( "id" INTEGER NOT NULL, ' + ', '.join(column_rows) + ', PRIMARY KEY("id" AUTOINCREMENT));'
                 pdb_curs.execute(query_create_table)
@@ -142,8 +150,9 @@ class UDBFillingMaster(wx.Frame):
         else:
             try:
                 for key in self.column_values.keys():
+                    col_name, col_type = key.split(':')
                     query_create_column = f"""ALTER TABLE "{self.column_info['table_name']}" 
-                                            ADD COLUMN "{key}" TEXT;"""
+                                              ADD COLUMN "{col_name}" {col_type};"""
                     pdb_curs.execute(query_create_column)
 
             except sqlite3.OperationalError as e:
@@ -168,13 +177,6 @@ class UDBFillingMaster(wx.Frame):
                     pdb_curs.execute(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
                                          VALUES ('{val}');""")
 
-            # # Сборка вертикальной матрицы значений с одной колонкой для вставки
-            # values = [(x,) for x in value]
-
-            # # Вставка данных
-            # pdb_curs.executemany(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
-            #                          VALUES (?);""", values)
-        
         # Запись нового столбца
         pdb_curs.execute(f"""INSERT INTO t_cases_info(posid, table_name, column_name, column_code, column_type, gen_key)
                              VALUES (?, ?, ? ,? ,? ,?)""", 
@@ -238,7 +240,7 @@ class UDBFillingMaster(wx.Frame):
         app_conn: sqlite3.Connection
         dbpath: str
         datatypes = ["text-value", "integer-value", "float-value", "date-value", "boolean-value"]
-        generator_types = ["RSet", "RValue"]
+        generator_types = ["RSet", "RValue", "RIDSet", "RDate"]
 
         class MyClassCompleterSimple(wx.TextCompleterSimple):
             
@@ -380,7 +382,7 @@ class UDBFillingMaster(wx.Frame):
     
 
     ###########################################
-    ### Третья страница, заполнение для RSet
+    ### Третья страница, заполнение для RSet и RIDSet
     ###########################################
 
     class RSetFillerPage(wx.Panel):
@@ -393,16 +395,17 @@ class UDBFillingMaster(wx.Frame):
         def get_values(self) -> dict:
             column_values = {}
             text = self.values_textctrl.GetValue()
-            column_values[self.column_info['column_name']] = text.split('\n')
+            column_values[self.column_info['column_name:TEXT']] = text.split('\n')
             return column_values
         
         def validate(self) -> bool: 
             values = self.get_values()
-            return True if len(values[self.column_info['column_name']]) > 0 else False
+            return True if len(values[self.column_info['column_name:TEXT']]) > 0 else False
 
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
             self.app_conn = app_conn
+            self.column_info = {}
             self.data_sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.data_sizer)
 
@@ -430,18 +433,18 @@ class UDBFillingMaster(wx.Frame):
             column_values = {}
             minvalue = str(self.minvalue_spinctrl.GetValue())
             maxvalue = str(self.maxvalue_spinctrl.GetValue())
-            column_values['min_value'] = [minvalue,]
-            column_values['max_value'] = [maxvalue,]
+            column_values['min_value:INTEGER'] = [minvalue,]
+            column_values['max_value:INTEGER'] = [maxvalue,]
             return column_values
         
         def validate(self) -> bool: 
             values = self.get_values()
-            return True if (int(values['min_value'][0]) < int(values['max_value']) and
-                            values['min_value'] != '' and values['max_value'] != '') else False
+            return True if int(values['min_value:INTEGER'][0]) < int(values['max_value:INTEGER'][0]) else False
 
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
             self.app_conn = app_conn
+            self.column_info = {}
             self.data_sizer = wx.BoxSizer(wx.VERTICAL)
             self.SetSizer(self.data_sizer)
 
@@ -456,16 +459,199 @@ class UDBFillingMaster(wx.Frame):
             minvalue_statictext = wx.StaticText(self.input_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_NUMBER.MINVALUE'])
             self.input_sizer.Add(minvalue_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-            self.minvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-32768, max=32767)
+            self.minvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-999999999999999, max=999999999999999)
             self.input_sizer.Add(self.minvalue_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
 
             maxvalue_statictext = wx.StaticText(self.input_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_NUMBER.MAXVALUE'])
             self.input_sizer.Add(maxvalue_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-            self.maxvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-32768, max=32767, initial=1)
+            self.maxvalue_spinctrl = wx.SpinCtrl(self.input_panel, min=-999999999999999, max=999999999999999, initial=1)
             self.input_sizer.Add(self.maxvalue_spinctrl, 1, wx.ALIGN_CENTER_VERTICAL)
 
             self.data_sizer.Add(self.input_panel, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 20)
+            # ------------------------------
+
+            self.Layout()
+
+
+    ###########################################
+    ### Третья страница, заполнение для RDate
+    ###########################################
+
+    class RDateFillerPage(wx.Panel):
+        
+        app_conn: sqlite3.Connection
+        column_info: dict
+        mindate_today: bool
+        maxdate_today: bool
+
+        def set_column_info(self, column_info: dict): self.column_info = column_info
+
+        def set_today_min_date(self, event):
+            self.mindate_today = True
+            self.min_date_datectrl.SetValue(wx.DateTime().Now())
+
+        def set_today_max_date(self, event):
+            self.maxdate_today = True
+            self.max_date_datectrl.SetValue(wx.DateTime().Now())
+
+        def unset_today_min_date(self, event):
+            self.mindate_today = False
+
+        def unset_today_max_date(self, event):
+            self.maxdate_today = False
+
+        def get_values(self) -> dict:
+            column_values = {}
+            mindate = self.min_date_datectrl.GetValue().Format('%d.%m.%Y')
+            maxdate = self.max_date_datectrl.GetValue().Format('%d.%m.%Y')
+            if self.mindate_today:
+                mindate = 'RDate.today'
+            if self.maxdate_today:
+                maxdate = 'RDate.today'
+
+            column_values['minvalue:TEXT'] = (mindate,)
+            column_values['min_day:INTEGER'] = (str(self.min_dec_day_spinctrl.GetValue()),)
+            column_values['min_month:INTEGER'] = (str(self.min_dec_month_spinctrl.GetValue()),)
+            column_values['min_year:INTEGER'] = (str(self.min_dec_year_spinctrl.GetValue()),)
+            column_values['maxvalue:TEXT'] = (maxdate,)
+            column_values['max_day:INTEGER'] = (str(self.max_dec_day_spinctrl.GetValue()),)
+            column_values['max_month:INTEGER'] = (str(self.max_dec_month_spinctrl.GetValue()),)
+            column_values['max_year:INTEGER'] = (str(self.max_dec_year_spinctrl.GetValue()),)
+            return column_values
+        
+        def validate(self) -> bool:
+            column_values = self.get_values()
+            mindate = column_values['minvalue:TEXT']
+            maxdate = column_values['maxvalue:TEXT']
+
+            p_mindate = datetime.datetime.strptime(mindate, '%d.%m.%Y')
+            p_maxdate = datetime.datetime.strptime(maxdate, '%d.%m.%Y')
+
+            return True if p_mindate <= p_maxdate else False
+        
+        def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
+            super().__init__(parent)
+            self.app_conn = app_conn
+            self.column_info = {}
+            self.mindate_today = False
+            self.maxdate_today = False
+            self.data_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.SetSizer(self.data_sizer)
+
+            header_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.HEADER'])
+            self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
+            
+            # ------------------------------
+            horizontal_panel = wx.Panel(self)
+            horizontal_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            horizontal_panel.SetSizer(horizontal_sizer)
+
+            # ----------------------------------------
+            self.min_values_panel = wx.Panel(horizontal_panel)
+            self.min_values_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.min_values_panel.SetSizer(self.min_values_sizer)
+
+            # --------------------------------------------------
+            self.min_date_panel = wx.Panel(self.min_values_panel)
+            self.min_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.min_date_panel.SetSizer(self.min_date_sizer)
+
+            min_date_statictext = wx.StaticText(self.min_date_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_DATE.MIN_DATE'])
+            self.min_date_sizer.Add(min_date_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.min_date_datectrl = wx.adv.DatePickerCtrl(self.min_date_panel)
+            self.min_date_datectrl.Bind(wx.adv.EVT_DATE_CHANGED, self.unset_today_min_date)
+            self.min_date_sizer.Add(self.min_date_datectrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.set_min_today_button = wx.Button(self.min_date_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.TODAY_DATE'])
+            self.set_min_today_button.Bind(wx.EVT_BUTTON, self.set_today_min_date)
+            self.min_date_sizer.Add(self.set_min_today_button, 0, wx.ALIGN_CENTER_VERTICAL)
+
+            self.min_values_sizer.Add(self.min_date_panel, 0, wx.BOTTOM | wx.EXPAND, 5)
+            # --------------------------------------------------
+
+            self.min_decrease_panel = wx.Panel(self.min_values_panel)
+            self.min_decrease_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.min_decrease_panel.SetSizer(self.min_decrease_sizer)
+
+            min_dec_year_statictext = wx.StaticText(self.min_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.YEAR'])
+            self.min_decrease_sizer.Add(min_dec_year_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.min_dec_year_spinctrl = wx.SpinCtrl(self.min_decrease_panel, max=1000)
+            self.min_decrease_sizer.Add(self.min_dec_year_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
+            min_dec_month_statictext = wx.StaticText(self.min_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.MONTH'])
+            self.min_decrease_sizer.Add(min_dec_month_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.min_dec_month_spinctrl = wx.SpinCtrl(self.min_decrease_panel, max=1000)
+            self.min_decrease_sizer.Add(self.min_dec_month_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
+            min_dec_day_statictext = wx.StaticText(self.min_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.DAY'])
+            self.min_decrease_sizer.Add(min_dec_day_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.min_dec_day_spinctrl = wx.SpinCtrl(self.min_decrease_panel, max=1000)
+            self.min_decrease_sizer.Add(self.min_dec_day_spinctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+
+            self.min_values_sizer.Add(self.min_decrease_panel, 0, wx.EXPAND)
+            # --------------------------------------------------
+
+            horizontal_sizer.Add(self.min_values_panel, 1, wx.RIGHT | wx.EXPAND, 20)
+            horizontal_sizer.Add(wx.StaticLine(horizontal_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND)
+            # ----------------------------------------
+
+            self.max_values_panel = wx.Panel(horizontal_panel)
+            self.max_values_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.max_values_panel.SetSizer(self.max_values_sizer)
+
+            # --------------------------------------------------
+            self.max_date_panel = wx.Panel(self.max_values_panel)
+            self.max_date_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.max_date_panel.SetSizer(self.max_date_sizer)
+
+            max_date_statictext = wx.StaticText(self.max_date_panel, label=APP_TEXT_LABELS['APP.SIMPLE_GEN.RAND_DATE.MAX_DATE'])
+            self.max_date_sizer.Add(max_date_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.max_date_datectrl = wx.adv.DatePickerCtrl(self.max_date_panel)
+            self.max_date_datectrl.Bind(wx.adv.EVT_DATE_CHANGED, self.unset_today_max_date)
+            self.max_date_sizer.Add(self.max_date_datectrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.set_max_today_button = wx.Button(self.max_date_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.TODAY_DATE'])
+            self.set_max_today_button.Bind(wx.EVT_BUTTON, self.set_today_max_date)
+            self.max_date_sizer.Add(self.set_max_today_button, 0, wx.ALIGN_CENTER_VERTICAL)
+
+            self.max_values_sizer.Add(self.max_date_panel, 0, wx.BOTTOM | wx.EXPAND, 5)
+            # --------------------------------------------------
+
+            self.max_decrease_panel = wx.Panel(self.max_values_panel)
+            self.max_decrease_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.max_decrease_panel.SetSizer(self.max_decrease_sizer)
+
+            max_dec_year_statictext = wx.StaticText(self.max_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.YEAR'])
+            self.max_decrease_sizer.Add(max_dec_year_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.max_dec_year_spinctrl = wx.SpinCtrl(self.max_decrease_panel, max=1000)
+            self.max_decrease_sizer.Add(self.max_dec_year_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
+            max_dec_month_statictext = wx.StaticText(self.max_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.MONTH'])
+            self.max_decrease_sizer.Add(max_dec_month_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.max_dec_month_spinctrl = wx.SpinCtrl(self.max_decrease_panel, max=1000)
+            self.max_decrease_sizer.Add(self.max_dec_month_spinctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
+            max_dec_day_statictext = wx.StaticText(self.max_decrease_panel, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RDATE_PAGE.DAY'])
+            self.max_decrease_sizer.Add(max_dec_day_statictext, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
+
+            self.max_dec_day_spinctrl = wx.SpinCtrl(self.max_decrease_panel, max=1000)
+            self.max_decrease_sizer.Add(self.max_dec_day_spinctrl, 1, wx.ALIGN_CENTER_VERTICAL)
+
+            self.max_values_sizer.Add(self.max_decrease_panel, 0, wx.EXPAND)
+            # --------------------------------------------------
+
+            horizontal_sizer.Add(self.max_values_panel, 1, wx.LEFT | wx.EXPAND, 20)
+            # ----------------------------------------
+
+            self.data_sizer.Add(horizontal_panel, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 20)
             # ------------------------------
 
             self.Layout()
@@ -579,17 +765,20 @@ class UDBFillingMaster(wx.Frame):
         self.page2 = self.ColumnInformationPage(self.main_data_panel, self.app_conn)
         self.page3_RSet = self.RSetFillerPage(self.main_data_panel, self.app_conn)
         self.page3_RValue = self.RValueFillerPage(self.main_data_panel, self.app_conn)
+        self.page3_RDate = self.RDateFillerPage(self.main_data_panel, self.app_conn)
         self.page4 = self.ConfirmationPage(self.main_data_panel, self.app_conn)
 
         self.main_data_sizer.Add(self.page1, 0, wx.EXPAND)
         self.main_data_sizer.Add(self.page2, 0, wx.EXPAND)
         self.main_data_sizer.Add(self.page3_RSet, 1, wx.EXPAND)
         self.main_data_sizer.Add(self.page3_RValue, 0, wx.EXPAND)
+        self.main_data_sizer.Add(self.page3_RDate, 1, wx.EXPAND)
         self.main_data_sizer.Add(self.page4, 1, wx.EXPAND)
 
         self.page2.Hide()
         self.page3_RSet.Hide()
         self.page3_RValue.Hide()
+        self.page3_RDate.Hide()
         self.page4.Hide()
 
         self.curr_page_panel = self.page1

@@ -25,7 +25,7 @@ class BaseSimpleGenInput(wx.Panel):
     def get_value(self) -> str: return str(self.value)
 
     
-    def __init__(self, parent: wx.Window, sizer_mode: wx.VERTICAL|wx.HORIZONTAL = wx.VERTICAL):
+    def __init__(self, parent: wx.Window, sizer_mode = wx.VERTICAL):
         super().__init__(parent)
         self.sizer = wx.BoxSizer(sizer_mode)
         self.SetSizer(self.sizer)
