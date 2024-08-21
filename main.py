@@ -25,7 +25,7 @@ from connections.test_dbs.type_connectors import *
 from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
 from app.tools.udb_filling_master import UDBFillingMaster
-from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH
+from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH, APP_VERSION
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
@@ -491,6 +491,7 @@ class MainFrame(wx.Frame):
                 self.curr_conn_item = None
                 self.connection = None
                 self.connection_status_panel.set_status(0)
+                self.SetTitle("SDForge " + APP_VERSION)
 
                 for colitem in self.column_items:
                     colitem.changing_column_type(APP_PARAMETERS['DEFAULT_CONNECTOR'])
@@ -498,32 +499,33 @@ class MainFrame(wx.Frame):
                 # Сбрасываем прошлое подключение
                 if self.connection is not None:
                     self.connection.close()
-                    self.connection = None
                     self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                    self.connection = None
                     self.connection_status_panel.set_status(0)
 
                 self.curr_conn_item = get_item
 
-            # Получаем информацию о выбранном тестовом подключении
-            curr_item_id = ''
-            for id_key, treeitem_value in self.conn_items.items():
-                if self.curr_conn_item == treeitem_value:
-                    curr_item_id = id_key
-                    break
+                # Получаем информацию о выбранном тестовом подключении
+                curr_item_id = ''
+                for id_key, treeitem_value in self.conn_items.items():
+                    if self.curr_conn_item == treeitem_value:
+                        curr_item_id = id_key
+                        break
 
-            conn_data = {}
-            for conn_info in self.all_connections:
-                if curr_item_id == conn_info['id']:
-                    conn_data = conn_info
-                    break
-            
-            # Подключение к тБД и изменения в интерфейсе
-            self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
-            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
-            self.connection_status_panel.set_status(1)
+                conn_data = {}
+                for conn_info in self.all_connections:
+                    if curr_item_id == conn_info['id']:
+                        conn_data = conn_info
+                        break
+                
+                # Подключение к тБД и изменения в интерфейсе
+                self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
+                self.connection_status_panel.set_status(1)
+                self.SetTitle("@" + conn_data['database-alias'] + " | SDForge " + APP_VERSION)
 
-            for colitem in self.column_items:
-                colitem.changing_column_type(conn_data['connector-name'])
+                for colitem in self.column_items:
+                    colitem.changing_column_type(conn_data['connector-name'])
 
         except SetConnectionError as e:
             return catcher.error_message('E015', str(e) + '\n' + e.addition_info)
@@ -1097,7 +1099,7 @@ class MainFrame(wx.Frame):
         ###############################################################
 
     def __init__(self):
-        wx.Frame.__init__(self, None, title="SDForge", size=(1000, 700))
+        wx.Frame.__init__(self, None, title="SDForge " + APP_VERSION, size=(1000, 700))
         self.SetMinSize((800, 600))
         self.Maximize()
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
@@ -1715,7 +1717,7 @@ class AboutApp(wx.Frame):
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
 
-        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge v.2.0, 2024'), 0, wx.TOP, 10),
+        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge ' + APP_VERSION + ', 2024'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
                                  (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
 

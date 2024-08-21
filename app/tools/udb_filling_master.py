@@ -160,6 +160,7 @@ class UDBFillingMaster(wx.Frame):
 
         # Обработка данных для вставки
         for key, value in self.column_values.items():
+            col_name, col_type = key.split(':')
 
             # Получаем максимальное значение ID для определения операции
             max_id = pdb_curs.execute(f"""SELECT COALESCE(MAX(id), 0) FROM {self.column_info['table_name']};""").fetchone()[0]
@@ -169,12 +170,12 @@ class UDBFillingMaster(wx.Frame):
                 # Если строка с таким ID уже есть в таблице -> Изменяем строку с этим ID
                 if i <= max_id:
                     pdb_curs.execute(f"""UPDATE "{self.column_info['table_name']}"
-                                         SET "{key}" = '{val}'
+                                         SET "{col_name}" = '{val}'
                                          WHERE id = {i};""")
                 
                 # Если строки с этим ID нет (новая строка) -> Вставляем новую строку
                 else:
-                    pdb_curs.execute(f"""INSERT INTO "{self.column_info['table_name']}" ("{key}")
+                    pdb_curs.execute(f"""INSERT INTO "{self.column_info['table_name']}" ("{col_name}")
                                          VALUES ('{val}');""")
 
         # Запись нового столбца
@@ -525,11 +526,15 @@ class UDBFillingMaster(wx.Frame):
             mindate = column_values['minvalue:TEXT']
             maxdate = column_values['maxvalue:TEXT']
 
-            p_mindate = datetime.datetime.strptime(mindate, '%d.%m.%Y')
-            p_maxdate = datetime.datetime.strptime(maxdate, '%d.%m.%Y')
+            try:
+                p_mindate = datetime.datetime.strptime(mindate, '%d.%m.%Y')[0]
+                p_maxdate = datetime.datetime.strptime(maxdate, '%d.%m.%Y')[0]                   
 
-            return True if p_mindate <= p_maxdate else False
-        
+                return True if p_mindate <= p_maxdate else False
+            
+            except (TypeError, ValueError):
+                return True
+
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
             self.app_conn = app_conn

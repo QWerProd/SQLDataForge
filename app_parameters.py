@@ -59,6 +59,8 @@ APP_LOCALES = {
     'en': wx.LANGUAGE_ENGLISH
 }
 
+APP_VERSION = 'v.2.1'
+
 APP_TEXT_LABELS = dict()
 
 # Установка параметров
