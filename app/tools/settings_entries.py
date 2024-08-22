@@ -192,7 +192,7 @@ class CodeRedactor(SimpleEntry):
     def __init__(self, parent: wx.Panel, title: str = None):
         super().__init__(parent, title, sizer_mode=wx.HORIZONTAL)
 
-        self.styledtextctrl = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE, size=(-1, 125))
+        self.styledtextctrl = wx.stc.StyledTextCtrl(self, style=wx.TE_MULTILINE)
         self.styledtextctrl.StyleSetFont(wx.stc.STC_STYLE_DEFAULT,
                                          wx.Font(pointSize=int(APP_PARAMETERS['STC_FONT_SIZE']),
                                                  family=wx.FONTFAMILY_TELETYPE,
@@ -206,7 +206,7 @@ class CodeRedactor(SimpleEntry):
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_NUMBER, APP_PARAMETERS['STC_COLOUR_NUMBER'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, APP_PARAMETERS['STC_COLOUR_STRING'])
-        self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_STRING'])
+        self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_OBJECT'])
         self.styledtextctrl.StyleSetForeground(wx.stc.STC_SQL_WORD, APP_PARAMETERS['STC_COLOUR_WORD'])
         # Боковое поле
         self.styledtextctrl.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)

@@ -522,7 +522,7 @@ class MainFrame(wx.Frame):
                 self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
                 self.connection_status_panel.set_status(1)
-                self.SetTitle("@" + conn_data['database-alias'] + " | SDForge " + APP_VERSION)
+                self.SetTitle("@" + conn_data['database-alias'] + ' - :' + conn_data['connector-name'] + " | SDForge " + APP_VERSION)
 
                 for colitem in self.column_items:
                     colitem.changing_column_type(conn_data['connector-name'])
@@ -1089,7 +1089,7 @@ class MainFrame(wx.Frame):
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_COMMENTDOC, APP_PARAMETERS['STC_COLOUR_COMMENT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_NUMBER, APP_PARAMETERS['STC_COLOUR_NUMBER'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_CHARACTER, APP_PARAMETERS['STC_COLOUR_STRING'])
-        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_STRING'])
+        stc_redactor.StyleSetForeground(wx.stc.STC_SQL_STRING, APP_PARAMETERS['STC_COLOUR_OBJECT'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD, APP_PARAMETERS['STC_COLOUR_WORD'])
         stc_redactor.StyleSetForeground(wx.stc.STC_SQL_WORD2, APP_PARAMETERS['STC_COLOUR_TYPES'])
         # Боковое поле

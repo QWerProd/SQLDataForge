@@ -243,10 +243,13 @@ class Settings(wx.Dialog):
         return ret_code
 
     def __init__(self, parent: wx.Frame):
-        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(900, 500))
+        super().__init__(parent, title=APP_TEXT_LABELS['SETTINGS.TITLE'], size=(900, 550),
+                         style=wx.CAPTION | wx.RESIZE_BORDER | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.SetMinSize((900, 500))
+        self.SetMaxSize((1000, 650))
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close)
+        
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         self.sett_items = {}
         self.changed_params = {}

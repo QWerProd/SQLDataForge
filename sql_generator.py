@@ -79,9 +79,9 @@ class SQLGenerator:
             super().__init__(cursor, table, is_format_columns)
 
         def generate_data(self, row_count: int) -> list:
-            data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT {self.table_info[2]}
-                                                                    FROM {self.table_info[1]}
-                                                                    WHERE {self.table_info[2]} IS NOT NULL;""").fetchall()))
+            data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT "{self.table_info[2]}"
+                                                                    FROM "{self.table_info[1]}"
+                                                                    WHERE "{self.table_info[2]}" IS NOT NULL;""").fetchall()))
             for i in range(row_count):
                 row_number = rd.randint(0, len(data) - 1)
                 if self.is_format_columns:
@@ -99,7 +99,7 @@ class SQLGenerator:
 
         def generate_data(self, row_count: int) -> list:
             data = self.cursor.execute(f"""SELECT min_value, max_value
-                                           FROM {self.table_info[1]};""").fetchone()
+                                           FROM "{self.table_info[1]}";""").fetchone()
             minvalue = int(data[0])
             maxvalue = int(data[1])
 
@@ -119,7 +119,7 @@ class SQLGenerator:
 
         def generate_data(self, row_count: int) -> list:
             data = self.cursor.execute(f"""SELECT minvalue, maxvalue, min_day, min_month * 30, min_year * 365, max_day, max_month * 30, max_year * 365
-                                           FROM {self.table_info[1]};""").fetchone()
+                                           FROM "{self.table_info[1]}";""").fetchone()
 
             # Обработка минимального значения
             mindate = data[0]
@@ -182,12 +182,12 @@ class SQLGenerator:
                 datarow = ""
                 for column in column_names:
                     max_val = int(self.cursor.execute(f"""SELECT COUNT("{column}")
-                                                          FROM {self.table_info[1]}
+                                                          FROM "{self.table_info[1]}"
                                                           WHERE "{column}" IS NOT NULL;""").fetchone()[0])
 
-                    item = self.cursor.execute(f"""SELECT {column}
-                                                   FROM {self.table_info[1]}
-                                                   WHERE id = {rd.randint(1, max_val)};""").fetchone()[0]
+                    item = self.cursor.execute(f"""SELECT "{column}"
+                                                   FROM "{self.table_info[1]}"
+                                                   WHERE "id" = {rd.randint(1, max_val)};""").fetchone()[0]
                     datarow += item
                 if self.is_format_columns:
                     value = super().format_value(datarow)
@@ -204,8 +204,8 @@ class SQLGenerator:
             super().__init__(cursor, table, is_format_columns, rowid_seed)
 
         def generate_data(self, row_count: int) -> list:
-            data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT {self.table_info[2]}
-                                                                    FROM {self.table_info[1]};""").fetchall()))
+            data = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT "{self.table_info[2]}"
+                                                                    FROM "{self.table_info[1]}";""").fetchall()))
             
             rd.seed(self.session_uuid)
             for i in range(row_count):
@@ -254,29 +254,29 @@ class SQLGenerator:
         self.session_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.datetime.now())))
 
     def CreateHeader(self):
-        self.queryrow1 += 'INSERT INTO ' + self.table_name
+        self.queryrow1 += f'INSERT INTO "{self.table_name}"'
         col_names = []
         if self.new_table_info['is_id_create']:
             col_names.append('id')
         for columns in self.columns_info:
             col_names.append(columns['column_name'])
-        res = ', '.join(col_names)
-        self.queryrow1 += f'({res})'
+        res = '", "'.join(col_names)
+        self.queryrow1 += f'("{res}")'
 
     def CreateTable(self) -> str:
-        query_createtable = f'CREATE TABLE {self.table_name} (\n    '
+        query_createtable = f'CREATE TABLE "{self.table_name}" (\n    '
         items = []
         if self.new_table_info['is_id_create']:
-            items.append(f'id INTEGER NOT NULL PRIMARY KEY\n')
+            items.append(f'"id" INTEGER NOT NULL PRIMARY KEY\n')
         for colinfo in self.columns_info:
-            items.append(f"{colinfo['column_name']} {colinfo['column_type']} "
+            items.append(f""""{colinfo['column_name']}" {colinfo['column_type']} """
                          f"{'NOT NULL ' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
         query_createtable += '   ,'.join(items) + ');'
         return query_createtable
 
     def CreateIndex(self, index_info: dict) -> str:
-        index = (f"CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX {index_info['index_name']}\n"
-                 f"ON {self.table_name}({','.join(index_info['columns'])})")
+        index = (f"""CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX "{index_info['index_name']}"\n"""
+                 f"""ON "{self.table_name}"("{'","'.join(index_info['columns'])}")""")
         if index_info['condition'] == '':
             index += ';'
         else:
