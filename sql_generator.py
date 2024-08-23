@@ -219,28 +219,21 @@ class SQLGenerator:
             return self.datalist
 
     def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
-                 table_info: dict = None, indexes: list = None, is_simple_mode: bool = None, is_format_columns: bool = True):
+                 table_info: dict = None, indexes: list = None, is_simple_mode: bool = False, is_format_columns: bool = True):
         self.app_conn = app_conn
-
         self.rows_count = rows_count
         self.queryrow2.clear()
         self.cols.clear()
         self.columns_info = columns_info
         self.added_items = added_items
         self.is_format_columns = is_format_columns
-        if is_simple_mode is None:
-            self.is_simple_mode = True
-
-            if table_info is not None:
-                self.is_simple_mode = False
-                for key, value in table_info.items():
-                    self.table_name = key
-                    self.new_table_info = value
-            self.indexes = indexes
+        self.is_simple_mode = is_simple_mode
+        self.indexes = indexes
+        if table_info is not None:
+            for key, value in table_info.items():
+                self.table_name = key
+                self.new_table_info = value
         else:
-            self.is_simple_mode = is_simple_mode
-
-        if table_info is None:
             self.new_table_info = {
                 'is_id_create': False
             }
@@ -254,7 +247,7 @@ class SQLGenerator:
         self.session_uuid = str(uuid.uuid5(uuid.NAMESPACE_DNS, str(datetime.datetime.now())))
 
     def CreateHeader(self):
-        self.queryrow1 += f'INSERT INTO "{self.table_name}"'
+        self.queryrow1 += f"""INSERT INTO {('"' + self.new_table_info['schema_name'] + '".') if self.new_table_info['schema_name'] != '' else ''}"{self.table_name}" """
         col_names = []
         if self.new_table_info['is_id_create']:
             col_names.append('id')
@@ -264,7 +257,7 @@ class SQLGenerator:
         self.queryrow1 += f'("{res}")'
 
     def CreateTable(self) -> str:
-        query_createtable = f'CREATE TABLE "{self.table_name}" (\n    '
+        query_createtable = f"""CREATE TABLE {('"' + self.new_table_info['schema_name'] + '".') if self.new_table_info['schema_name'] != '' else ''}"{self.table_name}" (\n    """
         items = []
         if self.new_table_info['is_id_create']:
             items.append(f'"id" INTEGER NOT NULL PRIMARY KEY\n')
@@ -276,7 +269,7 @@ class SQLGenerator:
 
     def CreateIndex(self, index_info: dict) -> str:
         index = (f"""CREATE {'UNIQUE ' if index_info['is_unique'] else ''}INDEX "{index_info['index_name']}"\n"""
-                 f"""ON "{self.table_name}"("{'","'.join(index_info['columns'])}")""")
+                 f"""ON {('"' + self.new_table_info['schema_name'] + '".') if self.new_table_info['schema_name'] != '' else ''}"{self.table_name}"("{'","'.join(index_info['columns'])}")""")
         if index_info['condition'] == '':
             index += ';'
         else:

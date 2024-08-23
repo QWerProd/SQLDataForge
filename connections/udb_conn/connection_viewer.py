@@ -112,11 +112,11 @@ class ConnectionViewer(wx.Frame):
                 return wx.MessageBox(APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_SINGLE_CONNECTION.MESSAGE'],
                                      APP_TEXT_LABELS['CONNECTION_VIEWER.MESSAGE_BOX.DROP_LOCAL_CONNECTION.CAPTION'],
                                      wx.OK | wx.ICON_WARNING)
-            with wx.Dialog(APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE'],
+            result = wx.MessageBox(APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.MESSAGE'],
                            APP_TEXT_LABELS['TEST_DB_VIEWER.DELETE_APPROVE.CAPTION'],
-                           wx.YES_NO | wx.ICON_WARNING) as dlg:
-                if dlg.ShowModal() == wx.NO_ID:
-                    return
+                           wx.YES_NO | wx.ICON_WARNING)
+            if result == wx.NO:
+                return
 
         database = self.treectrl_databases.GetItemText(item)
 

@@ -2,16 +2,19 @@
   {
     "connector-name": "SQLite",
     "connection-type": "local_file",
-    "connector-logo": "img/connectors/SQlite.png"
+    "connector-logo": "img/connectors/SQlite.png",
+    "default-schema": "main"
   },
   {
     "connector-name": "PostgreSQL",
     "connection-type": "server_host",
-    "connector-logo": "img/connectors/PostgreSQL.png"
+    "connector-logo": "img/connectors/PostgreSQL.png",
+    "default-schema": "public"
   },
   {
     "connector-name": "MySQL",
     "connection-type": "server_host",
-    "connector-logo": "img/connectors/MySQL.png"
+    "connector-logo": "img/connectors/MySQL.png",
+    "default-schema": ""
   }
 ]

@@ -51,6 +51,7 @@ class MainFrame(wx.Frame):
     connection = BaseConnector
     curr_conn_item = wx.TreeItemId
     conn_items = {}
+    curr_connector = ''
 
     # Переменные "Простого генератора"
     gens = {}
@@ -492,40 +493,44 @@ class MainFrame(wx.Frame):
                 self.connection = None
                 self.connection_status_panel.set_status(0)
                 self.SetTitle("SDForge " + APP_VERSION)
+                self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
 
                 for colitem in self.column_items:
-                    colitem.changing_column_type(APP_PARAMETERS['DEFAULT_CONNECTOR'])
-            else:
-                # Сбрасываем прошлое подключение
-                if self.connection is not None:
-                    self.connection.close()
-                    self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
-                    self.connection = None
-                    self.connection_status_panel.set_status(0)
+                    colitem.changing_column_type(self.curr_connector)
 
-                self.curr_conn_item = get_item
+                return
+    
+            # Сбрасываем прошлое подключение
+            if self.connection is not None:
+                self.connection.close()
+                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
+                self.connection = None
+                self.connection_status_panel.set_status(0)
 
-                # Получаем информацию о выбранном тестовом подключении
-                curr_item_id = ''
-                for id_key, treeitem_value in self.conn_items.items():
-                    if self.curr_conn_item == treeitem_value:
-                        curr_item_id = id_key
-                        break
+            self.curr_conn_item = get_item
 
-                conn_data = {}
-                for conn_info in self.all_connections:
-                    if curr_item_id == conn_info['id']:
-                        conn_data = conn_info
-                        break
-                
-                # Подключение к тБД и изменения в интерфейсе
-                self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
-                self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
-                self.connection_status_panel.set_status(1)
-                self.SetTitle("@" + conn_data['database-alias'] + ' - :' + conn_data['connector-name'] + " | SDForge " + APP_VERSION)
+            # Получаем информацию о выбранном тестовом подключении
+            curr_item_id = ''
+            for id_key, treeitem_value in self.conn_items.items():
+                if self.curr_conn_item == treeitem_value:
+                    curr_item_id = id_key
+                    break
 
-                for colitem in self.column_items:
-                    colitem.changing_column_type(conn_data['connector-name'])
+            conn_data = {}
+            for conn_info in self.all_connections:
+                if curr_item_id == conn_info['id']:
+                    conn_data = conn_info
+                    break
+            
+            # Подключение к тБД и изменения в интерфейсе
+            self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
+            self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
+            self.connection_status_panel.set_status(1)
+            self.SetTitle("@" + conn_data['database-alias'] + ' - :' + conn_data['connector-name'] + " | SDForge " + APP_VERSION)
+            self.curr_connector = conn_data['connector-name']
+
+            for colitem in self.column_items:
+                colitem.changing_column_type(conn_data['connector-name'])
 
         except SetConnectionError as e:
             return catcher.error_message('E015', str(e) + '\n' + e.addition_info)
@@ -689,6 +694,7 @@ class MainFrame(wx.Frame):
 
         table_info = {}
         indexes_info = []
+        schema_name = self.schema_name_textctrl.GetValue()
         table_name = self.textctrl_table_name.GetValue()
         rows_count = self.textctrl_rows_count.GetValue()
 
@@ -720,15 +726,29 @@ class MainFrame(wx.Frame):
                     self.query_status = catcher.error_message('E006')
                     self.statusbar.SetStatusText(self.query_status, 0)
                     return
+                
+                # Чтение значений параметров типов коннекторов
+                connector = {}
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json')) as type_conns:
+                    json_data = json.load(type_conns)
+                    for conn in json_data:
+                        if conn['connector-name'] == self.curr_connector:
+                            connector = conn
+                            break
 
                 # Составление словаря со значениями для создания скрипта таблицы
                 temp = {'is_id_create': False}
+                if schema_name == '': temp['schema_name'] = connector['default-schema']
+                else:                 temp['schema_name'] = schema_name
+
                 if self.is_create_table:
                     id_create = self.id_column_checkbox.GetValue()
                     temp['is_id_create'] = id_create
+
                     if self.is_id_column:
                         increment = self.textctrl_increment_start.GetValue()
                         temp['increment_start'] = increment
+
                 table_info[table_name] = temp
 
                 # Составление словарей со значениями для создания скриптов индексов
@@ -767,38 +787,39 @@ class MainFrame(wx.Frame):
                 if len(dup) > 0:
                     self.query_status = catcher.error_message('E007')
                     self.statusbar.SetStatusText(self.query_status, 0)
-                else:
-                    # Генерация
-                    with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
-                        cursor = app_conn.cursor()
-                        start_build_time = datetime.now()
-                        builder = SQLGenerator(app_conn, rows_count, added_items, colinfo, table_info, indexes_info)
-                        query = ''
-                        query += builder.BuildQuery(self.is_create_table)
-                        build_time = datetime.now() - start_build_time
-                        self.textctrl_sql.SetValue(query)
+                    return
+                
+                # Генерация
+                with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
+                    cursor = app_conn.cursor()
+                    start_build_time = datetime.now()
+                    builder = SQLGenerator(app_conn, rows_count, added_items, colinfo, table_info, indexes_info)
+                    query = ''
+                    query += builder.BuildQuery(self.is_create_table)
+                    build_time = datetime.now() - start_build_time
+                    self.textctrl_sql.SetValue(query)
 
-                        # Обновление статусов
-                        self.is_generated = True
-                        self.is_saved = False
-                        self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
-                        self.statusbar.SetStatusText(self.query_status, 0)
-                        generate_time = datetime.now() - start_generate_time
+                    # Обновление статусов
+                    self.is_generated = True
+                    self.is_saved = False
+                    self.query_status = APP_TEXT_LABELS['MAIN.STATUSBAR.STATUS.DONE']
+                    self.statusbar.SetStatusText(self.query_status, 0)
+                    generate_time = datetime.now() - start_generate_time
 
-                        # Запись запроса в лог
-                        cursor = app_conn.cursor()
-                        cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
-                                           VALUES (?, ?);""", (query, datetime.now().strftime('%d-%m-%Y %H:%M:%S.%f')))
-                        app_conn.commit()
+                    # Запись запроса в лог
+                    cursor = app_conn.cursor()
+                    cursor.execute(f"""INSERT INTO t_execution_log(query_text, date_execute)
+                                        VALUES (?, ?);""", (query, datetime.now().strftime('%d-%m-%Y %H:%M:%S.%f')))
+                    app_conn.commit()
 
-                    # Подсчет времени работы
-                    build_time = round(build_time.total_seconds(), 4)
-                    generate_time = round(generate_time.total_seconds(), 2)
-                    self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
-                                                 + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
-                        generate_time) + " с.", 2)
-                    query_status_id = 2
-                    saved_status_id = 1
+                # Подсчет времени работы
+                build_time = round(build_time.total_seconds(), 4)
+                generate_time = round(generate_time.total_seconds(), 2)
+                self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
+                                                + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
+                    generate_time) + " с.", 2)
+                query_status_id = 2
+                saved_status_id = 1
             except ValueError:
                 self.query_status = catcher.error_message('E010')
 
@@ -986,6 +1007,9 @@ class MainFrame(wx.Frame):
                 self.update_stc_style()
             if res > 1:
                 self.refresh()
+                for colitem in self.column_items:
+                    colitem.changing_column_type(self.curr_connector)
+                self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
             if res > 2:
                 self.relaunch_app()
                 self.Destroy()
@@ -1105,6 +1129,7 @@ class MainFrame(wx.Frame):
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
         self.connection = None
+        self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
 
         self.bold_font = wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
@@ -1439,6 +1464,7 @@ class MainFrame(wx.Frame):
                                                      style=wx.TR_HIDE_ROOT)
         self.treectrl_test_connections_root = self.treectrl_test_connections.AddRoot('')
 
+        # Список иконок для коннекторов
         self.image_connection_items = wx.ImageList(16, 16)
         self.sqlite_image = self.image_connection_items.Add(
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/SQLite.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
@@ -1469,6 +1495,8 @@ class MainFrame(wx.Frame):
         side_sizer.Add(treectrl_splitterwindow, 1, wx.EXPAND)
         # ----------
 
+        # Панель статусов
+        #################
         self.status_panel = wx.Panel(side_panel, style=wx.BORDER_STATIC)
         self.status_sizer = wx.BoxSizer(wx.VERTICAL)
         self.status_panel.SetSizer(self.status_sizer)
@@ -1522,21 +1550,26 @@ class MainFrame(wx.Frame):
         header_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_boxsizer)
 
-        statictext_table_name = wx.StaticText(header_panel,
-                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
-        header_boxsizer.Add(statictext_table_name, 0, wx.LEFT | wx.CENTER | wx.ALL, 5)
+        schema_name_statictext = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME'])
+        header_boxsizer.Add(schema_name_statictext, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+
+        self.schema_name_textctrl = wx.TextCtrl(header_panel, size=(-1, -1))
+        header_boxsizer.Add(self.schema_name_textctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
+
+        statictext_table_name = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
+        header_boxsizer.Add(statictext_table_name, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         self.textctrl_table_name = wx.TextCtrl(header_panel, size=(-1, -1))
-        header_boxsizer.Add(self.textctrl_table_name, 1, wx.CENTER | wx.EXPAND | wx.ALL, 5)
+        header_boxsizer.Add(self.textctrl_table_name, 2, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
 
         statictext_rows_count = wx.StaticText(header_panel,
                                               label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.ROW_COUNT'])
-        header_boxsizer.Add(statictext_rows_count, 0, wx.CENTER | wx.RIGHT | wx.ALL, 5)
+        header_boxsizer.Add(statictext_rows_count, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-        self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(100, -1))
-        header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALL, 5)
+        self.textctrl_rows_count = wx.TextCtrl(header_panel, size=(125, -1))
+        header_boxsizer.Add(self.textctrl_rows_count, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
         # ----------------------------------------
-        main_page_boxsizer.Add(header_panel, 0, wx.EXPAND, 5)
+        main_page_boxsizer.Add(header_panel, 0, wx.EXPAND)
         main_page_boxsizer.Add(wx.StaticLine(main_page_panel), 0, wx.EXPAND | wx.BOTTOM, 5)
         # ----------------------------------------
 

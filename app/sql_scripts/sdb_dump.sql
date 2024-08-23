@@ -871,7 +871,11 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('UDB_FILLING_MASTER.RDATE_PAGE.TODAY_DATE','en','Current date'),
 	 ('UDB_FILLING_MASTER.RDATE_PAGE.YEAR','en','Years:'),
 	 ('UDB_FILLING_MASTER.RDATE_PAGE.MONTH','en','Months:'),
-	 ('UDB_FILLING_MASTER.RDATE_PAGE.DAY','en','Days:');
+	 ('UDB_FILLING_MASTER.RDATE_PAGE.DAY','en','Days:'),
+	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_OBJECT','ru','Цвет объектов БД:'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME','ru','Схема (опционально):'),
+	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_OBJECT','en','Color of DB objects:'),
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME','en','Schema (optional):');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -937,7 +941,8 @@ INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layou
 	 ('KEY_TDB_VIEWER','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_TDB_VIEWER',0),
 	 ('PATH_FOR_REPORTS','','SYSTEM',NULL,0),
 	 ('PATH_FOR_SCRIPTS','','SYSTEM',NULL,0),
-	 ('KEY_FILLING_UDB','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_FILLING_UDB',0);
+	 ('KEY_FILLING_UDB','','HOTKEY','APP.SETTINGS.SYSTEM.HOTKEYS.KEY_FILLING_UDB',0),
+	 ('STC_COLOUR_OBJECT','#009CA1','SYSTEM',NULL,1);
 $script$
 INSERT INTO t_settings_items (id_fk,sett_label,is_valid) VALUES
 	 (NULL,'APP.SETTINGS.THEME','Y'),
