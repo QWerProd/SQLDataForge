@@ -3,6 +3,7 @@ import os
 import wx.adv
 import sqlite3
 import datetime
+import wx.lib.scrolledpanel
 
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 from app.error_catcher import ErrorCatcher
@@ -18,7 +19,7 @@ class UDBFillingMaster(wx.Frame):
     page_num = 0
     pages = []
     curr_page_panel: wx.Panel
-
+    filling_pages = {}
 
     ###########################################
     ### Методы управления страницами через кнопки
@@ -73,17 +74,8 @@ class UDBFillingMaster(wx.Frame):
                         return wx.MessageBox(APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.MESSAGE'],
                                              APP_TEXT_LABELS['NEW_TEST_CONN.MESSAGE_BOX.FILL_FIELDS.CAPTION'],
                                              wx.OK_DEFAULT | wx.ICON_WARNING)
-
-                match self.column_info['gen_type']:
-                    case "RSet":
-                        next_page = self.page3_RSet
-                    case "RValue":
-                        next_page = self.page3_RValue
-                    case "RIDSet":
-                        next_page = self.page3_RSet
-                    case "RDate":
-                        next_page = self.page3_RDate
-
+                
+                next_page = self.filling_pages.get(self.column_info['gen_type'])
                 next_page.set_column_info(self.column_info)
             case 2:
                 self.column_values = self.curr_page_panel.get_values()
@@ -241,7 +233,7 @@ class UDBFillingMaster(wx.Frame):
         app_conn: sqlite3.Connection
         dbpath: str
         datatypes = ["text-value", "integer-value", "float-value", "date-value", "boolean-value"]
-        generator_types = ["RSet", "RValue", "RIDSet", "RDate"]
+        generator_types = ["RSet", "RValue", "RIDSet", "RDate", "RChain"]
 
         class MyClassCompleterSimple(wx.TextCompleterSimple):
             
@@ -663,6 +655,119 @@ class UDBFillingMaster(wx.Frame):
 
 
     ###########################################
+    ### Третья страница, заполнение для RChain
+    ###########################################
+
+    class RChainFillerPage(wx.Panel):  
+
+        app_conn: sqlite3.Connection
+        column_info: dict
+        init_id: int
+        entries: list
+
+        class ColumnEntry(wx.Panel):
+
+            id_panel: int
+
+            def get_values(self) -> dict:
+                column_val = {}
+                values = self.column_values_textctrl.GetValue().split('\n')
+                column_val[self.column_name_textctrl.GetValue() + ':TEXT'] = values
+                return column_val
+            
+            def selfdestroy(self):
+                self.Destroy()
+
+            def __init__(self, parent: wx.Panel, id_panel: int):
+                super().__init__(parent, size=(100, -1))
+                self.id_panel = id_panel
+                sizer = wx.BoxSizer(wx.VERTICAL)
+                self.SetSizer(sizer)
+
+                self.column_name_textctrl = wx.TextCtrl(self, value=f'column{self.id_panel}')
+                sizer.Add(self.column_name_textctrl, 0, wx.BOTTOM, 5)
+
+                self.column_values_textctrl = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(100, -1))
+                sizer.Add(self.column_values_textctrl, 1, wx.EXPAND)
+
+                self.Layout()
+
+        def set_column_info(self, column_info: dict): self.column_info = column_info
+
+        def append_column(self, event=None) -> int:
+            colentry = UDBFillingMaster.RChainFillerPage.ColumnEntry(self.columns_panel, self.init_id)
+            self.columns_sizer.Add(colentry, 0, wx.TOP | wx.RIGHT | wx.EXPAND | wx.BOTTOM, 5)
+            self.entries.append(colentry)
+            self.init_id += 1
+            self.columns_panel.Layout()
+
+        def delete_column(self, event=None):
+            curr_panel = self.entries.pop()
+            self.init_id -= 1
+            curr_panel.selfdestroy()
+            self.columns_panel.Layout()
+
+        def get_values(self) -> dict:
+            columns_dict = {}
+            for entry in self.entries:
+                columns = entry.get_values()
+                columns_dict = {**columns_dict, **columns}
+
+            return columns_dict
+
+        def validate(self) -> bool:
+            columns_dict = self.get_values()
+            for colname, colvalues in columns_dict.items():
+                if colname == '' or len(colvalues) == 0:
+                    return False
+                
+            return True
+
+        def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection):
+            super().__init__(parent)
+            self.app_conn = app_conn
+            self.column_info = {}
+            self.init_id = 0
+            self.entries = []
+            self.data_sizer = wx.BoxSizer(wx.VERTICAL)
+            self.SetSizer(self.data_sizer)
+
+            header_statictext = wx.StaticText(self, label=APP_TEXT_LABELS['UDB_FILLING_MASTER.RCHAIN_PAGE.HEADER'])
+            self.data_sizer.Add(header_statictext, 0, wx.ALL, 20)
+
+            # ------------------------------
+
+            buttons_panel = wx.Panel(self)
+            buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            buttons_panel.SetSizer(buttons_sizer)
+
+            self.append_column_button = wx.Button(buttons_panel, label=APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.APPEND'], size=(100, -1))
+            self.append_column_button.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/plus.png"), wx.BITMAP_TYPE_PNG))
+            self.append_column_button.Bind(wx.EVT_BUTTON, self.append_column)
+            buttons_sizer.Add(self.append_column_button, 0, wx.RIGHT, 5)
+
+            self.delete_column_button = wx.Button(buttons_panel, label=APP_TEXT_LABELS['MAIN.POPUP_MENU.UDB.DELETE'], size=(100, -1))
+            self.delete_column_button.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/minus.png"), wx.BITMAP_TYPE_PNG))
+            self.delete_column_button.Bind(wx.EVT_BUTTON, self.delete_column)
+            buttons_sizer.Add(self.delete_column_button, 0, wx.BOTTOM, 10)
+
+            self.data_sizer.Add(buttons_panel, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 20)
+            # ------------------------------
+
+            self.columns_panel = wx.lib.scrolledpanel.ScrolledPanel(self)
+            self.columns_sizer = wx.BoxSizer(wx.HORIZONTAL)
+            self.columns_panel.SetSizer(self.columns_sizer)
+            self.columns_panel.SetupScrolling(scroll_x=True, scroll_y=False)
+            self.columns_panel.SetAutoLayout(1)
+
+            self.append_column()
+
+            self.data_sizer.Add(self.columns_panel, 1, wx.EXPAND | wx.RIGHT | wx.LEFT | wx.BOTTOM, 20)
+            # ------------------------------
+
+            self.Layout()
+
+    ###########################################
     ### Четвертая страница, подтверждение данных
     ###########################################
 
@@ -771,6 +876,7 @@ class UDBFillingMaster(wx.Frame):
         self.page3_RSet = self.RSetFillerPage(self.main_data_panel, self.app_conn)
         self.page3_RValue = self.RValueFillerPage(self.main_data_panel, self.app_conn)
         self.page3_RDate = self.RDateFillerPage(self.main_data_panel, self.app_conn)
+        self.page3_RChain = self.RChainFillerPage(self.main_data_panel, self.app_conn)
         self.page4 = self.ConfirmationPage(self.main_data_panel, self.app_conn)
 
         self.main_data_sizer.Add(self.page1, 0, wx.EXPAND)
@@ -778,15 +884,23 @@ class UDBFillingMaster(wx.Frame):
         self.main_data_sizer.Add(self.page3_RSet, 1, wx.EXPAND)
         self.main_data_sizer.Add(self.page3_RValue, 0, wx.EXPAND)
         self.main_data_sizer.Add(self.page3_RDate, 1, wx.EXPAND)
+        self.main_data_sizer.Add(self.page3_RChain, 1, wx.EXPAND)
         self.main_data_sizer.Add(self.page4, 1, wx.EXPAND)
 
         self.page2.Hide()
         self.page3_RSet.Hide()
         self.page3_RValue.Hide()
         self.page3_RDate.Hide()
+        self.page3_RChain.Hide()
         self.page4.Hide()
 
-        self.curr_page_panel = self.page1
+        self.filling_pages = {
+            "RSet": self.page3_RSet,
+            "RValue": self.page3_RValue,
+            "RDate": self.page3_RDate,
+            "RIDSet": self.page3_RSet,
+            "RChain": self.page3_RChain
+        }
 
         self.main_sizer.Add(self.main_data_panel, 1, wx.EXPAND)
         # --------------

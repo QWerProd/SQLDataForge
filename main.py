@@ -1575,10 +1575,10 @@ class MainFrame(wx.Frame):
 
         # ----------------------------------------
         self.table_columns_panel = wx.lib.scrolledpanel.ScrolledPanel(main_page_panel, size=(-1, -1))
-        self.table_columns_panel.SetupScrolling()
-        self.table_columns_panel.SetAutoLayout(0)
         self.table_columns_sizer = wx.BoxSizer(wx.VERTICAL)
         self.table_columns_panel.SetSizer(self.table_columns_sizer)
+        self.table_columns_panel.SetupScrolling()
+        self.table_columns_panel.SetAutoLayout(1)
 
         # ----------------------------------------
         table_columns_statictext_panel = wx.Panel(self.table_columns_panel)

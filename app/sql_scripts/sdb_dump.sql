@@ -875,7 +875,9 @@ INSERT INTO t_lang_text (label,lang,text) VALUES
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_OBJECT','ru','Цвет объектов БД:'),
 	 ('MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME','ru','Схема (опционально):'),
 	 ('APP.SETTINGS.THEME.REDACTOR.STC_COLOUR_OBJECT','en','Color of DB objects:'),
-	 ('MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME','en','Schema (optional):');
+	 ('MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME','en','Schema (optional):'),
+	 ('UDB_FILLING_MASTER.RCHAIN_PAGE.HEADER','ru','Добавьте необходимое количество столбцов и укажите имена и значения (через перенос строки) для каждого столбца:'),
+	 ('UDB_FILLING_MASTER.RCHAIN_PAGE.HEADER','en','Add the required number of columns and specify the names and values (via line break) for each column:');
 $script$
 INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E001','E001.CAPTION','E001.MESSAGE'),
@@ -906,7 +908,8 @@ INSERT INTO t_err_codes (err_code,title,message) VALUES
 	 ('E026','E026.CAPTION','E026.MESSAGE'),
 	 ('E027','E027.CAPTION','E027.MESSAGE'),
 	 ('E028','E028.CAPTION','E028.MESSAGE'),
-	 ('E029','E029.CAPTION','E029.MESSAGE');
+	 ('E029','E029.CAPTION','E029.MESSAGE'),
+	 ('E030','E030.CAPTION','E030.MESSAGE');
 $script$
 INSERT INTO t_params (param_name,param_value,param_type,param_label,update_layout) VALUES
 	 ('RDate.today','datetime.datetime.now().date()','GEN',NULL,NULL),

@@ -96,6 +96,7 @@ class NewConnection(wx.Dialog):
 
                 wx.MessageBox(self.db_name + ':\n' + APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE'],
                               APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.CAPTION'], wx.OK | wx.ICON_INFORMATION)
+                self.Destroy()
             except sqlite3.Error as e:
                 app_conn.rollback()
                 catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
