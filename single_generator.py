@@ -308,7 +308,7 @@ class WrappingFrame(wx.Dialog):
     query = str
 
     def wrap(self):
-        self.query = f"""INSERT INTO "table_name"("column_name")\nVALUES ("""
+        self.query = f"""INSERT INTO "schema_name"."table_name"("column_name")\nVALUES ("""
         for item in self.data_items:
             if isinstance(item, str):
                 self.query += f"'{item}'\n       ,"
