@@ -78,6 +78,7 @@ target/
 releases/
 *.exe
 *.iss
+config_v*.json
 
 # Jupyter Notebook
 .ipynb_checkpoints

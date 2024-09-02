@@ -204,3 +204,23 @@ class DataController:
                 return 1
             finally:
                 curs.close()
+
+    @staticmethod
+    def GetDatabasePath(db_name: str) -> str:
+        """Получает имя БД, возвращает путь к БД (полный)
+
+        Args:
+            db_name (str): Имя БД
+
+        Returns:
+            str: Путь к БД
+        """
+        pdb_path = ''
+        with sqlite3.connect(db_path) as app_conn:
+            curs = app_conn.cursor()
+            pdb_path = curs.execute(f"SELECT path FROM t_databases WHERE dbname = '{db_name}';").fetchone()[0]
+            curs.close()
+
+        # Преобразуем путь к БД
+        pdb_path = os.path.realpath(pdb_path)
+        return pdb_path

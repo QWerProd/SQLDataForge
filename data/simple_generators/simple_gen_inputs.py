@@ -6,6 +6,7 @@ import random
 
 from wx.core import HORIZONTAL, VERTICAL
 from app_parameters import APPLICATION_PATH, APP_TEXT_LABELS
+from data_controller import DataController
 
 
 #################################
@@ -171,7 +172,7 @@ class SelectFromDB(wx.Panel):
         self.db_name = db_name
         self.column_info = column_info
 
-        with sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name)) as conn:
+        with sqlite3.connect(DataController.GetDatabasePath(self.db_name)) as conn:
             curs = conn.cursor()
             self.col_name = curs.execute(f"""SELECT column_code FROM t_cases_info 
                                                     WHERE table_name = '{self.column_info.split(':')[0]}'

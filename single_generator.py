@@ -71,7 +71,11 @@ class SimpleGenerator(wx.Frame):
             db_name = DataController.GetDBFromTables([table_name])
 
             # Возможно когда нибудь я придумаю какой интерфейс реализовать...
-            entry_item = SelectFromDB(self.data_panel, db_name[0], open_code)
+            try:
+                entry_item = SelectFromDB(self.data_panel, db_name[0], open_code)
+            except TypeError:
+                self.catcher.error_message('E031')
+                return None
             self.db_name = db_name[0]
             entry_item.Hide()
             # Но пока ничего такого не будет :)
@@ -304,7 +308,7 @@ class WrappingFrame(wx.Dialog):
     query = str
 
     def wrap(self):
-        self.query = 'INSERT INTO table_name(column_name)\nVALUES ('
+        self.query = f"""INSERT INTO "table_name"("column_name")\nVALUES ("""
         for item in self.data_items:
             if isinstance(item, str):
                 self.query += f"'{item}'\n       ,"

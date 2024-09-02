@@ -294,19 +294,19 @@ class SQLGenerator:
 
             # Для simple_mode
             db_name = DC.GetDBFromTables([self.added_items[0], ])[0]
-            simp_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'data/', db_name))
-            curs = simp_conn.cursor()
+            db_path = DC.GetDatabasePath(db_name)
+            with sqlite3.connect(db_path) as simp_conn:
+                curs = simp_conn.cursor()
 
-            table = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, 'integer-value'
-                                     FROM t_cases_info
-                                     WHERE table_name = "{self.added_items[0]}"
-                                     AND   column_name = "{self.added_items[1]}";""").fetchone()
+                table = curs.execute(f"""SELECT '{db_name}', table_name, column_name, gen_key, 'integer-value'
+                                        FROM t_cases_info
+                                        WHERE table_name = "{self.added_items[0]}"
+                                        AND   column_name = "{self.added_items[1]}";""").fetchone()
+                
+                generator = generators.get(table[3])(curs, table)
+                datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
+                curs.close()    
 
-            generator = generators.get(table[3])(curs, table)
-            datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
-
-            curs.close()
-            simp_conn.close()
         else:
             temp = []
             for table_item in self.added_items:

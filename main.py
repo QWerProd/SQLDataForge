@@ -8,9 +8,9 @@ import sqlite3
 import subprocess
 import webbrowser
 import wx.lib.scrolledpanel
+from datetime import datetime
 
 from recovery import Recovery
-from datetime import datetime
 from data_controller import DataController
 from sql_generator import SQLGenerator, ColumnTypeNotAllowedError
 from app.error_catcher import ErrorCatcher
@@ -1019,7 +1019,7 @@ class MainFrame(wx.Frame):
         simple_generator.Show()
         simple_generator.SetFocus()
 
-    def open_simple_generator_from_menu(self, event, menuitem: str = None):
+    def open_simple_generator_from_menu(self, event=None, menuitem: str = None):
         if menuitem is None:
             menuitem = self.menubar.FindItemById(event.GetId())
 
@@ -1043,6 +1043,7 @@ class MainFrame(wx.Frame):
         filler_udb = UDBFillingMaster(catcher)
         filler_udb.Show()
         filler_udb.SetFocus()
+        self.refresh()
 
     def open_app_info(self, event):
         about_app = AboutApp()

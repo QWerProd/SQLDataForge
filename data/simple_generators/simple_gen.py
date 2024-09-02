@@ -15,7 +15,8 @@ class SimpleDataFromDBGenerator:
     def __init__(self, gen_code: str) -> None:
         self.gen_code = gen_code
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
-        self.generator = SQLGenerator(self.app_conn, 1, self.gen_code.split(':'), [self.gen_code.split(':')[1], ], is_format_columns=False)
+        self.generator = SQLGenerator(self.app_conn, 1, self.gen_code.split(':'), [self.gen_code.split(':')[1], ],
+                                      is_format_columns=False, is_simple_mode=True)
         self.gen_code = gen_code
 
     def generate(self, rows_count: int, params: list = []) -> list:

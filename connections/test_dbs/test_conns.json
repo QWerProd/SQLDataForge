@@ -1,12 +1,1 @@
-[
-    {
-        "connection-type": "local_file",
-        "connector-name": "SQLite",
-        "database-alias": "Test_SQLite",
-        "database-desc": "Test SQLite!!",
-        "database-name": "Test_db.db",
-        "database-path": "C:\\Users\\ds\\Documents\\Test_db.db",
-        "database-type-conn": 0,
-        "id": "4b8a52b8c98bcc87e1a251c71d6ff632df72d25a"
-    }
-]
+[]
