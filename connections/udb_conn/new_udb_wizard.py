@@ -59,7 +59,9 @@ class UDBCreateMaster(wx.Frame):
             else:
                 self.dict_db['db_name'] = self.db_name
                 self.dict_db['db_path'] = os.path.join(self.db_path, self.db_name)
+                self.dict_db['is_internal'] = 'Y'
                 if self.is_adding_enabled:
+                    self.dict_db['is_internal'] = 'Y'
                     self.dict_db['db_alias'] = self.db_alias
                     self.dict_db['db_desc'] = self.db_desc
                 self.page3.set_info(self.dict_db)
@@ -83,7 +85,7 @@ class UDBCreateMaster(wx.Frame):
         connect = sqlite3.Connection
         cursor = sqlite3.Cursor
         try:
-            connect = sqlite3.connect(os.path.join(APPLICATION_PATH, self.db_path, self.db_name))
+            connect = sqlite3.connect(os.path.join(self.db_path, self.db_name))
             cursor = connect.cursor()
             create_db = (f"CREATE TABLE \"t_cases_info\" (\n"
                          f"    \"id\"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\n"
@@ -100,8 +102,9 @@ class UDBCreateMaster(wx.Frame):
             if 'db_alias' in self.dict_db:
                 app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
                 app_curs = app_conn.cursor()
-                app_curs.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
-                                     VALUES (?, ?, ?, ?)""", (self.dict_db['db_name'], self.dict_db['db_path'], self.dict_db['db_alias'], self.dict_db['db_desc']))
+                app_curs.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description, is_internal)
+                                     VALUES (?, ?, ?, ?, ?)""", 
+                                     (self.dict_db['db_name'], self.dict_db['db_path'], self.dict_db['db_alias'], self.dict_db['db_desc'], self.dict_db['is_internal']))
                 app_conn.commit()
                 app_curs.close()
                 app_conn.close()

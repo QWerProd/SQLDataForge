@@ -13,7 +13,7 @@ class ConnectionViewer(wx.Frame):
 
     def set_databases(self):
         for database in self.databases:
-            if database[2].startswith('data') or database[2].endswith('SQLDataForge/data'):
+            if database[5] == 'Y':
                 item = self.treectrl_databases.AppendItem(self.local_root, database[0])
             else:
                 item = self.treectrl_databases.AppendItem(self.global_root, database[0])
@@ -140,7 +140,7 @@ class ConnectionViewer(wx.Frame):
         # Удаляем файл пБД, если она локальная
         if root_text == APP_TEXT_LABELS['CONNECTION_VIEWER.DB_TREE.LOCAL_UDB']:
             try:
-                os.remove('data/' + database)
+                os.remove(os.path.join(APPLICATION_PATH, 'data/', database))
             except:
                 pass
 

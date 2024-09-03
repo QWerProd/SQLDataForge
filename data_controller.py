@@ -57,7 +57,7 @@ class DataController:
                 for dbname in dblist:
                     databases.append(dbname[0])
             else:
-                dblist = app_curs.execute("SELECT dbname, field_name, path, description, is_valid FROM t_databases").fetchall()
+                dblist = app_curs.execute("SELECT dbname, field_name, path, description, is_valid, is_internal FROM t_databases").fetchall()
                 for dbitem in dblist:
                     databases.append(dbitem)
 
@@ -215,12 +215,14 @@ class DataController:
         Returns:
             str: Путь к БД
         """
-        pdb_path = ''
+        pdb_path = ()
         with sqlite3.connect(db_path) as app_conn:
             curs = app_conn.cursor()
-            pdb_path = curs.execute(f"SELECT path FROM t_databases WHERE dbname = '{db_name}';").fetchone()[0]
+            pdb_path = curs.execute(f"SELECT path, is_internal FROM t_databases WHERE dbname = '{db_name}';").fetchone()
             curs.close()
 
         # Преобразуем путь к БД
-        pdb_path = os.path.realpath(pdb_path)
-        return pdb_path
+        path = pdb_path[0]
+        if pdb_path[1] == 'Y':
+            path = os.path.join(BASE_DIR, pdb_path[0])
+        return path

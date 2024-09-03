@@ -90,8 +90,8 @@ class NewConnection(wx.Dialog):
             app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
             cursor = app_conn.cursor()
             try:
-                cursor.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description)
-                                   VALUES ("{self.db_name}", "{self.db_path}", "{self.db_name if field_name == '' else field_name}", "{self.db_desc}");""")
+                cursor.execute(f"""INSERT INTO t_databases(dbname, path, field_name, description, is_internal)
+                                   VALUES ("{self.db_name}", "{self.db_path}", "{self.db_name if field_name == '' else field_name}", "{self.db_desc}", 'N');""")
                 app_conn.commit()
 
                 wx.MessageBox(self.db_name + ':\n' + APP_TEXT_LABELS['NEW_CONN.MESSAGE_BOX.ADDING_UDB_TRUE.MESSAGE'],

@@ -7,6 +7,7 @@ import wx.lib.scrolledpanel
 
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 from app.error_catcher import ErrorCatcher
+from data_controller import DataController
 
 
 class UDBFillingMaster(wx.Frame):
@@ -258,11 +259,7 @@ class UDBFillingMaster(wx.Frame):
                 return res
             
         def set_curr_db(self, db_name: str): 
-            pdb_curs = self.app_conn.cursor()
-            self.dbpath = pdb_curs.execute("""SELECT path
-                                              FROM   t_databases
-                                              WHERE  dbname = ?""", (db_name,)).fetchone()[0]
-            pdb_curs.close()
+            self.dbpath = DataController.GetDatabasePath(db_name)
         
         def get_tables_list(self) -> list:
             tables_list = []
@@ -387,13 +384,15 @@ class UDBFillingMaster(wx.Frame):
 
         def get_values(self) -> dict:
             column_values = {}
+            column_name = self.column_info['column_name']
             text = self.values_textctrl.GetValue()
-            column_values[self.column_info['column_name:TEXT']] = text.split('\n')
+            column_values[column_name + ':TEXT'] = text.split('\n')
             return column_values
         
         def validate(self) -> bool: 
             values = self.get_values()
-            return True if len(values[self.column_info['column_name:TEXT']]) > 0 else False
+            column_name = self.column_info['column_name']
+            return True if len(values[column_name + ':TEXT']) > 0 else False
 
         def __init__(self, parent: wx.Panel, app_conn: sqlite3.Connection = None):
             super().__init__(parent)
