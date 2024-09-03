@@ -303,7 +303,7 @@ class SQLGenerator:
                                         WHERE table_name = "{self.added_items[0]}"
                                         AND   column_name = "{self.added_items[1]}";""").fetchone()
                 
-                generator = generators.get(table[3])(curs, table)
+                generator = generators.get(table[3])(curs, table, session_uuid=self.session_uuid)
                 datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
                 curs.close()    
 
