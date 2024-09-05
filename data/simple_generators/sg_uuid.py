@@ -4,7 +4,19 @@ import uuid
 class GeneratorUUID:
 
     @staticmethod
-    def generate(version: str = '4', param: str = None) -> uuid.UUID:
+    def validate(version: str = '4', param: str = None) -> bool:
+        params = {
+            '1': False,
+            '3': True,
+            '4': False,
+            '5': True
+        }
+
+        need_param = params.get(version)
+        return True if need_param is not None and need_param == bool(param) else False
+
+    @staticmethod
+    def generate(version: str = '4', param: str = None) -> str:
         res: str
 
         match version:
@@ -17,5 +29,5 @@ class GeneratorUUID:
             case '5':
                 res = uuid.uuid5(uuid.NAMESPACE_DNS, param)
             
-        return res
+        return str(res)
             
