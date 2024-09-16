@@ -83,11 +83,9 @@ class SQLGenerator:
                                                                     FROM "{self.table_info[1]}"
                                                                     WHERE "{self.table_info[2]}" IS NOT NULL;""").fetchall()))
             for i in range(row_count):
-                row_number = rd.randint(0, len(data) - 1)
+                value = rd.choice(data)
                 if self.is_format_columns:
-                    value = super().format_value(data[row_number])
-                else:
-                    value = data[row_number]
+                    value = super().format_value(value)
                 self.datalist.append(value)
 
             return self.datalist
@@ -175,20 +173,31 @@ class SQLGenerator:
                     column_names.remove("id")
                 else:
                     break
+            
+            # Отбираем все строки из отсеянных столбцов
+            column_values = []
+            for column in column_names:
+                values = list(map(lambda x: x[0], self.cursor.execute(f"""SELECT "{column}"
+                                                                          FROM "{self.table_info[1]}"
+                                                                          WHERE "{column}" IS NOT NULL;""").fetchall()))
+                column_values.append(values)
 
             for i in range(row_count):
 
                 # Поочередное получение данных
                 datarow = ""
-                for column in column_names:
-                    max_val = int(self.cursor.execute(f"""SELECT COUNT("{column}")
-                                                          FROM "{self.table_info[1]}"
-                                                          WHERE "{column}" IS NOT NULL;""").fetchone()[0])
-
-                    item = self.cursor.execute(f"""SELECT "{column}"
-                                                   FROM "{self.table_info[1]}"
-                                                   WHERE "id" = {rd.randint(1, max_val)};""").fetchone()[0]
+                for column_value in column_values:
+                    item = rd.choice(column_value)
                     datarow += item
+
+            #         max_val = int(self.cursor.execute(f"""SELECT COUNT("{column}")
+            #                                               FROM "{self.table_info[1]}"
+            #                                               WHERE "{column}" IS NOT NULL;""").fetchone()[0])
+
+            #         item = self.cursor.execute(f"""SELECT "{column}"
+            #                                        FROM "{self.table_info[1]}"
+            #                                        WHERE "id" = {rd.randint(1, max_val)};""").fetchone()[0]
+            #         datarow += item
                 if self.is_format_columns:
                     value = super().format_value(datarow)
                 else:
