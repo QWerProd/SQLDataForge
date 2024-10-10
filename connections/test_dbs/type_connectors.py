@@ -288,7 +288,7 @@ class PostgreSQLConnector(BaseConnector):
         db_host, db_port, db_name = re.split(r'[\:\/]', db_path)
         db_user, db_pass = db_user_info.split(':')
         try:
-            if ssh_path is None:
+            if ssh_path == '':
                 conn = psycopg2.connect(user=db_user,
                                         password=db_pass,
                                         host=db_host,
@@ -509,7 +509,7 @@ class MySQLConnector(BaseConnector):
                 raise SetConnectionError(self.db_path, 'mysql', addition_info=str(e))
 
 # Доступные типы коннекторов
-avaliable_connectors = {
+available_connectors = {
     'SQLite': SQLiteConnector,
     'PostgreSQL': PostgreSQLConnector,
     'MySQL': MySQLConnector

@@ -18,7 +18,7 @@ class TestDBViewer(wx.Frame):
     curr_page_panel = wx.Panel
     curr_conn_item = wx.TreeItemId
     curr_item_id = str
-    avaliable_info_panels = {
+    available_info_panels = {
         'local_file': NewTestConnection.ConnectDBLocalFile,
         'server_host': NewTestConnection.ConnectDBServer
     }

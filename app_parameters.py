@@ -37,7 +37,7 @@ APP_PARAMETERS = {
     'KEY_LOGVIEWER': str,
     'KEY_SAVE_AS': str,
     'SQL_KEYWORDS': "insert into values create table as primary key not null where and or like"
-                    " if exists index on is unique update set ",
+                    " if exists index on is unique update set default comment column",
     'IS_ALIAS_UDB_USING': str,
     'KEY_NEW_TEST_CONN': str,
     'KEY_COMMIT': str,
@@ -67,15 +67,19 @@ APP_TEXT_LABELS = dict()
 # Установка параметров
 curs = app_conn.cursor()
 
-for param in APP_PARAMETERS.keys():
-    try:
-        param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
-        APP_PARAMETERS[param] = param_name[0]
-    except sqlite3.OperationalError as e:
-        #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
-        exit(14)
-    except TypeError:
-        pass
+# Перезапись параметров из БД
+def set_parameters():
+    for param in APP_PARAMETERS.keys():
+        try:
+            param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
+            APP_PARAMETERS[param] = param_name[0]
+        except sqlite3.OperationalError as e:
+            #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+            exit(14)
+        except TypeError:
+            pass
+        
+set_parameters()
 
 # Установка словаря с текстом для labels
 try:

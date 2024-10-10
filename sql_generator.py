@@ -190,14 +190,6 @@ class SQLGenerator:
                     item = rd.choice(column_value)
                     datarow += item
 
-            #         max_val = int(self.cursor.execute(f"""SELECT COUNT("{column}")
-            #                                               FROM "{self.table_info[1]}"
-            #                                               WHERE "{column}" IS NOT NULL;""").fetchone()[0])
-
-            #         item = self.cursor.execute(f"""SELECT "{column}"
-            #                                        FROM "{self.table_info[1]}"
-            #                                        WHERE "id" = {rd.randint(1, max_val)};""").fetchone()[0]
-            #         datarow += item
                 if self.is_format_columns:
                     value = super().format_value(datarow)
                 else:
@@ -272,8 +264,13 @@ class SQLGenerator:
             items.append(f'"id" INTEGER NOT NULL PRIMARY KEY\n')
         for colinfo in self.columns_info:
             items.append(f""""{colinfo['column_name']}" {colinfo['column_type']} """
-                         f"{'NOT NULL ' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''}\n")
+                         f"{'NOT NULL ' if colinfo['column_not_null'] else ''}{'UNIQUE' if colinfo['column_unique'] else ''} "
+                         f"{'DEFAULT ' + colinfo['column_default'] if colinfo['column_default'] != '' else ''}\n")
         query_createtable += '   ,'.join(items) + ');'
+
+        for colinfo in self.columns_info:
+            if colinfo['column_comment'] != '':
+                query_createtable += f"""\n\nCOMMENT ON COLUMN "{self.table_name}"."{colinfo['column_name']}"\nIS '{colinfo['column_comment']}';"""
         return query_createtable
 
     def CreateIndex(self, index_info: dict) -> str:
@@ -285,7 +282,7 @@ class SQLGenerator:
             index += index_info['condition']
             if not index_info['condition'].endswith(';'):
                 index += ';'
-        index += '\n/'
+        index += '\n'
 
         return index
 
@@ -427,7 +424,7 @@ class SQLGenerator:
 
         # Создание таблицы
         if is_table:
-            full_query += self.CreateTable() + '\n/\n'
+            full_query += self.CreateTable() + '\n\n'
 
         # Создание индексов
         if len(self.indexes) > 0:

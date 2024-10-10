@@ -25,7 +25,7 @@ from connections.test_dbs.type_connectors import *
 from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
 from app.tools.udb_filling_master import UDBFillingMaster
-from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH, APP_VERSION
+from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH, APP_VERSION, set_parameters
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
 
@@ -52,6 +52,7 @@ class MainFrame(wx.Frame):
     curr_conn_item = wx.TreeItemId
     conn_items = {}
     curr_connector = ''
+    available_params = {}
 
     # Переменные "Простого генератора"
     gens = {}
@@ -63,6 +64,7 @@ class MainFrame(wx.Frame):
     # Параметры страницы "Таблица"
     is_create_table = False
     is_id_column = False
+    is_id_column_added = False
 
     # Параметры состояния
     is_generated = False
@@ -101,12 +103,15 @@ class MainFrame(wx.Frame):
         colname = ""
         coltype = ""
         colcode = ""
+        available_fields = {}
 
         @property
-        def is_empty(self) -> bool: return self.__is_empty
+        def is_empty(self) -> bool:
+            return self.__is_empty
 
         @is_empty.setter
-        def is_empty(self, value): self.__is_empty = value
+        def is_empty(self, value):
+            self.__is_empty = value
 
         def on_colname_changed(self, event):
             # Получаем необходимые значения
@@ -121,10 +126,22 @@ class MainFrame(wx.Frame):
             for item in index_items:
                 item.update_choices(added_item_code)
 
-        def activating_checkboxes(self, is_table=False):
-            if not self.is_empty:
-                self.not_null_checkbox.Enable(is_table)
-                self.unique_checkbox.Enable(is_table)
+        def activating_inputs(self, is_table=False):
+            if self.is_empty:
+                return
+
+            # (Де)активация полей
+            self.not_null_checkbox.Enable(is_table)
+            self.unique_checkbox.Enable(is_table)
+            self.default_textctrl.SetEditable(is_table)
+            self.comment_textctrl.SetEditable(is_table)
+
+            # Очистка полей
+            if not is_table:
+                self.not_null_checkbox.SetValue(False)
+                self.unique_checkbox.SetValue(False)
+                self.default_textctrl.SetValue('')
+                self.comment_textctrl.SetValue('')
 
         def changing_column_type(self, connector=None):
             if self.is_empty:
@@ -138,7 +155,8 @@ class MainFrame(wx.Frame):
                 curr_connect = connector
 
             try:
-                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r', encoding='utf-8') as json_file:
+                with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_columns.json'), 'r',
+                          encoding='utf-8') as json_file:
                     json_object = json.load(json_file)
             except FileNotFoundError as e:
                 return catcher.error_message('E023', str(e))
@@ -155,17 +173,35 @@ class MainFrame(wx.Frame):
                     if col_type is not None:
                         self.combobox_coltype.Append(col_type)
 
-        def get_column_name(self) -> str: return self.colname
+        def set_available_params(self, params: dict):
+            for key, value in params.items():
+                field = self.available_fields.get(key)
+                if field is not None:
+                    field.SetEditable(value == 'True')
 
-        def get_column_type(self) -> str: return self.combobox_coltype.GetValue()
+        def get_column_name(self) -> str:
+            return self.colname
 
-        def get_column_label(self) -> str: return self.statictext_colcode.GetLabel()
+        def get_column_type(self) -> str:
+            return self.combobox_coltype.GetValue()
 
-        def get_value_not_null(self) -> bool: return self.not_null_checkbox.GetValue()
+        def get_column_label(self) -> str:
+            return self.statictext_colcode.GetLabel()
 
-        def get_value_unique(self) -> bool: return self.unique_checkbox.GetValue()
+        def get_value_not_null(self) -> bool:
+            return self.not_null_checkbox.GetValue()
 
-        def get_column_info(self) -> str: return self.column_info
+        def get_value_unique(self) -> bool:
+            return self.unique_checkbox.GetValue()
+        
+        def get_value_default(self) -> str:
+            return self.default_textctrl.GetValue()
+        
+        def get_value_comment(self) -> str:
+            return self.comment_textctrl.GetValue()
+
+        def get_column_info(self) -> str:
+            return self.column_info
 
         def __init__(self, parent: wx.Panel, column_info: str = "", is_empty: bool = False):
             super().__init__(parent)
@@ -180,16 +216,18 @@ class MainFrame(wx.Frame):
             self.SetSizer(sizer)
 
             if is_empty:
-                nn_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
+                nn_checkbox = wx.CheckBox(self, label='\t', size=(60, -1))
                 nn_checkbox.Disable()
-                u_checkbox = wx.CheckBox(self, label='\t', size=(50, -1))
+                u_checkbox = wx.CheckBox(self, label='\t', size=(60, -1))
                 u_checkbox.Disable()
                 sizer.AddMany([
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
                     (wx.StaticText(self, label=self.colcode, size=(200, -1)), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
-                    (nn_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35),
-                    (u_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
+                    (nn_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40),
+                    (u_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40),
+                    (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5),
+                    (wx.TextCtrl(self, style=wx.TE_READONLY, size=(150, -1)), 0, wx.RIGHT, 5)
                 ])
                 return
 
@@ -204,13 +242,25 @@ class MainFrame(wx.Frame):
             self.statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
             sizer.Add(self.statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
 
-            self.not_null_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
+            self.not_null_checkbox = wx.CheckBox(self, size=(60, -1), label='\t')
             self.not_null_checkbox.Enable(False)
-            sizer.Add(self.not_null_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
+            sizer.Add(self.not_null_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40)
 
-            self.unique_checkbox = wx.CheckBox(self, size=(50, -1), label='\t')
+            self.unique_checkbox = wx.CheckBox(self, size=(60, -1), label='\t')
             self.unique_checkbox.Enable(False)
-            sizer.Add(self.unique_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 35)
+            sizer.Add(self.unique_checkbox, 0, wx.LEFT | wx.ALIGN_CENTER, 40)
+
+            self.default_textctrl = wx.TextCtrl(self, size=(150, -1), name='column-default')
+            sizer.Add(self.default_textctrl, 0, wx.RIGHT, 5)
+
+            self.comment_textctrl = wx.TextCtrl(self, size=(150, -1), name='column-comment')
+            sizer.Add(self.comment_textctrl, 0, wx.RIGHT, 5)
+
+            self.available_fields = {
+                'column-default': self.default_textctrl,
+                'column-comment': self.comment_textctrl
+            }
+
 
     # ---------------------------------------------------
 
@@ -319,7 +369,8 @@ class MainFrame(wx.Frame):
             self.button_delete = wx.Button(second_panel,
                                            label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.DELETE_INDEX'],
                                            style=wx.NO_BORDER, size=(81, -1))
-            self.button_delete.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/minus.png'), wx.BITMAP_TYPE_PNG))
+            self.button_delete.SetBitmapLabel(
+                wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/minus.png'), wx.BITMAP_TYPE_PNG))
             self.button_delete.SetBackgroundColour(wx.Colour(255, 225, 225))
             self.button_delete.Bind(wx.EVT_ENTER_WINDOW,
                                     lambda x: self.button_delete.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -494,12 +545,13 @@ class MainFrame(wx.Frame):
                 self.connection_status_panel.set_status(0)
                 self.SetTitle("SDForge " + APP_VERSION)
                 self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
+                self.set_current_available_params(self.curr_connector)
 
                 for colitem in self.column_items:
                     colitem.changing_column_type(self.curr_connector)
 
                 return
-    
+
             # Сбрасываем прошлое подключение
             if self.connection is not None:
                 self.connection.close()
@@ -521,21 +573,34 @@ class MainFrame(wx.Frame):
                 if curr_item_id == conn_info['id']:
                     conn_data = conn_info
                     break
-            
+
             # Подключение к тБД и изменения в интерфейсе
-            self.connection = avaliable_connectors[conn_data['connector-name']](conn_data)
+            self.connection = available_connectors[conn_data['connector-name']](conn_data)
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, True)
             self.connection_status_panel.set_status(1)
-            self.SetTitle("@" + conn_data['database-alias'] + ' - :' + conn_data['connector-name'] + " | SDForge " + APP_VERSION)
+            self.SetTitle(
+                "@" + conn_data['database-alias'] + ' - :' + conn_data['connector-name'] + " | SDForge " + APP_VERSION)
             self.curr_connector = conn_data['connector-name']
+            self.set_current_available_params(self.curr_connector)
 
             for colitem in self.column_items:
                 colitem.changing_column_type(conn_data['connector-name'])
+                colitem.set_available_params(conn_data['connector-name'])
 
         except SetConnectionError as e:
             return catcher.error_message('E015', str(e) + '\n' + e.addition_info)
         except SetSSHTunnelError as e:
             return catcher.error_message('E025', str(e) + '\n' + e.addition_path)
+
+    def set_current_available_params(self, connector_name: str):
+        connectors = {}
+        with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json')) as json_file:
+            connectors = json.load(json_file)
+        
+        for connector in connectors:
+            if connector_name == connector['connector-name']:
+                self.available_params = connector.get('available-params')
+                return
 
     def push_query(self, event):
         try:
@@ -543,13 +608,13 @@ class MainFrame(wx.Frame):
                 query = self.textctrl_sql.GetValue()
                 if query == '':
                     return catcher.error_message('E001')
-                
+
                 result = self.connection.execute_query(query)
 
                 self.is_transaction = True
-                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result[0]),
-                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
-                                wx.ICON_INFORMATION | wx.OK)
+                wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.MESSAGE'] + str(result),
+                              APP_TEXT_LABELS['MAIN.MESSAGE_BOX.EXECUTE_SQL.CAPTION'],
+                              wx.ICON_INFORMATION | wx.OK)
                 self.transaction_status_panel.set_status(1)
 
         except AttributeError:
@@ -568,7 +633,7 @@ class MainFrame(wx.Frame):
             self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
             self.connection_status_panel.set_status(0)
             return catcher.error_message('E016', str(e) + '\n' + e.addition_info)
-            
+
     def commit_transaction(self, event):
         if self.connection is None:
             return catcher.error_message('E019')
@@ -576,12 +641,14 @@ class MainFrame(wx.Frame):
             try:
                 if self.connection.check_connection():
                     result, count_query, transaction_time = self.connection.commit()
-                    
+
                     self.is_transaction = False
                     wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
-                                                                                                        round(transaction_time, 2)),
-                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
-                                wx.ICON_INFORMATION | wx.OK)
+                                                                                                          round(
+                                                                                                              transaction_time,
+                                                                                                              2)),
+                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.CAPTION'],
+                                  wx.ICON_INFORMATION | wx.OK)
                     self.transaction_status_panel.set_status(0)
 
             except DestroyedConnectionError as e:
@@ -596,7 +663,7 @@ class MainFrame(wx.Frame):
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
                 self.connection_status_panel.set_status(0)
                 return catcher.error_message('E016', str(e) + '\n' + e.addition_info)
-        
+
         else:
             return catcher.error_message('E020')
 
@@ -604,15 +671,15 @@ class MainFrame(wx.Frame):
         if self.connection is None:
             return catcher.error_message('E019')
         elif self.is_transaction:
-            try: 
+            try:
                 if self.connection.check_connection():
                     result, count_query, transaction_time = self.connection.rollback()
 
                     self.is_transaction = False
                     wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_COMMITED.MESSAGE'].format(count_query,
-                                                                                                        round(transaction_time, 2)),
-                                APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
-                                wx.ICON_INFORMATION | wx.OK)
+                                                                                                          round(transaction_time, 2)),
+                                  APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_ROLLBACKED.CAPTION'],
+                                  wx.ICON_INFORMATION | wx.OK)
                     self.transaction_status_panel.set_status(0)
 
             except DestroyedConnectionError as e:
@@ -627,7 +694,7 @@ class MainFrame(wx.Frame):
                 self.treectrl_test_connections.SetItemBold(self.curr_conn_item, False)
                 self.connection_status_panel.set_status(0)
                 return catcher.error_message('E016', '\n' + str(e) + '\n' + e.addition_info)
-        
+
         else:
             return catcher.error_message('E020')
 
@@ -635,9 +702,11 @@ class MainFrame(wx.Frame):
     ############################
 
     def append_column_item(self, column_item: str, is_empty: bool = False):
-        # Создаем столбец
+        # Создаем столбец и инициализируем методы поведения в соответствии с типом коннектора и т.п.
         colitem = MainFrame.ColumnItem(self.table_items_panel, column_item, is_empty)
-        colitem.activating_checkboxes(self.is_create_table)
+        colitem.activating_inputs(self.is_create_table)
+        if self.is_create_table:
+            colitem.set_available_params(self.available_params)
         if not is_empty:
             colitem.changing_column_type()
         self.column_items.append(colitem)
@@ -726,7 +795,7 @@ class MainFrame(wx.Frame):
                     self.query_status = catcher.error_message('E006')
                     self.statusbar.SetStatusText(self.query_status, 0)
                     return
-                
+
                 # Чтение значений параметров типов коннекторов
                 connector = {}
                 with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/type_connectors.json')) as type_conns:
@@ -738,8 +807,10 @@ class MainFrame(wx.Frame):
 
                 # Составление словаря со значениями для создания скрипта таблицы
                 temp = {'is_id_create': False}
-                if schema_name == '': temp['schema_name'] = connector['default-schema']
-                else:                 temp['schema_name'] = schema_name
+                if schema_name == '':
+                    temp['schema_name'] = connector['default-schema']
+                else:
+                    temp['schema_name'] = schema_name
 
                 if self.is_create_table:
                     id_create = self.id_column_checkbox.GetValue()
@@ -775,7 +846,9 @@ class MainFrame(wx.Frame):
                     coldict = {'column_name': self.column_items[i + self.is_id_column].get_column_name(),
                                'column_type': self.column_items[i + self.is_id_column].get_column_type(),
                                'column_not_null': self.column_items[i + self.is_id_column].get_value_not_null(),
-                               'column_unique': self.column_items[i + self.is_id_column].get_value_unique()}
+                               'column_unique': self.column_items[i + self.is_id_column].get_value_unique(),
+                               'column_default': self.column_items[i + self.is_id_column].get_value_default(),
+                               'column_comment': self.column_items[i + self.is_id_column].get_value_comment()}
                     colinfo.append(coldict)
 
                 # Проверка имен столбцов на уникальность
@@ -788,7 +861,7 @@ class MainFrame(wx.Frame):
                     self.query_status = catcher.error_message('E007')
                     self.statusbar.SetStatusText(self.query_status, 0)
                     return
-                
+
                 # Генерация
                 with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
                     cursor = app_conn.cursor()
@@ -816,7 +889,7 @@ class MainFrame(wx.Frame):
                 build_time = round(build_time.total_seconds(), 4)
                 generate_time = round(generate_time.total_seconds(), 2)
                 self.statusbar.SetStatusText(APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.GENERATE_TIME'] + str(build_time)
-                                                + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
+                                             + APP_TEXT_LABELS['MAIN.STATUSBAR.TIMER.ALL_TIME'] + str(
                     generate_time) + " с.", 2)
                 query_status_id = 2
                 saved_status_id = 1
@@ -924,6 +997,7 @@ class MainFrame(wx.Frame):
         self.databases = DataController.GetDatabases(False)
         self.set_databases_tree_items()
         self.set_conn_info()
+        set_parameters()
         for colitem in self.column_items:
             colitem.changing_column_type()
 
@@ -956,13 +1030,15 @@ class MainFrame(wx.Frame):
     def set_conn_info(self):
         json_data = []
         try:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), encoding='utf-8') as json_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'),
+                      encoding='utf-8') as json_file:
                 json_data = json.load(json_file)
 
             self.all_connections = json_data
 
         except FileNotFoundError:
-            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w', encoding='utf-8') as new_file:
+            with open(os.path.join(APPLICATION_PATH, 'connections/test_dbs/test_conns.json'), 'w',
+                      encoding='utf-8') as new_file:
                 file_input = []
                 json.dump(file_input, new_file, sort_keys=True, indent=4)
 
@@ -972,7 +1048,8 @@ class MainFrame(wx.Frame):
     def set_connections_tree_items(self):
         self.treectrl_test_connections.DeleteAllItems()
         for conn_info in self.all_connections:
-            tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root, conn_info['database-name'])
+            tree_item = self.treectrl_test_connections.AppendItem(self.treectrl_test_connections_root,
+                                                                  conn_info['database-name'])
             self.conn_items[conn_info['id']] = tree_item
             self.treectrl_test_connections.SetItemImage(tree_item, self.test_dbs_images[conn_info['connector-name']])
 
@@ -1130,7 +1207,9 @@ class MainFrame(wx.Frame):
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
         self.connection = None
+
         self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
+        self.set_current_available_params(self.curr_connector)
 
         self.bold_font = wx.Font(9, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
@@ -1148,11 +1227,15 @@ class MainFrame(wx.Frame):
                 self.id_column_checkbox.Hide()
                 self.id_column_checkbox.SetValue(False)
                 is_id_enabled()
+
             for colitem in self.column_items:
-                colitem.activating_checkboxes(self.is_create_table)
+                colitem.activating_inputs(self.is_create_table)
+                if self.is_create_table:
+                    colitem.set_available_params(self.available_params)  
             table_page_panel.Layout()
-            for colitem in self.column_items:
-                colitem.activating_checkboxes(self.is_create_table)
+            # for colitem in self.column_items:
+            #     colitem.activating_inputs(self.is_create_table)
+            #     colitem.set_available_params(self.available_params)
 
         def is_id_enabled(event=None):
             self.is_id_column = self.id_column_checkbox.GetValue()
@@ -1161,11 +1244,13 @@ class MainFrame(wx.Frame):
                 self.insert_column_item(0, '::id::integer-value')
                 self.statictext_increment_start.Show()
                 self.textctrl_increment_start.Show()
-            else:
+                self.is_id_column_added = True
+            elif self.is_id_column_added:
                 self.delete_column_item('::id::integer-value')
                 self.statictext_increment_start.Hide()
                 self.textctrl_increment_start.Hide()
                 self.textctrl_increment_start.SetValue('1')
+                self.is_id_column_added = False
             table_page_panel.Layout()
 
         def create_index(event):
@@ -1244,12 +1329,14 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.push_query, execute_menuitem)
         self.file_menu.Append(execute_menuitem)
         commit_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
-                                      APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.COMMIT'] + '\t' + APP_PARAMETERS['KEY_COMMIT'])
+                                      APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.COMMIT'] + '\t' + APP_PARAMETERS[
+                                          'KEY_COMMIT'])
         commit_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/commit.png')))
         self.Bind(wx.EVT_MENU, self.commit_transaction, commit_menuitem)
         self.file_menu.Append(commit_menuitem)
         rollback_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
-                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.ROLLBACK'] + '\t' + APP_PARAMETERS['KEY_ROLLBACK'])
+                                        APP_TEXT_LABELS['MAIN.MAIN_MENU.FILE.ROLLBACK'] + '\t' + APP_PARAMETERS[
+                                            'KEY_ROLLBACK'])
         rollback_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/rollback.png')))
         self.Bind(wx.EVT_MENU, self.rollback_transaction, rollback_menuitem)
         self.file_menu.Append(rollback_menuitem)
@@ -1290,7 +1377,8 @@ class MainFrame(wx.Frame):
         view_test_databases_menuitem = wx.MenuItem(self.connect_menu, wx.ID_ANY,
                                                    APP_TEXT_LABELS['MAIN.MAIN_MENU.CONNECTIONS.TDB_VIEWER'] + '\t' +
                                                    APP_PARAMETERS['KEY_TDB_VIEWER'])
-        view_test_databases_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/marked list points.png')))
+        view_test_databases_menuitem.SetBitmap(
+            wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/marked list points.png')))
         self.Bind(wx.EVT_MENU, self.open_test_databases_info, view_test_databases_menuitem)
         self.connect_menu.Append(view_test_databases_menuitem)
 
@@ -1332,7 +1420,7 @@ class MainFrame(wx.Frame):
         self.tools_menu.AppendSeparator()
         filling_udb_menuitem = wx.MenuItem(self.tools_menu, wx.ID_ANY,
                                            APP_TEXT_LABELS['MAIN.MAIN_MENU.TOOLS.FILLING_UDB'] + '\t' + APP_PARAMETERS[
-                                             'KEY_FILLING_UDB'])
+                                               'KEY_FILLING_UDB'])
         filling_udb_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/import.png')))
         self.Bind(wx.EVT_MENU, self.open_filling_udb_wizard, filling_udb_menuitem)
         self.tools_menu.Append(filling_udb_menuitem)
@@ -1442,7 +1530,8 @@ class MainFrame(wx.Frame):
         self.database_image = self.image_database_items.Add(
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.invalid_db_image = self.image_database_items.Add(
-            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/delete database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/delete database.png'),
+                     wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.table_image = self.image_database_items.Add(wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/table.png'),
                                                                   wx.BITMAP_TYPE_PNG).ConvertToBitmap())
         self.treectrl_databases.AssignImageList(self.image_database_items)
@@ -1512,10 +1601,12 @@ class MainFrame(wx.Frame):
         self.statuses_sizer = wx.BoxSizer(wx.VERTICAL)
         self.statuses_panel.SetSizer(self.statuses_sizer)
 
-        self.connection_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.CONNECTION'],
+        self.connection_status_panel = MainFrame.StatusPanel(self.statuses_panel,
+                                                             APP_TEXT_LABELS['MAIN.STATUSBAR.CONNECTION'],
                                                              self.connection_status)
         self.statuses_sizer.Add(self.connection_status_panel, 0, wx.EXPAND)
-        self.transaction_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.TRANSACTION'],
+        self.transaction_status_panel = MainFrame.StatusPanel(self.statuses_panel,
+                                                              APP_TEXT_LABELS['MAIN.STATUSBAR.TRANSACTION'],
                                                               self.transaction_status)
         self.statuses_sizer.Add(self.transaction_status_panel, 0, wx.EXPAND)
         self.query_status_panel = MainFrame.StatusPanel(self.statuses_panel, APP_TEXT_LABELS['MAIN.STATUSBAR.QUERY'],
@@ -1551,13 +1642,15 @@ class MainFrame(wx.Frame):
         header_boxsizer = wx.BoxSizer(wx.HORIZONTAL)
         header_panel.SetSizer(header_boxsizer)
 
-        schema_name_statictext = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME'])
+        schema_name_statictext = wx.StaticText(header_panel,
+                                               label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.SCHEMA_NAME'])
         header_boxsizer.Add(schema_name_statictext, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
 
         self.schema_name_textctrl = wx.TextCtrl(header_panel, size=(-1, -1))
         header_boxsizer.Add(self.schema_name_textctrl, 1, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 10)
 
-        statictext_table_name = wx.StaticText(header_panel, label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
+        statictext_table_name = wx.StaticText(header_panel,
+                                              label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.TABLE_NAME'])
         header_boxsizer.Add(statictext_table_name, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 5)
 
         self.textctrl_table_name = wx.TextCtrl(header_panel, size=(-1, -1))
@@ -1600,11 +1693,23 @@ class MainFrame(wx.Frame):
                            (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
                            (wx.StaticText(table_columns_statictext_panel,
                                           label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.NOT_NULL'],
-                                          size=(75, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                                          size=(90, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0,
+                            wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
                            (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
                            (wx.StaticText(table_columns_statictext_panel,
                                           label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.UNIQUE'],
-                                          size=(75, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)])
+                                          size=(90, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0,
+                            wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.DEFAULTS'],
+                                          size=(150, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0,
+                            wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5),
+                           (wx.StaticLine(table_columns_statictext_panel, style=wx.LI_VERTICAL), 0, wx.EXPAND),
+                           (wx.StaticText(table_columns_statictext_panel,
+                                          label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.MAIN_PAGE.COMMENT'],
+                                          size=(150, -1), style=wx.ALIGN_CENTRE_HORIZONTAL), 0,
+                            wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)])
         # ----------------------------------------
         self.table_columns_sizer.Add(table_columns_statictext_panel, 0, wx.BOTTOM, 10)
         # ----------------------------------------
@@ -1681,7 +1786,8 @@ class MainFrame(wx.Frame):
         self.button_new_index = wx.Button(self.indexes_page_panel,
                                           label=APP_TEXT_LABELS['MAIN.MAIN_PANEL.INDEX_PAGE.NEW_INDEX'],
                                           style=wx.NO_BORDER)
-        self.button_new_index.SetBitmapLabel(wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/plus.png"), wx.BITMAP_TYPE_PNG))
+        self.button_new_index.SetBitmapLabel(
+            wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/plus.png"), wx.BITMAP_TYPE_PNG))
         self.button_new_index.SetBackgroundColour(wx.Colour(255, 255, 255))
         self.button_new_index.Bind(wx.EVT_ENTER_WINDOW,
                                    lambda x: self.button_new_index.SetCursor(wx.Cursor(wx.CURSOR_HAND)))
@@ -1751,9 +1857,10 @@ class AboutApp(wx.Frame):
         image_bitmap = wx.StaticBitmap(self.info_panel, -1, wx.BitmapFromImage(info_image))
         self.info_sizer.Add(image_bitmap, 0)
 
-        self.info_sizer.AddMany([(wx.StaticText(self.info_panel, label='SDForge ' + APP_VERSION + ', 2024'), 0, wx.TOP, 10),
-                                 (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
-                                 (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
+        self.info_sizer.AddMany(
+            [(wx.StaticText(self.info_panel, label='SDForge ' + APP_VERSION + ', 2024'), 0, wx.TOP, 10),
+             (wx.StaticText(self.info_panel, label='QWerProg - Дмитрий Степанов'), 0, wx.TOP, 10),
+             (wx.StaticText(self.info_panel, label='ds.qwerprog04@mail.ru'), 0)])
 
         self.sizer.Add(self.info_panel, 0, wx.ALL, 20)
         # ----------

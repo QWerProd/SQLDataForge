@@ -14,7 +14,7 @@
 		},
 		"VARCHAR": {
 			"size-required": "True",
-			"connectors": ["MySQL"]
+			"connectors": ["MySQL", "PostgreSQL"]
 		}
 	},
 	"integer-value": {

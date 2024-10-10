@@ -513,7 +513,7 @@ class NewTestConnection(wx.Dialog):
             result = bool
 
             try:
-                result = avaliable_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
+                result = available_connectors.get(conn_name).test_connection(self.conn_info['database-path'],
                 													         self.conn_info.get('database-username', '') + ':' + self.conn_info.get('database-password', ''),
                 													         self.conn_info.get('ssh-path', ''),
                 													         self.conn_info.get('ssh-user', '') + ':' + self.conn_info.get('ssh-pass', ''))

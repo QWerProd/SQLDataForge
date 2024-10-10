@@ -3,18 +3,33 @@
     "connector-name": "SQLite",
     "connection-type": "local_file",
     "connector-logo": "img/connectors/SQlite.png",
-    "default-schema": "main"
+    "default-schema": "main",
+    "available-params": {
+      "column-comment": "False",
+      "column-default": "True",
+      "schema": "True"
+    }
   },
   {
     "connector-name": "PostgreSQL",
     "connection-type": "server_host",
     "connector-logo": "img/connectors/PostgreSQL.png",
-    "default-schema": "public"
+    "default-schema": "public",
+    "available-params": {
+      "column-comment": "True",
+      "column-default": "True",
+      "schema": "True"
+    }
   },
   {
     "connector-name": "MySQL",
     "connection-type": "server_host",
     "connector-logo": "img/connectors/MySQL.png",
-    "default-schema": ""
+    "default-schema": "",
+    "available-params": {
+      "column-comment": "True",
+      "column-default": "True",
+      "schema": "False"
+    }
   }
 ]

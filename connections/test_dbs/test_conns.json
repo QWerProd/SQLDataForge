@@ -1,1 +1,17 @@
-[]
+[
+    {
+        "connection-type": "server_host",
+        "connector-name": "PostgreSQL",
+        "database-alias": "LocalPg",
+        "database-desc": "\u041b\u043e\u043a\u0430\u043b\u044c\u043d\u0430\u044f \u0411\u0414 Postgres",
+        "database-host": "localhost",
+        "database-name": "postgres",
+        "database-password": "postgres",
+        "database-path": "localhost:5432/postgres",
+        "database-port": "5432",
+        "database-type-conn": 1,
+        "database-username": "postgres",
+        "id": "6917adb6e2cf45bc1bd392e7863a0d91735ffd7f",
+        "ssh": false
+    }
+]
