@@ -52,7 +52,9 @@ APP_PARAMETERS = {
     'PATH_FOR_REPORTS': str,
     'PATH_FOR_SCRIPTS': str,
     'KEY_FILLING_UDB': str,
-    'STC_COLOUR_OBJECT': str
+    'STC_COLOUR_OBJECT': str,
+    'IS_COMMIT_CONFIRM': str,
+    'IS_ROLLBACK_CONFIRM': str
 }
 
 APP_LOCALES = {

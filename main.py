@@ -634,10 +634,19 @@ class MainFrame(wx.Frame):
             self.connection_status_panel.set_status(0)
             return catcher.error_message('E016', str(e) + '\n' + e.addition_info)
 
-    def commit_transaction(self, event):
+    def commit_transaction(self, event=None):
         if self.connection is None:
             return catcher.error_message('E019')
         elif self.is_transaction:
+            # Получение подтверждения выполнения фиксации данных
+            if APP_PARAMETERS['IS_COMMIT_CONFIRM'] == 'True':
+                result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.COMMIT_CONFIRMATION'],
+                                       APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_COMMIT'],
+                                       wx.YES | wx.NO_DEFAULT | wx.ICON_WARNING)
+                
+                if result == wx.NO:
+                    return
+
             try:
                 if self.connection.check_connection():
                     result, count_query, transaction_time = self.connection.commit()
@@ -667,10 +676,19 @@ class MainFrame(wx.Frame):
         else:
             return catcher.error_message('E020')
 
-    def rollback_transaction(self, event):
+    def rollback_transaction(self, event=None):
         if self.connection is None:
             return catcher.error_message('E019')
         elif self.is_transaction:
+            # Получение подтверждения выполнения отката данных
+            if APP_PARAMETERS['IS_ROLLBACK_CONFIRM'] == 'True':
+                result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.ROLLBACK_CONFIRMATION'],
+                                       APP_TEXT_LABELS['APP.SETTINGS.SYSTEM.HOTKEYS.KEY_ROLLBACK'],
+                                       wx.YES | wx.NO_DEFAULT | wx.ICON_WARNING)
+                
+                if result == wx.NO:
+                    return
+
             try:
                 if self.connection.check_connection():
                     result, count_query, transaction_time = self.connection.rollback()
@@ -1146,11 +1164,20 @@ class MainFrame(wx.Frame):
 
     ############################
 
-    def close_app(self, event):
-        if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True' or self.is_transaction:
+    def close_app(self, event=None):
+        if self.is_transaction:
+            result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_OPENED.MESSAGE'],
+                                   APP_TEXT_LABELS['MAIN.MESSAGE_BOX.TRANSACTION_OPENED.CAPTION'],
+                                   wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING)
+            if result == wx.YES:
+                self.commit_transaction()
+            else:
+                self.rollback_transaction()
+
+        if APP_PARAMETERS['IS_CATCH_CLOSING_APP'] == 'True':
             result = wx.MessageBox(APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.MESSAGE'],
                                    APP_TEXT_LABELS['MAIN.MESSAGE_BOX.CLOSE_APP.CAPTION'],
-                                   wx.YES_NO | wx.NO_DEFAULT, self)
+                                   wx.YES_NO | wx.NO_DEFAULT)
             if result == wx.YES:
                 self.Destroy()
                 if self.connection is not None:
