@@ -54,7 +54,8 @@ APP_PARAMETERS = {
     'KEY_FILLING_UDB': str,
     'STC_COLOUR_OBJECT': str,
     'IS_COMMIT_CONFIRM': str,
-    'IS_ROLLBACK_CONFIRM': str
+    'IS_ROLLBACK_CONFIRM': str,
+    'KEY_OPEN_SQL': str
 }
 
 APP_LOCALES = {

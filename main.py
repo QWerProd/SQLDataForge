@@ -965,6 +965,19 @@ class MainFrame(wx.Frame):
     def save_as(self, event):
         self.save_script()
 
+    def open_sql_script(self, event=None):
+        filepath = ''
+        with wx.FileDialog(self, APP_TEXT_LABELS['FILE_DIALOG.CAPTION_CHOOSE'],
+                           wildcard=APP_TEXT_LABELS['FILE_DIALOG.WILDCARD_SQL'],
+                           style=wx.FD_OPEN) as file_dialog:
+            if file_dialog.ShowModal() != wx.ID_OK:
+                return
+            
+            filepath = file_dialog.GetPath()
+
+        with open(filepath, mode='r', encoding="utf-8") as reader:
+            self.textctrl_sql.SetValue(reader.read())
+
     def clear_form(self, event):
         if self.is_generated is True and self.is_saved is False:
             dlg = wx.MessageDialog(self,
@@ -1337,6 +1350,11 @@ class MainFrame(wx.Frame):
 
         self.file_menu.AppendSeparator()
 
+        openfile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
+                                        APP_TEXT_LABELS['BUTTON.OPEN'] + '\t' + APP_PARAMETERS['KEY_OPEN_SQL'])
+        openfile_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/open.png')))
+        self.Bind(wx.EVT_MENU, self.open_sql_script, openfile_menuitem)
+        self.file_menu.Append(openfile_menuitem)
         savefile_menuitem = wx.MenuItem(self.file_menu, wx.ID_ANY,
                                         APP_TEXT_LABELS['BUTTON.SAVE'] + '\t' + APP_PARAMETERS['KEY_SAVE_SQL'])
         savefile_menuitem.SetBitmap(wx.Bitmap(os.path.join(APPLICATION_PATH, 'img/16x16/save.png')))
@@ -1491,6 +1509,9 @@ class MainFrame(wx.Frame):
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.REFRESH'])
         self.Bind(wx.EVT_TOOL, self.refresh, id=3)
         self.toolbar.AddSeparator()
+        self.toolbar.AddTool(13, "Открыть", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/open.png")),
+                             shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.OPEN'])
+        self.toolbar.Bind(wx.EVT_TOOL, self.open_sql_script, id=13)
         self.toolbar.AddTool(4, "Сохранить", wx.Bitmap(os.path.join(APPLICATION_PATH, "img/16x16/save.png")),
                              shortHelp=APP_TEXT_LABELS['MAIN.TOOLBAR.SHORTHELP.SAVE_SQL'])
         self.Bind(wx.EVT_TOOL, self.save, id=4)
