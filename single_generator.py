@@ -7,7 +7,7 @@ from data_controller import DataController
 from app.error_catcher import ErrorCatcher
 from app_parameters import APP_PARAMETERS, APP_TEXT_LABELS, APPLICATION_PATH
 from data.simple_generators.simple_gen import (
-     AcceleratorSimpleGenerator, RequiredDataMissedError, InvalidParamsError, ValidationParamsError
+     ControllerSimpleGenerator, RequiredDataMissedError, InvalidParamsError, ValidationParamsError
 )
 from data.simple_generators.simple_gen_inputs import (
     LabeledTextCtrl, LabeledComboBox, LabeledSpinCtrl, LabeledCheckBox, LabeledDataCtrl,
@@ -154,7 +154,7 @@ class SimpleGenerator(wx.Frame):
                 params.append(value)
 
         # Объявление генератора и собственно генерация + обертка
-        generator = AcceleratorSimpleGenerator(gen_type, self.open_code, params)
+        generator = ControllerSimpleGenerator(gen_type, self.open_code, params)
 
         try:
             result = generator.generate(count)

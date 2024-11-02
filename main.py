@@ -25,6 +25,7 @@ from connections.test_dbs.type_connectors import *
 from single_generator import SimpleGenerator
 from reports.report_wizard import ReportWizard
 from app.tools.udb_filling_master import UDBFillingMaster
+from libc.treecombo import TreeCombo
 from app_parameters import APP_TEXT_LABELS, APP_PARAMETERS, APP_LOCALES, APPLICATION_PATH, APP_VERSION, set_parameters
 
 catcher = ErrorCatcher(APP_PARAMETERS['APP_LANGUAGE'])
@@ -40,11 +41,13 @@ index_items = []
 # Редакторы кода для обновления стилей
 stc_redactors = []
 
+# Источники данных с кодами
+all_tables = {}
+
 
 class MainFrame(wx.Frame):
     tree_items = {}
     databases = ()
-    all_tables = {}
 
     # Тестовые подключения
     all_connections = []
@@ -104,6 +107,8 @@ class MainFrame(wx.Frame):
         coltype = ""
         colcode = ""
         available_fields = {}
+        datasources_list = {}
+        datasource_elems = {}
 
         @property
         def is_empty(self) -> bool:
@@ -179,6 +184,36 @@ class MainFrame(wx.Frame):
                 if field is not None:
                     field.SetEditable(value == 'True')
 
+        def set_datasource_list(self, list: dict):
+            self.datasources_list = list
+            icons_list = wx.ImageList(16, 16)
+            simple_item_icon = icons_list.Add(
+                wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/simple_source.png'), 
+                         wx.BITMAP_TYPE_ANY).ConvertToBitmap())
+            data_source_item_icon = icons_list.Add(
+                wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/database.png'), 
+                         wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            table_item_image = icons_list.Add(
+                wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/table.png'),
+                         wx.BITMAP_TYPE_PNG).ConvertToBitmap())
+            self.treectrl_colsource.AssignImageList(icons_list)
+            for chapter, values in list.items():
+                if chapter == 'simple':
+                    for elem in values:
+                        simple_item = self.treectrl_colsource.AddItem(elem[1])
+                        self.treectrl_colsource.SetItemImage(simple_item, simple_item_icon)
+                        self.datasource_elems[elem[1]] = ':'.join(('single', elem[0]))
+                else:
+                    parent_item = self.treectrl_colsource.AddItem(chapter)
+                    self.treectrl_colsource.SetItemImage(parent_item, data_source_item_icon)
+                    for elem in values:
+                        table_item = self.treectrl_colsource.AddItem(elem[1], parent_item)
+                        self.treectrl_colsource.SetItemImage(table_item, table_item_image)
+                        self.datasource_elems[elem[1]] = ':'.join(('database', elem[0]))
+
+        def set_column_datasource(self, datasource: str):
+            self.treectrl_colsource.SetValue(datasource)
+
         def get_column_name(self) -> str:
             return self.colname
 
@@ -202,6 +237,13 @@ class MainFrame(wx.Frame):
 
         def get_column_info(self) -> str:
             return self.column_info
+        
+        def get_column_datasource(self) -> str:
+            source = self.treectrl_colsource.GetValue()
+
+            for src, value in self.datasource_elems.items():
+                if source == src:
+                    return value
 
         def __init__(self, parent: wx.Panel, column_info: str = "", is_empty: bool = False):
             super().__init__(parent)
@@ -239,8 +281,9 @@ class MainFrame(wx.Frame):
             self.combobox_coltype = wx.ComboBox(self, size=(150, -1))
             sizer.Add(self.combobox_coltype, 0, wx.RIGHT, 5)
 
-            self.statictext_colcode = wx.StaticText(self, label=self.colcode, size=(200, -1))
-            sizer.Add(self.statictext_colcode, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 5)
+            self.treectrl_colsource = TreeCombo(self, size=(200, -1))
+            self.set_datasource_list(DataController.BuildDictOfGens())
+            sizer.Add(self.treectrl_colsource, 0, wx.RIGHT, 5)
 
             self.not_null_checkbox = wx.CheckBox(self, size=(60, -1), label='\t')
             self.not_null_checkbox.Enable(False)
@@ -452,11 +495,11 @@ class MainFrame(wx.Frame):
                         break
 
             # Поиск таблицы
-            for key in self.all_tables:
+            for key in all_tables:
                 if key != parent_name:
                     continue
                 else:
-                    for item in self.all_tables[key]:
+                    for item in all_tables[key]:
                         if item.find(activated) != -1:
                             add_act = key + ":" + item
                             break
@@ -716,8 +759,11 @@ class MainFrame(wx.Frame):
         else:
             return catcher.error_message('E020')
 
+
+    ########################################################
+    # TAG_COLUMNS_MANIPULATIONS_METHODS
     # Методы работы со столбцами
-    ############################
+    ########################################################
 
     def append_column_item(self, column_item: str, is_empty: bool = False):
         # Создаем столбец и инициализируем методы поведения в соответствии с типом коннектора и т.п.
@@ -727,6 +773,7 @@ class MainFrame(wx.Frame):
             colitem.set_available_params(self.available_params)
         if not is_empty:
             colitem.changing_column_type()
+            colitem.set_column_datasource(column_item.split(':')[3])
         self.column_items.append(colitem)
 
         # Обновляем значения списков у Индексов
@@ -858,7 +905,7 @@ class MainFrame(wx.Frame):
                     self.statusbar.SetStatusText(self.query_status, 0)
                     return
 
-                # Получение значений имен столбцов
+                # Получение значений столбцов
                 colinfo = []
                 for i in range(len(added_items)):
                     coldict = {'column_name': self.column_items[i + self.is_id_column].get_column_name(),
@@ -866,7 +913,8 @@ class MainFrame(wx.Frame):
                                'column_not_null': self.column_items[i + self.is_id_column].get_value_not_null(),
                                'column_unique': self.column_items[i + self.is_id_column].get_value_unique(),
                                'column_default': self.column_items[i + self.is_id_column].get_value_default(),
-                               'column_comment': self.column_items[i + self.is_id_column].get_value_comment()}
+                               'column_comment': self.column_items[i + self.is_id_column].get_value_comment(),
+                               'column_datasource': self.column_items[i + self.is_id_column].get_column_datasource()}
                     colinfo.append(coldict)
 
                 # Проверка имен столбцов на уникальность
@@ -879,6 +927,8 @@ class MainFrame(wx.Frame):
                     self.query_status = catcher.error_message('E007')
                     self.statusbar.SetStatusText(self.query_status, 0)
                     return
+                
+                # TODO: Добавить вставку column_datasource в added_items
 
                 # Генерация
                 with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
@@ -1023,8 +1073,9 @@ class MainFrame(wx.Frame):
         self.saved_status_panel.set_status(0)
 
     def refresh(self, event=None):
+        global all_tables
         self.treectrl_databases.DeleteChildren(self.treectrl_databases_root)
-        self.all_tables = DataController.GetTablesFromDB()
+        all_tables = DataController.GetTablesFromDB()
         self.databases = DataController.GetDatabases(False)
         self.set_databases_tree_items()
         self.set_conn_info()
@@ -1033,7 +1084,7 @@ class MainFrame(wx.Frame):
             colitem.changing_column_type()
 
     def set_databases_tree_items(self):
-        for key, value in self.all_tables.items():
+        for key, value in all_tables.items():
             temp_items = []
             udb_name_label = ''
             if APP_PARAMETERS['IS_ALIAS_UDB_USING'] == 'True':
@@ -1247,6 +1298,8 @@ class MainFrame(wx.Frame):
         self.SetIcon(wx.Icon(os.path.join(APPLICATION_PATH, 'img/main_icon.png'), wx.BITMAP_TYPE_PNG))
         self.Bind(wx.EVT_CLOSE, self.close_app)
         self.connection = None
+
+        global all_tables
 
         self.curr_connector = APP_PARAMETERS['DEFAULT_CONNECTOR']
         self.set_current_available_params(self.curr_connector)
@@ -1573,7 +1626,7 @@ class MainFrame(wx.Frame):
         self.treectrl_databases = wx.TreeCtrl(databases_panel,
                                               style=wx.TR_HIDE_ROOT | wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT)
         self.treectrl_databases_root = self.treectrl_databases.AddRoot('')
-        self.all_tables = DataController.GetTablesFromDB()
+        all_tables = DataController.GetTablesFromDB()
         self.image_database_items = wx.ImageList(16, 16)
         self.database_image = self.image_database_items.Add(
             wx.Image(os.path.join(APPLICATION_PATH, 'img/16x16/database.png'), wx.BITMAP_TYPE_PNG).ConvertToBitmap())

@@ -4,6 +4,7 @@ import uuid
 
 from data_controller import DataController as DC
 from app_parameters import APP_PARAMETERS, APPLICATION_PATH
+from data.simple_generators.simple_gen import ControllerSimpleGenerator as SGen
 import sqlite3
 import random as rd
 
@@ -36,8 +37,10 @@ class SQLGenerator:
         table_info: dict
         is_format_columns: bool
         session_uuid: str
+        gen_code: str
 
-        def __init__(self, cursor: sqlite3.Cursor, table: list, is_format_columns: bool = True, session_uuid: str = None):
+        def __init__(self, cursor: sqlite3.Cursor = None, table: list = None,
+                     is_format_columns: bool = True, session_uuid: str = None, gen_code: str = None):
             """Инициализация генератора
 
             Args:
@@ -45,22 +48,27 @@ class SQLGenerator:
                 table (list): Сведения о таблице (имя БД, имя таблицы, имя столбца, код генератора, тип столбца)
                 is_format_columns (bool, optional): Необходимо ли форматировать генерируемые значения. Defaults to True.
                 session_uuid (str): UUID сессии генерации
+                gen_code (str): код простого генератора
             """
             self.datalist = []
             self.cursor = cursor
             self.table_info = table
             self.is_format_columns = is_format_columns
             self.session_uuid = session_uuid
+            self.gen_code = gen_code
 
         def generate_data(self, row_count: int) -> list:
             """Генерация списка с определенным количеством строк данных"""
             pass
 
-        def format_value(self, value: str) -> str:
+        def format_value(self, value: str, data_type: str = None) -> str:
             """Форматирует значение в соответствии с переданным типом"""
             formatted_value = ''
+            if data_type is None:
+                data_type = self.table_info[4]
+
             try:
-                if self.table_info[4] in ('text-value', 'date-value'):
+                if data_type in ('text-value', 'date-value'):
                     formatted_value = f"'{value}'"
                 else:
                     formatted_value = f"{value}"
@@ -68,7 +76,7 @@ class SQLGenerator:
                 return formatted_value
 
             except ValueError:
-                raise ColumnTypeNotAllowedError(self.table_info[2], self.table_info[4])
+                raise ColumnTypeNotAllowedError(self.table_info[2], data_type)
 
         def get_datalist(self) -> list:
             return self.datalist
@@ -218,6 +226,26 @@ class SQLGenerator:
                 self.datalist.append(value)
 
             return self.datalist
+        
+    class RSGenerator(RGenerator):
+
+        generator: SGen
+        
+        def __init__(self, gen_code, is_format_columns = True, session_uuid = None):
+            super().__init__(gen_code, is_format_columns, session_uuid)
+            self.generator = SGen('user_input', gen_code)
+
+        def generate_data(self, row_count: int) -> list:
+            data = self.generator.generate(row_count)
+            data_type = self.generator.get_data_type()
+            for i in range(row_count):
+                if self.is_format_columns:
+                    value = super().format_value(data[i], data_type)
+                else:
+                    value = data[i]
+                self.datalist.append(value)
+            return self.datalist
+
 
     def __init__(self, app_conn: sqlite3.Connection, rows_count: int, added_items: list, columns_info: list,
                  table_info: dict = None, indexes: list = None, is_simple_mode: bool = False, is_format_columns: bool = True):
@@ -354,6 +382,7 @@ class SQLGenerator:
                 connects.append([conn, database[0]])
                 cursor = conn.cursor()
 
+                # TODO: Добавить вилку по типу генератора (simple, database)
                 for item in temp_cols:
                     if item[0] == database[0]:
                         query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
@@ -457,5 +486,6 @@ generators = {
     'RValue': SQLGenerator.RValueGenerator,
     'RDate': SQLGenerator.RDateGenerator,
     'RChain': SQLGenerator.RChainGenerator,
-    'RIDSet': SQLGenerator.RowIDSetGenerator
+    'RIDSet': SQLGenerator.RowIDSetGenerator,
+    'SGen': SQLGenerator.RSGenerator
 }

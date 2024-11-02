@@ -68,23 +68,25 @@ APP_VERSION = 'v.2.1'
 APP_TEXT_LABELS = dict()
 
 # Установка параметров
-curs = app_conn.cursor()
 
 # Перезапись параметров из БД
 def set_parameters():
-    for param in APP_PARAMETERS.keys():
-        try:
-            param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
-            APP_PARAMETERS[param] = param_name[0]
-        except sqlite3.OperationalError as e:
-            #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
-            exit(14)
-        except TypeError:
-            pass
+    with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
+        curs = app_conn.cursor()    
+        for param in APP_PARAMETERS.keys():
+            try:
+                param_name = curs.execute(f"SELECT param_value FROM t_params WHERE param_name = '{param}';").fetchone()
+                APP_PARAMETERS[param] = param_name[0]
+            except sqlite3.OperationalError as e:
+                #catcher.error_message('E014', 'sqlite_errorname: ' + e.sqlite_errorname)
+                exit(14)
+            except TypeError:
+                pass
         
 set_parameters()
 
 # Установка словаря с текстом для labels
+curs = app_conn.cursor()    
 try:
     text_labels = curs.execute(f"""SELECT label, text
                                    FROM t_lang_text
