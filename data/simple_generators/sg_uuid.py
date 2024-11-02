@@ -4,6 +4,10 @@ import uuid
 class GeneratorUUID:
 
     @staticmethod
+    def get_data_type() -> str:
+        return 'text-value'
+
+    @staticmethod
     def validate(version: str = '4', param: str = None) -> bool:
         params = {
             '1': False,

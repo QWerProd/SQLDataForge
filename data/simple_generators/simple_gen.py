@@ -3,16 +3,17 @@ import json
 import sqlite3
 
 from app_parameters import APPLICATION_PATH
-from sql_generator import SQLGenerator
 
 
 class SimpleDataFromDBGenerator:
 
     gen_code: str
-    generator: SQLGenerator
-    app_conn: SQLGenerator
+    generator: object
+    app_conn: sqlite3.Connection
     
     def __init__(self, gen_code: str) -> None:
+        from sql_generator import SQLGenerator
+
         self.gen_code = gen_code
         self.app_conn = sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db'))
         self.generator = SQLGenerator(self.app_conn, 1, self.gen_code.split(':'), [self.gen_code.split(':')[1], ],
@@ -74,7 +75,15 @@ class SimpleDataFromInputGenerator:
         return ret
 
 
-class AcceleratorSimpleGenerator:
+class ControllerSimpleGenerator:
+    """Контроллер простых генераторов
+       Запускает разные типы генераторов
+       
+    Args:
+        gen_type (str ('user_input' | 'user_db')): тип генератора (пользовательский | из пБД)
+        gen_code (str): Код генератора
+        params (list, optional): Дополнительные параметры (для 'user_input'). Defaults to ().
+    """
 
     generator = object
     gen_types = {

@@ -3,6 +3,10 @@ import random
 class GeneratorNumber:
 
     @staticmethod
+    def get_data_type() -> str:
+        return 'integer-value'
+
+    @staticmethod
     def validate(min_value: str, max_value: str):
         return True if int(min_value) < int(max_value) else False
 

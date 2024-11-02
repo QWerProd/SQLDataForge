@@ -5,6 +5,10 @@ from datetime import datetime, timedelta
 class GeneratorDate:
 
     @staticmethod
+    def get_data_type() -> str:
+        return 'date-value'
+
+    @staticmethod
     def validate(min_str_date: str, max_str_date: str, format_date: str = '%d.%m.%Y') -> bool:
         min_date = datetime.strptime(min_str_date, '%Y-%m-%d')
         max_date = datetime.strptime(max_str_date, '%Y-%m-%d')
