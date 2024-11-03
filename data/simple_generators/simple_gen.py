@@ -11,7 +11,7 @@ class SimpleDataFromDBGenerator:
     generator: object
     app_conn: sqlite3.Connection
     
-    def __init__(self, gen_code: str) -> None:
+    def __init__(self, gen_code: str, is_use_default: None):
         from sql_generator import SQLGenerator
 
         self.gen_code = gen_code
@@ -20,6 +20,9 @@ class SimpleDataFromDBGenerator:
                                       is_format_columns=False, is_simple_mode=True)
         self.gen_code = gen_code
 
+    def get_data_type(self) -> None:
+        pass
+    
     def generate(self, rows_count: int, params: list = []) -> list:
         gen_data = self.generator.GenerateValues(rows_count=rows_count)
         for val in gen_data.values():
@@ -33,9 +36,11 @@ class SimpleDataFromInputGenerator:
     generator_class: object
     req_params: int
     validate: bool
+    is_use_default: bool
     
-    def __init__(self, gen_code: str) -> None:
+    def __init__(self, gen_code: str, is_use_default: bool = False):
         self.gen_code = gen_code
+        self.is_use_default = is_use_default
         
         # Чтение JSON с простыми генераторами
         simple_generators = []
@@ -53,13 +58,18 @@ class SimpleDataFromInputGenerator:
                 self.validate = gen_object['validate']
                 break
 
+    def get_data_type(self) -> str:
+        return self.generator_class.get_data_type()
+    
     def generate(self, rows_count: int, params: list = []) -> list:
-        if self.req_params != len(params):
-            raise RequiredDataMissedError(str(self.req_params), str(len(params)))
+        if not self.is_use_default:
+            if self.req_params != len(params):
+                raise RequiredDataMissedError(str(self.req_params), str(len(params)))
         
         is_valid = True
-        if self.validate:
-            is_valid = self.generator_class.validate(*params)
+        if not self.is_use_default:
+            if self.validate:
+                is_valid = self.generator_class.validate(*params)
         
         if not is_valid:
             raise ValidationParamsError()
@@ -92,11 +102,16 @@ class ControllerSimpleGenerator:
     }
     gen_code = str
     params = list
+    is_use_default = bool
 
-    def __init__(self, gen_type: str, gen_code: str, params: list = ()) -> None:
+    def __init__(self, gen_type: str, gen_code: str, params: list = (), is_use_default: bool = False) -> None:
         self.gen_code = gen_code
         self.params = params
-        self.generator = self.gen_types.get(gen_type)(self.gen_code)
+        self.is_use_default = is_use_default
+        self.generator = self.gen_types.get(gen_type)(self.gen_code, is_use_default)
+
+    def get_data_type(self) -> str:
+        return self.generator.get_data_type()
 
     def generate(self, row_count: int) -> list:
         return self.generator.generate(row_count, self.params)

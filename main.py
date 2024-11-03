@@ -929,12 +929,20 @@ class MainFrame(wx.Frame):
                     return
                 
                 # TODO: Добавить вставку column_datasource в added_items
+                added_items_v2 = []
+                for i in range(len(added_items)):
+                    elem_added_items = added_items[i].split(':')
+                    elem_datasource = colinfo[i].get('column_datasource').split(':')
+                    if elem_datasource[0] == 'single':
+                        added_items_v2.append(':'.join(elem_datasource))
+                    else:
+                        added_items_v2.append(':'.join(elem_added_items))
 
                 # Генерация
                 with sqlite3.connect(os.path.join(APPLICATION_PATH, 'app/app.db')) as app_conn:
                     cursor = app_conn.cursor()
                     start_build_time = datetime.now()
-                    builder = SQLGenerator(app_conn, rows_count, added_items, colinfo, table_info, indexes_info)
+                    builder = SQLGenerator(app_conn, rows_count, added_items_v2, colinfo, table_info, indexes_info)
                     query = ''
                     query += builder.BuildQuery(self.is_create_table)
                     build_time = datetime.now() - start_build_time

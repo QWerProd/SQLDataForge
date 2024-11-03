@@ -231,9 +231,9 @@ class SQLGenerator:
 
         generator: SGen
         
-        def __init__(self, gen_code, is_format_columns = True, session_uuid = None):
+        def __init__(self, gen_code: str, is_format_columns = True, session_uuid = None):
             super().__init__(gen_code, is_format_columns, session_uuid)
-            self.generator = SGen('user_input', gen_code)
+            self.generator = SGen('user_input', gen_code, is_use_default=True)
 
         def generate_data(self, row_count: int) -> list:
             data = self.generator.generate(row_count)
@@ -369,7 +369,7 @@ class SQLGenerator:
             # Собираем краткие сведения о колонках для дальнейшей обработки
             temp_cols = []
             for colnames in self.added_items:
-                temp_cols.append([colnames.split(':')[0], colnames.split(':')[1], colnames.split(':')[2], colnames.split(':')[4]])
+                temp_cols.append(colnames.split(':'))
 
             for database in databases:
                 if not database[1].startswith('C:'):
@@ -384,37 +384,44 @@ class SQLGenerator:
 
                 # TODO: Добавить вилку по типу генератора (simple, database)
                 for item in temp_cols:
-                    if item[0] == database[0]:
-                        query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
-                                    FROM t_cases_info
-                                    WHERE table_name = "{item[1]}"
-                                    AND   column_name = "{item[2]}";"""
-                        col_info = cursor.execute(query).fetchone()
-                        self.cols.append(col_info)
+                    if item[0] == 'single':
+                        self.cols.append((*item, item[1], 'SGen', 'text-value'))
+                    else:
+                        if item[0] == database[0]:
+                            query = f"""SELECT '{item[0]}', table_name, column_name, gen_key, column_type
+                                        FROM t_cases_info
+                                        WHERE table_name = "{item[1]}"
+                                        AND   column_name = "{item[2]}";"""
+                            col_info = cursor.execute(query).fetchone()
+                            self.cols.append(col_info)
 
             # Сортировка колонок в соответствии с порядком
-            ordered_cols = []
-            for item in self.added_items:
-                for col in self.cols:
-                    if f'{col[0]}:{col[1]}:{col[2]}' in item:
-                        ordered_cols.append(col)
-                        break
-            self.cols = ordered_cols
+            # ordered_cols = []
+            # for item in self.added_items:
+            #     for col in self.cols:
+            #         if f'{col[0]}:{col[1]}:{col[2]}' in item:
+            #             ordered_cols.append(col)
+            #             break
+            # self.cols = ordered_cols
 
             # Цикл генерации данных каждому столбцу
             for table in self.cols:
-
+                
                 # Устанавливаем текущее подключение и курсор к БД
-                loc_conn = sqlite3.Connection
-                for conn_row in connects:
-                    if conn_row[1] == table[0]:
-                        loc_conn = conn_row[0]
-                        break
-
-                cursor = loc_conn.cursor()
+                gen_params = list()
+                if table[0] != 'single':
+                    loc_conn = sqlite3.Connection
+                    for conn_row in connects:
+                        if conn_row[1] == table[0]:
+                            loc_conn = conn_row[0]
+                            break
+                    cursor = loc_conn.cursor()
+                    gen_params = (cursor, table, self.is_format_columns, self.session_uuid)
+                else:
+                    gen_params = (table[1], self.is_format_columns, self.session_uuid)
 
                 # Инициализация необходимого класса коннектора
-                generator = generators.get(table[3])(cursor, table, self.is_format_columns, self.session_uuid)
+                generator = generators.get(table[3])(*gen_params)
                 datadict[table[0] + ':' + table[1] + ':' + table[2] + ':' + table[4]] = generator.generate_data(self.rows_count)
 
                 cursor.close()

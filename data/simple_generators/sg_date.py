@@ -21,7 +21,9 @@ class GeneratorDate:
             return True
 
     @staticmethod
-    def generate(min_str_date: str, max_str_date: str, format_date: str = '%d.%m.%Y') -> str:
+    def generate(min_str_date: str = datetime.strftime(datetime.now() - timedelta(days=365), '%Y-%m-%d'),
+                 max_str_date: str = datetime.strftime(datetime.now(), '%Y-%m-%d'),
+                 format_date: str = '%d.%m.%Y') -> str:
         min_date = datetime.strptime(min_str_date, '%Y-%m-%d')
         max_date = datetime.strptime(max_str_date, '%Y-%m-%d')
 
